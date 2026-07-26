@@ -6,7 +6,6 @@ import {
   META_PIXEL_ID,
   trackMetaEvent,
 } from "../lib/metaPixel";
-import { STARTER_PRODUCT } from "../lib/musicProducts";
 
 type Consent = "granted" | "denied" | null;
 
@@ -44,9 +43,9 @@ function initializePixel() {
   window.fbq("track", "PageView");
   if (window.location.pathname.startsWith("/checkout")) {
     trackMetaEvent("ViewContent", {
-      content_name: STARTER_PRODUCT.name,
+      content_name: "Conta grátis Academia Música IA",
       content_type: "product",
-      value: STARTER_PRODUCT.priceCents / 100,
+      value: 0,
       currency: "BRL",
     });
   }

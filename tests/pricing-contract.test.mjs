@@ -8,7 +8,7 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("starter price and credit grant stay aligned across frontend and backend", async () => {
+test("public checkout is free while optional starter credits stay aligned", async () => {
   const [frontend, backend, checkoutHtml] = await Promise.all([
     source("app/lib/musicProducts.ts"),
     source("infra/checkout/index.mjs"),
@@ -17,8 +17,10 @@ test("starter price and credit grant stay aligned across frontend and backend", 
 
   assert.match(frontend, /id: "starter_20"[\s\S]*?priceCents: 4_997[\s\S]*?credits: 20/);
   assert.match(backend, /starter_20:[\s\S]*?value: 4_997[\s\S]*?credits: 20/);
-  assert.match(checkoutHtml, /20 músicas incluídas/);
-  assert.match(checkoutHtml, /R\$49,97/);
+  assert.match(checkoutHtml, /Uma música grátis todos os dias/);
+  assert.match(checkoutHtml, /R\$<\/small>0/);
+  assert.match(checkoutHtml, /Criar minha conta grátis/);
+  assert.doesNotMatch(checkoutHtml, /R\$49,97/);
   assert.doesNotMatch(checkoutHtml, /R\$197/);
 });
 
@@ -75,4 +77,52 @@ test("mobile purchase flow keeps checkout and five destinations usable", async (
   assert.match(experience, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
   assert.doesNotMatch(confirmation, /`purchase_\$\{orderId\}`/);
   assert.match(confirmation, /history\.replaceState/);
+});
+
+test("free account uses verified email and privacy-safe abuse controls", async () => {
+  const [backend, access, homeHtml] = await Promise.all([
+    source("infra/checkout/index.mjs"),
+    source("app/lib/access.ts"),
+    source("dist/client/index.html"),
+  ]);
+
+  assert.match(access, /AWSCognitoIdentityProviderService\.\$\{target\}/);
+  assert.match(access, /ConfirmSignUp/);
+  assert.match(backend, /verifyCognitoIdToken/);
+  assert.match(backend, /path === "\/v1\/auth\/exchange"/);
+  assert.match(backend, /status: \{ S: "FREE" \}/);
+  assert.match(backend, /free_account_device/);
+  assert.match(backend, /free_account_ip_window/);
+  assert.match(homeHtml, /uma música grátis por dia/i);
+  assert.doesNotMatch(backend, /macAddress|rawIp/);
+});
+
+test("daily free generation exposes one track and does not spend credits", async () => {
+  const backend = await source("infra/checkout/index.mjs");
+
+  assert.match(backend, /name: \{ S: "free_daily_music" \}/);
+  assert.match(backend, /":name": \{ S: "free_daily_attempt" \}/);
+  assert.match(backend, /FREE_DAILY_ATTEMPT_LIMIT = 3/);
+  assert.match(backend, /reservationType: "FREE_DAILY"/);
+  assert.match(backend, /reservationType !== "CREDITS"/);
+  assert.match(backend, /trackLimit: 1/);
+  assert.match(backend, /allTracks\.slice\(0, trackLimit\)/);
+  assert.match(backend, /dailyFreeAvailable/);
+  assert.match(backend, /freeDailyAttemptsRemaining/);
+  assert.match(await source("app/biblioteca/gerador/page.tsx"), /reservationType: dailyFreeAvailable \? "FREE_DAILY" : "CREDITS"/);
+});
+
+test("login redirect and Cognito key rotation are hardened", async () => {
+  const [login, backend, deploy] = await Promise.all([
+    source("app/login/AccessLogin.tsx"),
+    source("infra/checkout/index.mjs"),
+    source("infra/deploy-checkout.sh"),
+  ]);
+
+  assert.match(login, /destination\.origin === window\.location\.origin/);
+  assert.match(login, /destination\.pathname\.startsWith\("\/biblioteca\/"\)/);
+  assert.match(backend, /cognitoJwks\(issuer, true\)/);
+  assert.match(backend, /cachedCognitoJwksFetchedAt/);
+  assert.match(backend, /cachedCognitoJwksForcedRefreshAt/);
+  assert.match(deploy, /EXPECTED_COGNITO_CLIENT_ID/);
 });

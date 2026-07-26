@@ -16,6 +16,51 @@ SUNO_API_KEY_PARAMETER="/academia-musica/prod/suno/api-key"
 IMAGE_PROXY_KEY_PARAMETER="/academia-musica/prod/image-proxy-key"
 COVERS_BUCKET="academia-musica-covers-${ACCOUNT_ID}-${AWS_REGION}"
 SITE_ORIGIN="https://musicacom.ia.br"
+COGNITO_POOL_NAME="academia-musica-users"
+COGNITO_CLIENT_NAME="academia-musica-web"
+EXPECTED_COGNITO_CLIENT_ID="${EXPECTED_COGNITO_CLIENT_ID:-375mcuenagmq50eellircoljq6}"
+
+COGNITO_USER_POOL_ID="$(aws cognito-idp list-user-pools \
+  --region "$AWS_REGION" \
+  --max-results 60 \
+  --query "UserPools[?Name=='${COGNITO_POOL_NAME}'].Id | [0]" \
+  --output text)"
+if [[ "$COGNITO_USER_POOL_ID" == "None" || -z "$COGNITO_USER_POOL_ID" ]]; then
+  COGNITO_USER_POOL_ID="$(aws cognito-idp create-user-pool \
+    --region "$AWS_REGION" \
+    --pool-name "$COGNITO_POOL_NAME" \
+    --username-attributes email \
+    --auto-verified-attributes email \
+    --policies 'PasswordPolicy={MinimumLength=8,RequireUppercase=true,RequireLowercase=true,RequireNumbers=true,RequireSymbols=false,TemporaryPasswordValidityDays=7}' \
+    --account-recovery-setting 'RecoveryMechanisms=[{Priority=1,Name=verified_email}]' \
+    --user-attribute-update-settings 'AttributesRequireVerificationBeforeUpdate=[email]' \
+    --query UserPool.Id \
+    --output text)"
+fi
+
+COGNITO_CLIENT_ID="$(aws cognito-idp list-user-pool-clients \
+  --region "$AWS_REGION" \
+  --user-pool-id "$COGNITO_USER_POOL_ID" \
+  --max-results 60 \
+  --query "UserPoolClients[?ClientName=='${COGNITO_CLIENT_NAME}'].ClientId | [0]" \
+  --output text)"
+if [[ "$COGNITO_CLIENT_ID" == "None" || -z "$COGNITO_CLIENT_ID" ]]; then
+  COGNITO_CLIENT_ID="$(aws cognito-idp create-user-pool-client \
+    --region "$AWS_REGION" \
+    --user-pool-id "$COGNITO_USER_POOL_ID" \
+    --client-name "$COGNITO_CLIENT_NAME" \
+    --no-generate-secret \
+    --explicit-auth-flows ALLOW_USER_PASSWORD_AUTH ALLOW_REFRESH_TOKEN_AUTH \
+    --prevent-user-existence-errors ENABLED \
+    --enable-token-revocation \
+    --query UserPoolClient.ClientId \
+    --output text)"
+fi
+
+if [[ "$COGNITO_CLIENT_ID" != "$EXPECTED_COGNITO_CLIENT_ID" ]]; then
+  echo "Cognito client mismatch: frontend=${EXPECTED_COGNITO_CLIENT_ID} aws=${COGNITO_CLIENT_ID}" >&2
+  exit 1
+fi
 
 if ! aws dynamodb describe-table --region "$AWS_REGION" --table-name "$TABLE_NAME" >/dev/null 2>&1; then
   aws dynamodb create-table \
@@ -175,7 +220,7 @@ cp infra/checkout/index.mjs "$PACKAGE_DIR/index.mjs"
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
 # MUSIC_TRACKS_INCLUDED preserves the original 25-credit grant for legacy orders.
 # New purchases persist their product-specific balance directly in DynamoDB.
-ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},COVERS_BUCKET=${COVERS_BUCKET},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},IMAGE_PROXY_KEY_PARAMETER=${IMAGE_PROXY_KEY_PARAMETER},IMAGE_API_URL=https://academiamusica-image-proxy.fellipesaraivabarbosa.workers.dev,IMAGE_MODEL=cx/gpt-5.5,MUSIC_TRACKS_INCLUDED=25,MUSIC_CONVERSATION_ENABLED=true,MUSIC_CONVERSATION_MODEL=us.amazon.nova-2-lite-v1:0}"
+ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},COVERS_BUCKET=${COVERS_BUCKET},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID},COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID},WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},IMAGE_PROXY_KEY_PARAMETER=${IMAGE_PROXY_KEY_PARAMETER},IMAGE_API_URL=https://academiamusica-image-proxy.fellipesaraivabarbosa.workers.dev,IMAGE_MODEL=cx/gpt-5.5,MUSIC_TRACKS_INCLUDED=25,MUSIC_CONVERSATION_ENABLED=true,MUSIC_CONVERSATION_MODEL=us.amazon.nova-2-lite-v1:0}"
 
 if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAME" >/dev/null 2>&1; then
   aws lambda wait function-active-v2 --region "$AWS_REGION" --function-name "$FUNCTION_NAME"

@@ -11,14 +11,14 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://musicacom.ia.br"),
   title: "A plataforma de geração de música 100% brasileirada",
   description:
-    "Transforme sua ideia em duas músicas, escolha ritmos brasileiros, crie a capa e organize seu repertório em uma só plataforma.",
+    "Crie uma música grátis por dia, explore ritmos brasileiros e organize seu repertório em uma plataforma feita para o Brasil.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "A plataforma de geração de música 100% brasileirada",
     description:
-      "Da ideia ao play: música, repertório, capa e tutorial em uma experiência feita para o Brasil.",
+      "Uma música grátis por dia, sem cartão: criação, repertório, capa e tutorial em uma experiência feita para o Brasil.",
     url: "https://musicacom.ia.br",
     siteName: "Academia Música IA",
     locale: "pt_BR",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "A plataforma de geração de música 100% brasileirada",
     description:
-      "Crie duas versões, escolha a favorita e dê identidade ao seu lançamento.",
+      "Crie uma música grátis por dia, organize seu repertório e dê identidade ao seu lançamento.",
     images: ["https://musicacom.ia.br/og.png"],
   },
   icons: {

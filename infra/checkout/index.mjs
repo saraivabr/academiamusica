@@ -34,6 +34,9 @@ const SITE_ORIGIN = process.env.SITE_ORIGIN ?? "https://musicacom.ia.br";
 const WOOVI_BASE_URL = "https://api.woovi.com/api/v1";
 const SUNO_BASE_URL = "https://api.sunoapi.org/api/v1";
 const PUBLIC_API_URL = process.env.PUBLIC_API_URL;
+const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;
+const COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID;
+const AWS_REGION = process.env.AWS_REGION ?? "us-east-1";
 const MUSIC_TRACKS_INCLUDED = Number(process.env.MUSIC_TRACKS_INCLUDED ?? "25");
 const MUSIC_TRACKS_PER_GENERATION = 2;
 const MAX_LIBRARY_GENERATIONS = 100;
@@ -47,6 +50,7 @@ const IMAGE_MODEL = process.env.IMAGE_MODEL ?? "cx/gpt-5.5";
 const IMAGE_PROXY_KEY_PARAMETER = process.env.IMAGE_PROXY_KEY_PARAMETER;
 const MUSIC_CONVERSATION_DAILY_LIMIT = 60;
 const MUSIC_COVER_DAILY_LIMIT = 10;
+const FREE_DAILY_ATTEMPT_LIMIT = 3;
 const MUSIC_CONVERSATION_TOOL = "deliver_music_plan";
 const SUNO_GENERATION_COST_ESTIMATE = 12;
 const MUSIC_MODEL = "V5";
@@ -130,6 +134,9 @@ const ALLOWED_CLIENT_EVENTS = new Set([
 let cachedSecrets;
 let cachedSunoApiKey;
 let cachedImageProxyKey;
+let cachedCognitoJwks;
+let cachedCognitoJwksFetchedAt = 0;
+let cachedCognitoJwksForcedRefreshAt = 0;
 
 const response = (statusCode, body, extraHeaders = {}) => ({
   statusCode,
@@ -223,6 +230,59 @@ function normalizeSubscriptionAddress(body) {
 
 function safeString(value, maxLength = 500) {
   return String(value ?? "").slice(0, maxLength);
+}
+
+function decodeJwtPart(value) {
+  try {
+    return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function requestIp(event) {
+  return safeString(
+    event.requestContext?.http?.sourceIp
+      || event.headers?.["x-forwarded-for"]?.split(",")[0],
+    80,
+  ).trim();
+}
+
+function saoPauloDay() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function freeDailyMarkerId(accountId, day = saoPauloDay()) {
+  return `free_daily_${day}_${crypto.createHash("sha256").update(accountId).digest("hex")}`;
+}
+
+function freeDailyAttemptId(accountId, day = saoPauloDay()) {
+  return `free_daily_attempt_${day}_${crypto.createHash("sha256").update(accountId).digest("hex")}`;
+}
+
+async function freeDailyState(order) {
+  const [marker, attempts] = await Promise.all([
+    dynamo.send(new GetItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: freeDailyMarkerId(order.id) } },
+      ConsistentRead: true,
+    })),
+    dynamo.send(new GetItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: freeDailyAttemptId(order.id) } },
+      ConsistentRead: true,
+    })),
+  ]);
+  const attemptCount = Number(attempts.Item?.attemptCount?.N ?? "0");
+  return {
+    available: !marker.Item && attemptCount < FREE_DAILY_ATTEMPT_LIMIT,
+    attemptsRemaining: Math.max(0, FREE_DAILY_ATTEMPT_LIMIT - attemptCount),
+  };
 }
 
 function normalizeConversationId(value) {
@@ -466,6 +526,8 @@ function itemToOrder(item) {
     subscriptionGlobalId: item.subscriptionGlobalId?.S,
     subscriptionStatus: item.subscriptionStatus?.S,
     activeSubscriptionOrderId: item.activeSubscriptionOrderId?.S,
+    accountType: item.accountType?.S,
+    cognitoSub: item.cognitoSub?.S,
     sessionId: item.sessionId?.S,
     source: item.source?.S,
     medium: item.medium?.S,
@@ -492,11 +554,13 @@ function publicOrder(order) {
 }
 
 function accountCreditsGranted(order) {
+  if (order.status === "FREE") return Number(order.musicCreditsGranted ?? 0);
   if (Number.isFinite(order.musicCreditsGranted)) return order.musicCreditsGranted;
   return MUSIC_TRACKS_INCLUDED;
 }
 
 function accountCreditsBalance(order) {
+  if (order.status === "FREE" && !Number.isFinite(order.musicCreditsBalance)) return 0;
   if (Number.isFinite(order.musicCreditsBalance)) return order.musicCreditsBalance;
   return Math.max(
     0,
@@ -739,6 +803,217 @@ function memberToken(event) {
   return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
 }
 
+async function cognitoJwks(issuer, forceRefresh = false) {
+  const now = Date.now();
+  const stale = Date.now() - cachedCognitoJwksFetchedAt > 6 * 60 * 60 * 1_000;
+  if (
+    forceRefresh
+    && cachedCognitoJwks
+    && now - cachedCognitoJwksForcedRefreshAt < 60_000
+  ) {
+    return cachedCognitoJwks;
+  }
+  if (forceRefresh || !cachedCognitoJwks || stale) {
+    const result = await fetch(`${issuer}/.well-known/jwks.json`, {
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!result.ok) throw new Error("Cognito public keys are unavailable");
+    cachedCognitoJwks = await result.json();
+    cachedCognitoJwksFetchedAt = now;
+    if (forceRefresh) cachedCognitoJwksForcedRefreshAt = now;
+  }
+  return cachedCognitoJwks;
+}
+
+async function verifyCognitoIdToken(token) {
+  const parts = safeString(token, 8_000).split(".");
+  if (parts.length !== 3 || !COGNITO_USER_POOL_ID || !COGNITO_CLIENT_ID) return null;
+  const header = decodeJwtPart(parts[0]);
+  const payload = decodeJwtPart(parts[1]);
+  const issuer = `https://cognito-idp.${AWS_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`;
+  if (
+    header?.alg !== "RS256"
+    || !header.kid
+    || payload?.iss !== issuer
+    || payload?.aud !== COGNITO_CLIENT_ID
+    || payload?.token_use !== "id"
+    || Number(payload?.exp) <= Math.floor(Date.now() / 1000)
+    || !payload?.sub
+    || !normalizeEmail(payload?.email)
+    || payload?.email_verified !== true
+  ) return null;
+
+  let jwk = (await cognitoJwks(issuer)).keys?.find((item) => item.kid === header.kid);
+  if (!jwk) {
+    jwk = (await cognitoJwks(issuer, true)).keys?.find((item) => item.kid === header.kid);
+  }
+  if (!jwk) return null;
+  const verifier = crypto.createVerify("RSA-SHA256");
+  verifier.update(`${parts[0]}.${parts[1]}`);
+  verifier.end();
+  return verifier.verify(crypto.createPublicKey({ key: jwk, format: "jwk" }), parts[2], "base64url")
+    ? payload
+    : null;
+}
+
+async function issueMemberAccess(account) {
+  const { accessSecret } = await getSecrets();
+  const sessionDays = account.status === "FREE" ? 30 : 180;
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * sessionDays;
+  const payload = `v1.${expiresAt}.${account.id}`;
+  const signature = crypto.createHmac("sha256", accessSecret).update(payload).digest("hex");
+  return {
+    token: `${payload}.${signature}`,
+    expiresAt: new Date(expiresAt * 1000).toISOString(),
+  };
+}
+
+async function applyAuthRateLimit(event, subject) {
+  const { accessSecret } = await getSecrets();
+  const window = Math.floor(Date.now() / (15 * 60 * 1_000));
+  const fingerprint = crypto
+    .createHmac("sha256", accessSecret)
+    .update(`${requestIp(event)}:${safeString(subject, 160)}:${window}`)
+    .digest("hex");
+  const id = `auth_rate_${fingerprint}`;
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: id } },
+      UpdateExpression: "SET #name = :name, #ttl = :ttl ADD attemptCount :one",
+      ConditionExpression: "attribute_not_exists(attemptCount) OR attemptCount < :limit",
+      ExpressionAttributeNames: { "#name": "name", "#ttl": "ttl" },
+      ExpressionAttributeValues: {
+        ":name": { S: "auth_attempt" },
+        ":ttl": { N: String(Math.floor(Date.now() / 1000) + 30 * 60) },
+        ":one": { N: "1" },
+        ":limit": { N: "10" },
+      },
+    }));
+    return true;
+  } catch (error) {
+    if (error instanceof ConditionalCheckFailedException) return false;
+    throw error;
+  }
+}
+
+async function exchangeCognitoAccess(event) {
+  let body;
+  try {
+    body = readBody(event);
+  } catch {
+    return response(400, { error: "Dados de acesso inválidos." });
+  }
+  const deviceId = safeString(body.deviceId, 80).trim();
+  if (!/^[a-zA-Z0-9_-]{24,80}$/.test(deviceId)) {
+    return response(400, { error: "Não foi possível validar este dispositivo." });
+  }
+  const tokenPayload = await verifyCognitoIdToken(body.idToken);
+  if (!tokenPayload) return response(401, { error: "Confirme seu e-mail e entre novamente." });
+  if (!(await applyAuthRateLimit(event, tokenPayload.sub))) {
+    return response(429, { error: "Muitas tentativas. Aguarde 15 minutos." });
+  }
+
+  const { accessSecret } = await getSecrets();
+  const accountId = `ami_${crypto
+    .createHmac("sha256", accessSecret)
+    .update(`cognito:${tokenPayload.sub}`)
+    .digest("hex")
+    .slice(0, 28)}`;
+  let account = await findOrder(accountId);
+  if (!account) {
+    const deviceHash = crypto
+      .createHmac("sha256", accessSecret)
+      .update(`device:${deviceId}`)
+      .digest("hex");
+    const month = saoPauloDay().slice(0, 7);
+    const ipHash = crypto
+      .createHmac("sha256", accessSecret)
+      .update(`signup-ip:${month}:${requestIp(event)}`)
+      .digest("hex");
+    const now = new Date().toISOString();
+    try {
+      await dynamo.send(new TransactWriteItemsCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: TABLE_NAME,
+              Item: {
+                id: { S: accountId },
+                status: { S: "FREE" },
+                accountType: { S: "free" },
+                cognitoSub: { S: safeString(tokenPayload.sub, 80) },
+                email: { S: normalizeEmail(tokenPayload.email) },
+                name: { S: normalizeName(tokenPayload.name) || normalizeEmail(tokenPayload.email).split("@")[0] },
+                musicCreditsGranted: { N: "0" },
+                musicCreditsBalance: { N: "0" },
+                sunoGenerationCount: { N: "0" },
+                createdAt: { S: now },
+                updatedAt: { S: now },
+              },
+              ConditionExpression: "attribute_not_exists(id)",
+            },
+          },
+          {
+            Put: {
+              TableName: EVENTS_TABLE_NAME,
+              Item: {
+                id: { S: `free_device_${deviceHash}` },
+                name: { S: "free_account_device" },
+                accountOrderId: { S: accountId },
+                createdAt: { S: now },
+                ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365) },
+              },
+              ConditionExpression: "attribute_not_exists(id)",
+            },
+          },
+          {
+            Update: {
+              TableName: EVENTS_TABLE_NAME,
+              Key: { id: { S: `free_ip_${ipHash}` } },
+              UpdateExpression: "SET #name = :name, #ttl = :ttl ADD accountCount :one",
+              ConditionExpression: "attribute_not_exists(accountCount) OR accountCount < :limit",
+              ExpressionAttributeNames: { "#name": "name", "#ttl": "ttl" },
+              ExpressionAttributeValues: {
+                ":name": { S: "free_account_ip_window" },
+                ":ttl": { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 35) },
+                ":one": { N: "1" },
+                ":limit": { N: "3" },
+              },
+            },
+          },
+        ],
+      }));
+    } catch (error) {
+      if (
+        error instanceof TransactionCanceledException
+        || error.name === "TransactionCanceledException"
+      ) {
+        account = await findOrder(accountId);
+        if (!account) {
+          return response(429, {
+            error: "O limite de contas gratuitas deste dispositivo ou rede foi atingido.",
+          });
+        }
+      } else {
+        throw error;
+      }
+    }
+    account = account || await findOrder(accountId);
+  }
+  if (!account || !["FREE", "PAID", "OWNER"].includes(account.status)) {
+    return response(403, { error: "Esta conta não está disponível." });
+  }
+  return response(200, {
+    access: await issueMemberAccess(account),
+    account: {
+      name: account.name,
+      email: account.email,
+      plan: account.accountType || "free",
+    },
+  });
+}
+
 async function authorizeMember(event) {
   const token = memberToken(event);
   const parts = token.split(".");
@@ -769,7 +1044,7 @@ async function authorizeMember(event) {
   }
 
   const order = await findOrder(orderId);
-  return order && (order.status === "PAID" || order.status === "OWNER")
+  return order && ["FREE", "PAID", "OWNER"].includes(order.status)
     ? order
     : null;
 }
@@ -848,8 +1123,76 @@ async function ensureMusicCreditBalance(order) {
   };
 }
 
-async function reserveSunoGeneration(inputOrder) {
+async function reserveSunoGeneration(inputOrder, reservationType) {
   const order = await ensureMusicCreditBalance(inputOrder);
+  if (reservationType === "FREE_DAILY") {
+    const dailyMarkerId = freeDailyMarkerId(order.id);
+    const dailyAttemptId = freeDailyAttemptId(order.id);
+    try {
+      await dynamo.send(new TransactWriteItemsCommand({
+        TransactItems: [
+          {
+            Put: {
+              TableName: EVENTS_TABLE_NAME,
+              Item: {
+                id: { S: dailyMarkerId },
+                name: { S: "free_daily_music" },
+                accountOrderId: { S: order.id },
+                createdAt: { S: new Date().toISOString() },
+                ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 72) },
+              },
+              ConditionExpression: "attribute_not_exists(id)",
+            },
+          },
+          {
+            Update: {
+              TableName: EVENTS_TABLE_NAME,
+              Key: { id: { S: dailyAttemptId } },
+              UpdateExpression: "SET #name = :name, #ttl = :ttl ADD attemptCount :one",
+              ConditionExpression: "attribute_not_exists(attemptCount) OR attemptCount < :attemptLimit",
+              ExpressionAttributeNames: { "#name": "name", "#ttl": "ttl" },
+              ExpressionAttributeValues: {
+                ":name": { S: "free_daily_attempt" },
+                ":ttl": { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 72) },
+                ":one": { N: "1" },
+                ":attemptLimit": { N: String(FREE_DAILY_ATTEMPT_LIMIT) },
+              },
+            },
+          },
+          {
+            Update: {
+              TableName: TABLE_NAME,
+              Key: { id: { S: order.id } },
+              UpdateExpression: "SET sunoGenerationCount = if_not_exists(sunoGenerationCount, :zero) + :one",
+              ConditionExpression: "attribute_exists(id) AND (#status = :free OR #status = :paid OR #status = :owner)",
+              ExpressionAttributeNames: { "#status": "status" },
+              ExpressionAttributeValues: {
+                ":zero": { N: "0" },
+                ":one": { N: "1" },
+                ":free": { S: "FREE" },
+                ":paid": { S: "PAID" },
+                ":owner": { S: "OWNER" },
+              },
+            },
+          },
+        ],
+      }));
+      return {
+        remainingSongs: accountCreditsBalance(order),
+        reservationType: "FREE_DAILY",
+        trackLimit: 1,
+        dailyMarkerId,
+      };
+    } catch (error) {
+      if (
+        !(error instanceof TransactionCanceledException)
+        && error.name !== "TransactionCanceledException"
+      ) throw error;
+      return null;
+    }
+  }
+
+  if (reservationType !== "CREDITS") return null;
   try {
     const result = await dynamo.send(new UpdateItemCommand({
       TableName: TABLE_NAME,
@@ -865,13 +1208,18 @@ async function reserveSunoGeneration(inputOrder) {
       },
       ReturnValues: "UPDATED_NEW",
     }));
-    return Number(result.Attributes?.musicCreditsBalance?.N ?? "0");
+    return {
+      remainingSongs: Number(result.Attributes?.musicCreditsBalance?.N ?? "0"),
+      reservationType: "CREDITS",
+      trackLimit: MUSIC_TRACKS_PER_GENERATION,
+    };
   } catch (error) {
     if (error instanceof ConditionalCheckFailedException) {
       // The former 25-song package promised 13 two-version rounds. Its final
       // odd credit therefore keeps the historical bonus version.
       if (
         !order.productId
+        && order.accountType !== "free"
         && MUSIC_TRACKS_INCLUDED % MUSIC_TRACKS_PER_GENERATION !== 0
         && accountCreditsBalance(order) === 1
       ) {
@@ -890,7 +1238,11 @@ async function reserveSunoGeneration(inputOrder) {
             },
             ReturnValues: "UPDATED_NEW",
           }));
-          return Number(legacyResult.Attributes?.musicCreditsBalance?.N ?? "0");
+          return {
+            remainingSongs: Number(legacyResult.Attributes?.musicCreditsBalance?.N ?? "0"),
+            reservationType: "CREDITS",
+            trackLimit: MUSIC_TRACKS_PER_GENERATION,
+          };
         } catch (legacyError) {
           if (legacyError instanceof ConditionalCheckFailedException) return null;
           throw legacyError;
@@ -1082,8 +1434,34 @@ async function createMusicConversation(event) {
   });
 }
 
-async function releaseSunoGeneration(orderId) {
+async function releaseSunoGeneration(orderId, reservation = { reservationType: "CREDITS" }) {
   try {
+    if (reservation.reservationType === "FREE_DAILY" && reservation.dailyMarkerId) {
+      await dynamo.send(new TransactWriteItemsCommand({
+        TransactItems: [
+          {
+            Delete: {
+              TableName: EVENTS_TABLE_NAME,
+              Key: { id: { S: reservation.dailyMarkerId } },
+              ConditionExpression: "attribute_exists(id)",
+            },
+          },
+          {
+            Update: {
+              TableName: TABLE_NAME,
+              Key: { id: { S: orderId } },
+              UpdateExpression: "ADD sunoGenerationCount :minusOne",
+              ConditionExpression: "sunoGenerationCount > :zero",
+              ExpressionAttributeValues: {
+                ":minusOne": { N: "-1" },
+                ":zero": { N: "0" },
+              },
+            },
+          },
+        ],
+      }));
+      return;
+    }
     await dynamo.send(new UpdateItemCommand({
       TableName: TABLE_NAME,
       Key: { id: { S: orderId } },
@@ -1103,7 +1481,7 @@ async function releaseSunoGeneration(orderId) {
   }
 }
 
-async function rememberSunoTask(taskId, orderId) {
+async function rememberSunoTask(taskId, orderId, reservation) {
   await dynamo.send(new PutItemCommand({
     TableName: EVENTS_TABLE_NAME,
     Item: {
@@ -1111,6 +1489,11 @@ async function rememberSunoTask(taskId, orderId) {
       name: { S: "suno_generation_started" },
       orderId: { S: orderId },
       providerTaskId: { S: taskId },
+      reservationType: { S: reservation.reservationType },
+      trackLimit: { N: String(reservation.trackLimit) },
+      ...(reservation.dailyMarkerId
+        ? { dailyMarkerId: { S: reservation.dailyMarkerId } }
+        : {}),
       createdAt: { S: new Date().toISOString() },
     },
     ConditionExpression: "attribute_not_exists(id)",
@@ -1774,7 +2157,9 @@ async function getMusicLibrary(event) {
       taskId,
       createdAt: item.createdAt?.S ?? "",
       status,
-      tracks,
+      tracks: SUNO_FAILED_STATUSES.has(status)
+        ? []
+        : tracks.slice(0, Number(item.trackLimit?.N ?? MUSIC_TRACKS_PER_GENERATION)),
       error: error || null,
     };
   }));
@@ -1797,23 +2182,28 @@ async function getMusicLibrary(event) {
     })),
   })));
 
+  const dailyState = await freeDailyState(order);
   return response(200, {
     generations: generationsWithCovers,
     remainingSongs: remainingMusicTracks(order),
     includedSongs: accountCreditsGranted(order),
+    dailyFreeAvailable: dailyState.available,
+    freeDailyAttemptsRemaining: dailyState.attemptsRemaining,
   });
 }
 
-async function ownsSunoTask(taskId, orderId) {
+async function sunoTaskItem(taskId) {
   const result = await dynamo.send(new GetItemCommand({
     TableName: EVENTS_TABLE_NAME,
     Key: { id: { S: `suno_task_${taskId}` } },
     ConsistentRead: true,
   }));
-  return result.Item?.orderId?.S === orderId;
+  return result.Item;
 }
 
 async function refundFailedSunoTask(taskId, orderId) {
+  const task = await sunoTaskItem(taskId);
+  const isFreeDaily = task?.reservationType?.S === "FREE_DAILY";
   try {
     const refundedAt = new Date().toISOString();
     await dynamo.send(new TransactWriteItemsCommand({
@@ -1830,16 +2220,29 @@ async function refundFailedSunoTask(taskId, orderId) {
             },
           },
         },
+        ...(isFreeDaily
+          ? [{
+              Delete: {
+                TableName: EVENTS_TABLE_NAME,
+                Key: { id: { S: task.dailyMarkerId.S } },
+                ConditionExpression: "attribute_exists(id)",
+              },
+            }]
+          : []),
         {
           Update: {
             TableName: TABLE_NAME,
             Key: { id: { S: orderId } },
-            UpdateExpression: "ADD sunoGenerationCount :minusOne, musicCreditsBalance :tracks",
+            UpdateExpression: isFreeDaily
+              ? "ADD sunoGenerationCount :minusOne"
+              : "ADD sunoGenerationCount :minusOne, musicCreditsBalance :tracks",
             ConditionExpression: "attribute_exists(id) AND sunoGenerationCount >= :one",
             ExpressionAttributeValues: {
               ":minusOne": { N: "-1" },
               ":one": { N: "1" },
-              ":tracks": { N: String(MUSIC_TRACKS_PER_GENERATION) },
+              ...(!isFreeDaily
+                ? { ":tracks": { N: String(MUSIC_TRACKS_PER_GENERATION) } }
+                : {}),
             },
           },
         },
@@ -1871,12 +2274,16 @@ async function getSunoCredits(event) {
     }
   }
   const credits = await sunoRequest("/generate/credit", { method: "GET" });
+  const dailyState = await freeDailyState(order);
   return response(200, {
     available: Number(credits) >= SUNO_GENERATION_COST_ESTIMATE,
     conversationAvailable: MUSIC_CONVERSATION_ENABLED,
     remainingSongs: remainingMusicTracks(order),
     includedSongs: accountCreditsGranted(order),
     songsPerGeneration: MUSIC_TRACKS_PER_GENERATION,
+    dailyFreeAvailable: dailyState.available,
+    freeDailyAttemptsRemaining: dailyState.attemptsRemaining,
+    freeSongsPerDay: 1,
   });
 }
 
@@ -1901,10 +2308,20 @@ async function createSunoGeneration(event) {
     throw new Error("Music callback URL is unavailable");
   }
 
-  const remainingSongs = await reserveSunoGeneration(order);
-  if (remainingSongs === null) {
-    return response(429, {
-      error: "Seu saldo acabou. Faça uma recarga para continuar criando.",
+  const reservationType = body.reservationType === "FREE_DAILY"
+    ? "FREE_DAILY"
+    : body.reservationType === "CREDITS"
+      ? "CREDITS"
+      : "";
+  if (!reservationType) {
+    return response(409, { error: "Atualize a página antes de confirmar esta criação." });
+  }
+  const reservation = await reserveSunoGeneration(order, reservationType);
+  if (reservation === null) {
+    return response(reservationType === "FREE_DAILY" ? 409 : 429, {
+      error: reservationType === "FREE_DAILY"
+        ? "A música grátis de hoje não está mais disponível. Atualize a página para ver seu saldo."
+        : "Seu saldo acabou. Faça uma recarga para continuar criando.",
     });
   }
 
@@ -1921,32 +2338,34 @@ async function createSunoGeneration(event) {
       }),
     });
   } catch (error) {
-    await releaseSunoGeneration(order.id);
+    await releaseSunoGeneration(order.id, reservation);
     throw error;
   }
   const taskId = safeString(data?.taskId, 100);
   if (!/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)) {
-    await releaseSunoGeneration(order.id);
+    await releaseSunoGeneration(order.id, reservation);
     throw new Error("O serviço não devolveu um identificador de geração válido.");
   }
   try {
-    await rememberSunoTask(taskId, order.id);
+    await rememberSunoTask(taskId, order.id, reservation);
   } catch (error) {
-    await releaseSunoGeneration(order.id);
+    await releaseSunoGeneration(order.id, reservation);
     throw error;
   }
   await recordMemberMusicEvent(
     order,
     "music_generation_confirmed",
     `music_generation_confirmed_${taskId}`,
-    MUSIC_TRACKS_PER_GENERATION,
+    reservation.trackLimit,
   );
   return response(202, {
     taskId,
     status: "PENDING",
     conversationId,
     mode,
-    remainingSongs,
+    remainingSongs: reservation.remainingSongs,
+    dailyFreeUsed: reservation.reservationType === "FREE_DAILY",
+    trackLimit: reservation.trackLimit,
     includedSongs: accountCreditsGranted(order),
   });
 }
@@ -1954,9 +2373,12 @@ async function createSunoGeneration(event) {
 async function getSunoGeneration(event, taskId) {
   const order = await authorizeMember(event);
   if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+  const task = /^[a-zA-Z0-9_-]{8,100}$/.test(taskId)
+    ? await sunoTaskItem(taskId)
+    : null;
   if (
     !/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)
-    || !(await ownsSunoTask(taskId, order.id))
+    || task?.orderId?.S !== order.id
   ) {
     return response(404, { error: "Geração não encontrada para este acesso." });
   }
@@ -1966,12 +2388,14 @@ async function getSunoGeneration(event, taskId) {
     { method: "GET" },
   );
   const status = safeString(data?.status || "PENDING", 40);
-  const tracks = (data?.response?.sunoData ?? []).map(normalizeSunoTrack);
+  const allTracks = (data?.response?.sunoData ?? []).map(normalizeSunoTrack);
   const failed = SUNO_FAILED_STATUSES.has(status);
+  const trackLimit = Number(task.trackLimit?.N ?? MUSIC_TRACKS_PER_GENERATION);
+  const tracks = failed ? [] : allTracks.slice(0, trackLimit);
   const errorMessage = failed
     ? safeString(data?.errorMessage || "A geração falhou. Ajuste a direção e tente novamente.", 240)
     : "";
-  await rememberSunoTaskSnapshot(taskId, order.id, status, tracks, errorMessage);
+  await rememberSunoTaskSnapshot(taskId, order.id, status, allTracks, errorMessage);
   const refunded = failed
     ? await refundFailedSunoTask(taskId, order.id)
     : false;
@@ -1983,14 +2407,19 @@ async function getSunoGeneration(event, taskId) {
       tracks.length,
     );
   }
+  const dailyStateAfterFailure = refunded && task.reservationType?.S === "FREE_DAILY"
+    ? await freeDailyState(order)
+    : null;
   return response(200, {
     taskId,
     status,
     tracks,
     error: errorMessage || null,
     remainingSongs: refunded
-      ? accountCreditsBalance(order) + MUSIC_TRACKS_PER_GENERATION
+      ? accountCreditsBalance(order) + (task.reservationType?.S === "FREE_DAILY" ? 0 : MUSIC_TRACKS_PER_GENERATION)
       : undefined,
+    dailyFreeAvailable: dailyStateAfterFailure?.available,
+    freeDailyAttemptsRemaining: dailyStateAfterFailure?.attemptsRemaining,
   });
 }
 
@@ -2432,13 +2861,14 @@ async function createCreditCheckout(event) {
         TableName: TABLE_NAME,
         Key: { id: { S: account.id } },
         UpdateExpression: "SET activeSubscriptionOrderId = :orderId, updatedAt = :updatedAt",
-        ConditionExpression: "attribute_exists(id) AND (#status = :paid OR #status = :owner)",
+        ConditionExpression: "attribute_exists(id) AND (#status = :free OR #status = :paid OR #status = :owner)",
         ExpressionAttributeNames: { "#status": "status" },
         ExpressionAttributeValues: {
           ":orderId": { S: orderId },
           ":updatedAt": { S: new Date().toISOString() },
           ":paid": { S: "PAID" },
           ":owner": { S: "OWNER" },
+          ":free": { S: "FREE" },
         },
       }));
     } else {
@@ -2590,12 +3020,13 @@ async function markPaid(orderId, charge) {
               TableName: TABLE_NAME,
               Key: { id: { S: order.accountOrderId } },
               UpdateExpression: "ADD musicCreditsGranted :credits, musicCreditsBalance :credits",
-              ConditionExpression: "attribute_exists(id) AND (#status = :paid OR #status = :owner)",
+              ConditionExpression: "attribute_exists(id) AND (#status = :free OR #status = :paid OR #status = :owner)",
               ExpressionAttributeNames: { "#status": "status" },
               ExpressionAttributeValues: {
                 ":credits": { N: String(order.credits) },
                 ":paid": { S: "PAID" },
                 ":owner": { S: "OWNER" },
+                ":free": { S: "FREE" },
               },
             },
           },
@@ -2687,12 +3118,13 @@ async function applySubscriptionInstallment(order, installment) {
             TableName: TABLE_NAME,
             Key: { id: { S: order.accountOrderId } },
             UpdateExpression: "ADD musicCreditsGranted :credits, musicCreditsBalance :credits",
-            ConditionExpression: "attribute_exists(id) AND (#status = :paid OR #status = :owner)",
+            ConditionExpression: "attribute_exists(id) AND (#status = :free OR #status = :paid OR #status = :owner)",
             ExpressionAttributeNames: { "#status": "status" },
             ExpressionAttributeValues: {
               ":credits": { N: String(order.credits) },
               ":paid": { S: "PAID" },
               ":owner": { S: "OWNER" },
+              ":free": { S: "FREE" },
             },
           },
         },
@@ -2828,10 +3260,6 @@ async function claimAccess(event) {
     return response(403, { error: "Pagamento ainda não confirmado para este código." });
   }
 
-  const { accessSecret } = await getSecrets();
-  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 180;
-  const payload = `v1.${expiresAt}.${orderId}`;
-  const signature = crypto.createHmac("sha256", accessSecret).update(payload).digest("hex");
   if (order.status === "PAID") {
     await recordFunnelEvent({
       id: `access_activated_${orderId}`,
@@ -2846,10 +3274,7 @@ async function claimAccess(event) {
     });
   }
   return response(200, {
-    access: {
-      token: `${payload}.${signature}`,
-      expiresAt: new Date(expiresAt * 1000).toISOString(),
-    },
+    access: await issueMemberAccess(order),
   });
 }
 
@@ -2876,6 +3301,9 @@ export const handler = async (event) => {
     }
     if (method === "POST" && path === "/v1/webhooks/woovi") return await handleWebhook(event);
     if (method === "POST" && path === "/v1/access/claim") return await claimAccess(event);
+    if (method === "POST" && path === "/v1/auth/exchange") {
+      return await exchangeCognitoAccess(event);
+    }
     if (
       method === "GET"
       && (path === "/v1/music/availability" || path === "/v1/suno/credits")

@@ -2423,6 +2423,23 @@
   font-style: normal;
 }
 
+.academy-signout {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: #7d867f;
+  padding: 12px 4px;
+  text-align: left;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.academy-signout:hover {
+  color: #fff;
+}
+
 .express-academy .academy-main {
   background:
     radial-gradient(circle at 56% -12%, rgba(30, 215, 96, .12), transparent 27%),

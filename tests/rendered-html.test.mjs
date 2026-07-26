@@ -61,7 +61,7 @@ test("renders the express music creator without the conversational studio", asyn
   const html = await response.text();
   assert.match(html, /CRIADOR EXPRESS/i);
   assert.match(html, /Uma ideia\. Algumas escolhas\./i);
-  assert.match(html, /Criar duas músicas/i);
+  assert.match(html, /uma música grátis por dia/i);
   assert.doesNotMatch(html, /Crie sua música em uma conversa/i);
   assert.doesNotMatch(html, /Produtor IA está pensando/i);
 });

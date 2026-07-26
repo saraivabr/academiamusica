@@ -68,6 +68,7 @@ function orderExpired(order: CreditOrder) {
 
 export default function CreditosPage() {
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
+  const [dailyFreeAvailable, setDailyFreeAvailable] = useState(false);
   const [selected, setSelected] = useState<MusicProduct | null>(null);
   const [order, setOrder] = useState<CreditOrder | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -78,6 +79,7 @@ export default function CreditosPage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const pollingFailures = useRef(0);
+  const selectedProductId = selected?.id;
 
   const pricePerSong = useMemo(() => {
     if (!selected) return "";
@@ -86,7 +88,10 @@ export default function CreditosPage() {
 
   function refreshBalance() {
     memberApi("/v1/music/availability")
-      .then((data) => setRemainingSongs(Number(data.remainingSongs)))
+      .then((data) => {
+        setRemainingSongs(Number(data.remainingSongs));
+        setDailyFreeAvailable(Boolean(data.dailyFreeAvailable));
+      })
       .catch(() => setRemainingSongs(null));
   }
 
@@ -109,14 +114,14 @@ export default function CreditosPage() {
         if (!response.ok || !data.order) throw new Error("Pagamento indisponível.");
         pollingFailures.current = 0;
         if (orderExpired(data.order)) {
-          if (selected) clearIdempotencyKey(selected.id);
+          if (selectedProductId) clearIdempotencyKey(selectedProductId);
           setOrder(null);
           setError("Esse Pix expirou. Escolha o pacote novamente para gerar um novo código.");
           return;
         }
         setOrder(data.order);
         if (data.order.status === "PAID") {
-          window.sessionStorage.removeItem(`academia-credit-checkout-${selected?.id}`);
+          window.sessionStorage.removeItem(`academia-credit-checkout-${selectedProductId}`);
           refreshBalance();
           return;
         }
@@ -133,7 +138,7 @@ export default function CreditosPage() {
       cancelled = true;
       if (timeout) window.clearTimeout(timeout);
     };
-  }, [order?.id, order?.status, selected?.id]);
+  }, [order?.id, order?.status, selectedProductId]);
 
   function chooseProduct(product: MusicProduct) {
     setSelected(product);
@@ -196,13 +201,16 @@ export default function CreditosPage() {
         <div>
           <small>SEU SALDO AGORA</small>
           <strong>{remainingSongs ?? "—"}</strong>
-          <span>músicas disponíveis</span>
+          <span>créditos disponíveis</span>
+          <em>{dailyFreeAvailable
+            ? "+ 1 música grátis hoje"
+            : "Sua música grátis volta amanhã"}</em>
         </div>
         <div>
           <h2>Escolha como continuar.</h2>
           <p>
-            Recarga não vence. No Clube, os créditos entram depois de cada
-            mensalidade paga e se somam ao saldo que você já tem.
+            Comprar é opcional: a música grátis volta todos os dias. A recarga
+            não vence; no Clube, os créditos entram após cada mensalidade paga.
           </p>
         </div>
       </section>

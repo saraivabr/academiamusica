@@ -130,7 +130,7 @@ export default function Academia() {
         <div className="platform-feature-copy">
           <small>SEU PRÓXIMO LANÇAMENTO</small>
           <h2>Conte uma história.<br />Saia com uma música.</h2>
-          <p>Você escolhe o essencial. A plataforma cria duas versões, organiza a capa e ajuda a preparar tudo para publicar.</p>
+          <p>Você escolhe o essencial. A plataforma libera uma música grátis por dia, organiza a capa e ajuda a preparar tudo para publicar.</p>
           <div>
             <Link href="/biblioteca/gerador" className="platform-primary-action">
               <span aria-hidden="true">▶</span> Começar agora

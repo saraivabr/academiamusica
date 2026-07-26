@@ -35,6 +35,7 @@ function formatDuration(value: number | null) {
 export default function Biblioteca() {
   const [generations, setGenerations] = useState<PlatformGeneration[]>([]);
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
+  const [dailyFreeAvailable, setDailyFreeAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -45,6 +46,7 @@ export default function Biblioteca() {
         if (!active) return;
         setGenerations(Array.isArray(data.generations) ? data.generations : []);
         setRemainingSongs(Number(data.remainingSongs));
+        setDailyFreeAvailable(Boolean(data.dailyFreeAvailable));
       })
       .catch((requestError) => {
         if (!active) return;
@@ -103,7 +105,9 @@ export default function Biblioteca() {
             ▶
           </button>
           <Link href="/biblioteca/gerador">＋ Nova música</Link>
-          <span>{remainingSongs ?? "—"} créditos disponíveis</span>
+          <span>{dailyFreeAvailable
+            ? "1 música grátis disponível hoje"
+            : `${remainingSongs ?? "—"} créditos disponíveis`}</span>
         </div>
 
         <header className="spotify-track-header">
@@ -127,9 +131,9 @@ export default function Biblioteca() {
         ) : trackCount === 0 ? (
           <div className="music-library-state empty">
             <small>AINDA ESTÁ VAZIA</small>
-            <h3>Sua primeira dupla vai aparecer aqui.</h3>
-            <p>Converse com o Produtor IA, confirme a direção e crie duas versões para comparar.</p>
-            <Link href="/biblioteca/gerador">Criar minhas primeiras músicas →</Link>
+            <h3>Sua primeira música vai aparecer aqui.</h3>
+            <p>Conte sua ideia, escolha a direção e use a criação grátis de hoje.</p>
+            <Link href="/biblioteca/gerador">Criar minha música grátis →</Link>
           </div>
         ) : (
           <div className="spotify-track-list">

@@ -2,12 +2,13 @@ import { LegalPage } from "../components/Portal";
 
 export default function Privacidade() {
   return (
-    <LegalPage title="Política de privacidade" updated="26 de julho de 2026">
+    <LegalPage title="Política de privacidade" updated="27 de julho de 2026">
       <h2>1. Quem controla os dados</h2>
       <p>A Academia Música IA é responsável pelas decisões sobre o tratamento realizado dentro da plataforma. Solicitações podem ser encaminhadas pelo canal oficial indicado na página de suporte.</p>
 
       <h2>2. Dados tratados</h2>
-      <p>Tratamos nome, e-mail, telefone informado voluntariamente, identificadores do pedido, situação do pagamento, dados de acesso, suporte, progresso e informações técnicas necessárias para segurança e entrega da experiência. Na assinatura via Pix Automático, CPF e endereço são enviados ao provedor de pagamento para criar e administrar a autorização recorrente.</p>
+      <p>Tratamos nome, e-mail confirmado, telefone informado voluntariamente, identificadores da conta e do pedido, situação do pagamento, dados de acesso, suporte, progresso e informações técnicas necessárias para segurança e entrega da experiência. Na assinatura via Pix Automático, CPF e endereço são enviados ao provedor de pagamento para criar e administrar a autorização recorrente.</p>
+      <p>Para impedir múltiplas contas gratuitas, usamos um identificador aleatório salvo no dispositivo e uma representação criptográfica temporária do endereço de rede. Não coletamos endereço MAC, não armazenamos o IP em formato legível nesses controles e limitamos a retenção dos marcadores antifraude.</p>
 
       <h2>3. Conversa e criação com inteligência artificial</h2>
       <p>As mensagens enviadas ao Produtor IA são processadas para organizar a direção musical e gerar a resposta. O conteúdo da conversa permanece salvo no dispositivo do aluno e não é armazenado pela Academia em sua base de métricas. Quando o ditado do navegador é usado, a Academia recebe o texto transcrito, não o arquivo de áudio; o tratamento do microfone também depende das regras do navegador e do dispositivo.</p>
@@ -24,7 +25,7 @@ export default function Privacidade() {
       <p>Você pode recusar a medição publicitária e continuar usando os recursos essenciais. O consentimento poderá ser revogado pelo controle de privacidade apresentado no site ou mediante solicitação ao suporte, sem afetar tratamentos realizados anteriormente de forma legítima.</p>
 
       <h2>7. Compartilhamento e operadores</h2>
-      <p>Dados poderão ser compartilhados, no limite necessário, com provedores de hospedagem e nuvem, inteligência artificial, geração musical e visual, pagamento, comunicação, métricas e área de membros. Mediante autorização, informações de medição poderão ser compartilhadas com a Meta.</p>
+      <p>Dados poderão ser compartilhados, no limite necessário, com provedores de hospedagem e nuvem, autenticação e envio de código por e-mail, inteligência artificial, geração musical e visual, pagamento, comunicação, métricas e área de membros. Mediante autorização, informações de medição poderão ser compartilhadas com a Meta.</p>
       <p>Alguns provedores podem processar dados fora do Brasil. Nesses casos, a Academia adota fornecedores com mecanismos contratuais e práticas de proteção compatíveis com a finalidade do serviço.</p>
 
       <h2>8. Conservação e segurança</h2>

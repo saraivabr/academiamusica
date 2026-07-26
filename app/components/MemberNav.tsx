@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { memberApi } from "../lib/access";
+import { clearMemberAccess, memberApi } from "../lib/access";
 import {
   flattenGenerations,
   playInAcademyPlayer,
@@ -46,6 +46,7 @@ export default function MemberNav() {
   const pathname = usePathname();
   const [recentTracks, setRecentTracks] = useState<PlatformTrack[]>([]);
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
+  const [dailyFreeAvailable, setDailyFreeAvailable] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -57,6 +58,7 @@ export default function MemberNav() {
           : [];
         setRecentTracks(flattenGenerations(generations).slice(0, 5));
         setRemainingSongs(Number(data.remainingSongs));
+        setDailyFreeAvailable(Boolean(data.dailyFreeAvailable));
       })
       .catch(() => {
         // The main navigation remains usable when recent tracks are unavailable.
@@ -96,8 +98,8 @@ export default function MemberNav() {
 
       <Link className="academy-wallet" href="/biblioteca/creditos" aria-label="Saldo de criação e recarga">
         <div>
-          <small>SEU SALDO</small>
-          <b>{remainingSongs ?? "—"} créditos</b>
+          <small>{dailyFreeAvailable ? "GRÁTIS HOJE" : "SEU SALDO"}</small>
+          <b>{dailyFreeAvailable ? "1 música" : `${remainingSongs ?? "—"} créditos`}</b>
         </div>
         <span>＋ PIX</span>
       </Link>
@@ -107,6 +109,17 @@ export default function MemberNav() {
         <div><small>APRENDA NO FLUXO</small><b>Tutorial</b></div>
         <em>›</em>
       </Link>
+
+      <button
+        type="button"
+        className="academy-signout"
+        onClick={() => {
+          clearMemberAccess();
+          window.location.assign("/login?mode=login");
+        }}
+      >
+        Sair da conta
+      </button>
     </div>
   );
 }

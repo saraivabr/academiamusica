@@ -10,11 +10,17 @@ export default function Login() {
     <PublicShell compact>
       <main className="login-page">
         <section>
-          <div className="eyebrow">BEM-VINDO DE VOLTA</div>
-          <h1>Sua próxima faixa começa aqui.</h1>
+          <div className="eyebrow">COMECE GRÁTIS</div>
+          <h1>Uma música nova, todos os dias.</h1>
           <p>
-            Use o código do seu pedido confirmado para acessar a Academia neste dispositivo.
+            Crie sua conta, confirme o e-mail e faça uma música por dia sem pagar.
+            Quando quiser produzir mais, é só adicionar créditos.
           </p>
+          <div className="login-free-proof">
+            <span>✓ Sem cartão</span>
+            <span>✓ Sem prazo de teste</span>
+            <span>✓ Sua biblioteca fica salva</span>
+          </div>
         </section>
         <AccessLogin />
       </main>

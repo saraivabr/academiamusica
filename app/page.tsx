@@ -19,7 +19,7 @@ const genres = [
 const steps = [
   ["01", "Conte a ideia", "Uma lembrança, uma homenagem, um jingle ou só uma frase. Escreva do seu jeito."],
   ["02", "Escolha a direção", "Defina sentimento, ritmo e voz com opções visuais. Sem prompt e sem termo técnico."],
-  ["03", "Receba duas músicas", "Compare as versões, ouça dentro da plataforma e escolha a que mais combina com você."],
+  ["03", "Receba sua música", "Sua primeira criação do dia é grátis. Quando quiser produzir mais, você escolhe uma recarga."],
   ["04", "Dê cara ao lançamento", "Crie a capa, organize o projeto e siga o tutorial para colocar a música no mundo."],
 ];
 
@@ -34,7 +34,8 @@ const faqs = [
   ["Preciso saber cantar ou tocar?", "Não. Você parte da sua ideia e faz escolhas simples. A plataforma ajuda a organizar a direção musical e entrega versões completas para você ouvir."],
   ["Preciso escrever um prompt?", "Não. Você informa o que quer contar e escolhe sentimento, estilo e voz em uma experiência visual e direta."],
   ["Quais estilos posso criar?", "Você pode explorar ritmos brasileiros e outros estilos. A experiência dá destaque a referências como sertanejo, trap BR, forró, funk, pagode, gospel, MPB e brega."],
-  ["Quantas músicas são criadas por vez?", "Cada rodada gera duas versões para comparação. Antes de confirmar, a plataforma mostra quantos créditos serão usados."],
+  ["Quanto custa para começar?", "Nada. Sua conta inclui uma música grátis por dia, sem cartão e sem prazo de teste. Recargas são opcionais para quem quiser criar mais."],
+  ["Como funcionam as criações extras?", "Depois da música grátis do dia, cada rodada extra usa dois créditos e entrega duas versões para você comparar."],
   ["Onde ficam as músicas?", "No seu repertório. Você pode ouvir, comparar, baixar e continuar o projeto sem perder o histórico."],
   ["Como funcionam os tutoriais?", "O aprendizado acontece dentro da própria plataforma. As orientações aparecem durante a criação, a capa e a preparação do lançamento."],
   ["A música vai direto para as plataformas?", "O tutorial mostra como preparar a publicação, mas distribuição e aprovação seguem as regras dos serviços utilizados. Não prometemos streams, renda ou aprovação automática."],
@@ -83,8 +84,8 @@ export default function Home() {
           <a href="#duvidas">Dúvidas</a>
         </div>
         <div className="br-nav-actions">
-          <a href="/login" className="br-login">Entrar</a>
-          <a href="/checkout" className="br-button br-button-small" data-track="checkout_cta">Começar <Arrow /></a>
+          <a href="/login?mode=login" className="br-login">Entrar</a>
+          <a href="/login?mode=register" className="br-button br-button-small" data-track="checkout_cta">Começar grátis <Arrow /></a>
         </div>
       </nav>
 
@@ -95,11 +96,11 @@ export default function Home() {
           <h1>A plataforma de geração de música <em>100% brasileirada.</em></h1>
           <p>
             Tire sua música da cabeça sem entender de produção. Escolha a história,
-            o sentimento, o ritmo e a voz. A plataforma organiza tudo e cria duas
-            versões para você ouvir.
+            o sentimento, o ritmo e a voz. A plataforma organiza tudo e cria a
+            sua música para você ouvir. A primeira criação do dia é grátis.
           </p>
           <div className="br-hero-actions">
-            <a href="/checkout" className="br-button" data-track="checkout_cta">Criar minha música <Arrow /></a>
+            <a href="/login?mode=register" className="br-button" data-track="checkout_cta">Criar grátis agora <Arrow /></a>
             <button type="button" className="br-play-button" onClick={toggleAudio}>
               <span>{playing ? "Ⅱ" : "▶"}</span>
               {playing ? "Pausar música" : "Ouvir uma música"}
@@ -108,7 +109,8 @@ export default function Home() {
           </div>
           <div className="br-proof-row">
             <span><Check /> Sem prompt</span>
-            <span><Check /> Duas versões</span>
+            <span><Check /> 1 música grátis por dia</span>
+            <span><Check /> Sem cartão</span>
             <span><Check /> Capa integrada</span>
             <span><Check /> Tutorial durante a criação</span>
           </div>
@@ -119,7 +121,7 @@ export default function Home() {
           <div className="br-product-window">
             <header>
               <span className="br-window-brand"><i /> CRIADOR</span>
-              <span className="br-credit-pill">20 músicas • 10 rodadas</span>
+              <span className="br-credit-pill">GRÁTIS TODO DIA</span>
             </header>
             <div className="br-product-body">
               <small>O QUE VOCÊ QUER CRIAR?</small>
@@ -129,17 +131,17 @@ export default function Home() {
               <div className="br-style-chips">
                 <span className="active">Sertanejo</span><span>Forró</span><span>Pagode</span><span>Trap BR</span>
               </div>
-              <button type="button" tabIndex={-1}>Criar duas músicas <Arrow /></button>
+              <button type="button" tabIndex={-1}>Criar minha música grátis <Arrow /></button>
             </div>
           </div>
           <div className="br-track-card br-track-one">
             <img src="/album-grid-saraiva.webp" alt="" />
-            <div><small>VERSÃO 01</small><strong>Minha raiz</strong><span>Sertanejo • 3:12</span></div>
+            <div><small>HOJE • GRÁTIS</small><strong>Minha raiz</strong><span>Sertanejo • 3:12</span></div>
             <i>▶</i>
           </div>
           <div className="br-track-card br-track-two">
             <img src="/identidades-musicais.webp" alt="" />
-            <div><small>VERSÃO 02</small><strong>Casa da gente</strong><span>Sertanejo • 2:58</span></div>
+            <div><small>ONTEM • REPERTÓRIO</small><strong>Casa da gente</strong><span>Sertanejo • 2:58</span></div>
             <i>▶</i>
           </div>
         </div>
@@ -197,7 +199,7 @@ export default function Home() {
           <div className="br-section-tag">DA IDEIA AO PLAY</div>
           <h2>Fazer música ficou<br /><em>mais simples.</em></h2>
           <p>Uma decisão por vez. Você entende o que está escolhendo e vê o resultado dentro da própria plataforma.</p>
-          <a href="/checkout" className="br-text-link" data-track="checkout_cta">Quero começar <Arrow /></a>
+          <a href="/login?mode=register" className="br-text-link" data-track="checkout_cta">Quero começar grátis <Arrow /></a>
         </div>
         <div className="br-step-list">
           {steps.map(([number, title, description]) => (
@@ -301,21 +303,21 @@ export default function Home() {
         <div className="br-access-copy">
           <div className="br-section-tag">SEU PRIMEIRO PLAY COMEÇA AQUI</div>
           <h2>Entre com uma ideia.<br /><em>Saia com música.</em></h2>
-          <p>Entre na plataforma, aprenda no próprio fluxo e comece com saldo para criar 20 músicas completas.</p>
+          <p>Crie sua conta e faça uma música por dia sem pagar. Sua biblioteca e o tutorial ficam disponíveis desde o primeiro acesso.</p>
           <div className="br-access-includes">
             <span><Check /> Criador visual sem prompt</span>
-            <span><Check /> Duas versões por rodada</span>
+            <span><Check /> Uma música grátis por dia</span>
             <span><Check /> Repertório com player e download</span>
             <span><Check /> Criação de capa</span>
             <span><Check /> Tutorial integrado à experiência</span>
           </div>
           <div className="br-access-price">
-            <small>ACESSO + 20 MÚSICAS</small>
-            <strong>R$49,97</strong>
-            <span>pagamento único via Pix</span>
+            <small>CONTA + 1 MÚSICA POR DIA</small>
+            <strong>R$0</strong>
+            <span>sem cartão e sem prazo de teste</span>
           </div>
-          <a href="/checkout" className="br-button br-button-light" data-track="checkout_cta">Começar com 20 músicas <Arrow /></a>
-          <small>Sem assinatura obrigatória • recargas opcionais dentro da plataforma</small>
+          <a href="/login?mode=register" className="br-button br-button-light" data-track="checkout_cta">Criar minha conta grátis <Arrow /></a>
+          <small>Recargas opcionais para criar mais no mesmo dia</small>
         </div>
         <div className="br-access-art">
           <img src="/kit-lancamento.webp" alt="Música, capa e materiais de lançamento reunidos" />
@@ -345,10 +347,10 @@ export default function Home() {
         <div className="br-section-tag">A SUA HISTÓRIA MERECE SOM</div>
         <h2>O Brasil já tem ritmo.<br /><em>Agora falta o seu.</em></h2>
         <p>Comece simples. Escolha a direção. Aperte o play.</p>
-        <a href="/checkout" className="br-button br-button-light" data-track="checkout_cta">Criar minha primeira música <Arrow /></a>
+        <a href="/login?mode=register" className="br-button br-button-light" data-track="checkout_cta">Criar minha primeira música grátis <Arrow /></a>
       </section>
 
-      <a href="/checkout" className="br-mobile-cta" data-track="checkout_cta">Criar minha música <Arrow /></a>
+      <a href="/login?mode=register" className="br-mobile-cta" data-track="checkout_cta">Criar grátis <Arrow /></a>
 
       <footer className="br-footer">
         <a className="br-brand" href="#inicio">
