@@ -276,7 +276,9 @@ async function authorizeMember(event) {
   }
 
   const order = await findOrder(orderId);
-  return order?.status === "PAID" ? order : null;
+  return order && (order.status === "PAID" || order.status === "OWNER")
+    ? order
+    : null;
 }
 
 function normalizeSunoTrack(track) {
@@ -326,19 +328,19 @@ async function sunoRequest(path, options = {}) {
   return data.data;
 }
 
-async function reserveSunoGeneration(orderId) {
+async function reserveSunoGeneration(orderId, accessStatus) {
   try {
     const result = await dynamo.send(new UpdateItemCommand({
       TableName: TABLE_NAME,
       Key: { id: { S: orderId } },
       UpdateExpression: "SET sunoGenerationCount = if_not_exists(sunoGenerationCount, :zero) + :one",
-      ConditionExpression: "attribute_exists(id) AND #status = :paid AND (attribute_not_exists(sunoGenerationCount) OR sunoGenerationCount < :limit)",
+      ConditionExpression: "attribute_exists(id) AND #status = :accessStatus AND (attribute_not_exists(sunoGenerationCount) OR sunoGenerationCount < :limit)",
       ExpressionAttributeNames: { "#status": "status" },
       ExpressionAttributeValues: {
         ":zero": { N: "0" },
         ":one": { N: "1" },
         ":limit": { N: String(SUNO_MAX_GENERATIONS_PER_ORDER) },
-        ":paid": { S: "PAID" },
+        ":accessStatus": { S: accessStatus },
       },
       ReturnValues: "UPDATED_NEW",
     }));
@@ -449,7 +451,7 @@ async function createSunoGeneration(event) {
     throw new Error("Suno callback URL is unavailable");
   }
 
-  const generationCount = await reserveSunoGeneration(order.id);
+  const generationCount = await reserveSunoGeneration(order.id, order.status);
   if (generationCount === null) {
     return response(429, {
       error: `Este acesso já usou os ${SUNO_MAX_GENERATIONS_PER_ORDER} testes disponíveis.`,
@@ -813,7 +815,7 @@ async function claimAccess(event) {
     return response(400, { error: "Código de acesso inválido." });
   }
   const order = await findOrder(orderId);
-  if (!order || order.status !== "PAID") {
+  if (!order || (order.status !== "PAID" && order.status !== "OWNER")) {
     return response(403, { error: "Pagamento ainda não confirmado para este código." });
   }
 
@@ -821,17 +823,19 @@ async function claimAccess(event) {
   const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 180;
   const payload = `v1.${expiresAt}.${orderId}`;
   const signature = crypto.createHmac("sha256", accessSecret).update(payload).digest("hex");
-  await recordFunnelEvent({
-    id: `access_activated_${orderId}`,
-    name: "access_activated",
-    sessionId: order.sessionId,
-    path: "/login/",
-    source: order.source,
-    medium: order.medium,
-    campaign: order.campaign,
-    orderId,
-    value: PRICE_CENTS,
-  });
+  if (order.status === "PAID") {
+    await recordFunnelEvent({
+      id: `access_activated_${orderId}`,
+      name: "access_activated",
+      sessionId: order.sessionId,
+      path: "/login/",
+      source: order.source,
+      medium: order.medium,
+      campaign: order.campaign,
+      orderId,
+      value: PRICE_CENTS,
+    });
+  }
   return response(200, {
     access: {
       token: `${payload}.${signature}`,

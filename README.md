@@ -116,6 +116,8 @@ Os parâmetros secretos ficam em `/academia-musica/prod/` no SSM e nunca devem
 ser copiados para o repositório. As rotas `/academia`, `/biblioteca` e
 `/comunidade` são protegidas no CloudFront e só aceitam o cookie de acesso
 assinado emitido após a confirmação do pagamento.
+Registros internos com status `OWNER` liberam o proprietário sem serem
+contabilizados como venda ou evento de ativação do funil.
 
 A credencial do provedor musical deve existir como `SecureString` em
 `/academia-musica/prod/suno/api-key`. A API valida o token do aluno e limita a
