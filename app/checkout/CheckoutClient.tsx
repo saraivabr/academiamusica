@@ -51,28 +51,65 @@ export default function CheckoutClient() {
 
   useEffect(() => {
     if (!order?.id || order.status === "PAID") return;
-    const interval = window.setInterval(async () => {
+
+    let cancelled = false;
+    let timeout: number | undefined;
+    let controller: AbortController | undefined;
+
+    const scheduleNextCheck = (delay = 4000) => {
+      if (!cancelled) timeout = window.setTimeout(checkPayment, delay);
+    };
+
+    const checkPayment = async () => {
+      controller = new AbortController();
+      const requestTimeout = window.setTimeout(() => controller?.abort(), 10000);
+
       try {
         const response = await fetch(`${CHECKOUT_API}/v1/checkout/${encodeURIComponent(order.id)}`, {
           cache: "no-store",
+          signal: controller.signal,
         });
-        if (!response.ok) return;
+        if (!response.ok) {
+          throw new Error(`Falha ao consultar pagamento (${response.status}).`);
+        }
+
         const data = await response.json();
+        if (!data.order?.id) throw new Error("Resposta de pagamento inválida.");
+
         pollingFailures.current = 0;
+        setError("");
         setOrder(data.order);
-        if (data.order?.status === "PAID") {
+
+        if (data.order.status === "PAID") {
           window.sessionStorage.removeItem("academia-musica-checkout-key");
           window.location.assign(`/obrigado?pedido=${encodeURIComponent(data.order.id)}`);
+          return;
         }
+
+        scheduleNextCheck();
       } catch {
+        if (cancelled) return;
         pollingFailures.current += 1;
+
         if (pollingFailures.current >= 5) {
-          window.clearInterval(interval);
-          setError("A confirmação automática pausou. Seu Pix continua válido; atualize a página após pagar.");
+          setError("A confirmação automática pausou. Seu Pix continua válido; use o botão abaixo para consultar novamente.");
+          return;
         }
+
+        const retryDelay = Math.min(4000 * 2 ** pollingFailures.current, 30000);
+        scheduleNextCheck(retryDelay);
+      } finally {
+        window.clearTimeout(requestTimeout);
       }
-    }, 4000);
-    return () => window.clearInterval(interval);
+    };
+
+    scheduleNextCheck(1500);
+
+    return () => {
+      cancelled = true;
+      if (timeout) window.clearTimeout(timeout);
+      controller?.abort();
+    };
   }, [order?.id, order?.status]);
 
   async function createOrder(event: FormEvent<HTMLFormElement>) {
@@ -167,7 +204,22 @@ export default function CheckoutClient() {
         </div>
         <small className="order-reference">Pedido: <strong>{order.id}</strong> — guarde este código para acessar em outro dispositivo.</small>
         {expiresLabel ? <small className="payment-note">Este código é válido até {expiresLabel}.</small> : null}
-        {error ? <p className="checkout-error">{error}</p> : null}
+        {error ? (
+          <div className="checkout-retry">
+            <p className="checkout-error">{error}</p>
+            <button
+              type="button"
+              className="payment-link"
+              onClick={() => {
+                pollingFailures.current = 0;
+                setError("");
+                setOrder((current) => current ? { ...current } : current);
+              }}
+            >
+              Consultar pagamento novamente
+            </button>
+          </div>
+        ) : null}
       </section>
     );
   }
