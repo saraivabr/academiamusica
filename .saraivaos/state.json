@@ -1,0 +1,97 @@
+{
+  "framework": "SaraivaOS",
+  "version": "1.0.0",
+  "createdAt": "2026-07-26T10:17:11.124Z",
+  "updatedAt": "2026-07-26T10:29:00.381Z",
+  "project": {
+    "id": "project-20260726101711-bd39b7b6",
+    "name": "Academia Música IA",
+    "root": "/Users/saraiva/academiamusica",
+    "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
+  },
+  "cycle": {
+    "currentStage": "validacao",
+    "completedStages": []
+  },
+  "navigation": {
+    "currentRoute": "Coletar baseline real antes de alterar promessa, preço ou arquitetura",
+    "nextArtifact": "Decisão sobre o maior vazamento do funil com 100 sessões ou 14 dias",
+    "blocker": "Nenhum"
+  },
+  "identity": {
+    "business": "",
+    "offer": "",
+    "audience": "",
+    "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
+  },
+  "evidenceSummary": {
+    "observed": 5,
+    "provided": 0,
+    "inferred": 0,
+    "hypothesis": 0,
+    "unknown": 1
+  },
+  "methods": {
+    "active": [
+      "First Principles",
+      "Jobs/minimalismo"
+    ],
+    "considered": []
+  },
+  "actions": [
+    {
+      "id": "action-20260726102843-83b1f58f",
+      "title": "Conduzir 100 sessões qualificadas ao funil comercial",
+      "owner": "Saraiva",
+      "deadline": "2026-08-09",
+      "metric": "visita para checkout, checkout para Pix e Pix para pagamento por origem",
+      "status": "pending",
+      "createdAt": "2026-07-26T10:28:43.864Z"
+    }
+  ],
+  "experiments": [
+    {
+      "id": "exp-20260726101711-c93bfb9d",
+      "name": "Baseline do funil comercial",
+      "hypothesis": "Se instrumentarmos cada transição do funil sem adicionar atrito, então identificaremos o maior vazamento comercial em 14 dias porque teremos eventos comparáveis por sessão e origem",
+      "metric": "taxa entre landing_view, checkout_view, pix_created e purchase_confirmed",
+      "baseline": "unknown",
+      "target": "baseline confiável com pelo menos 100 sessões ou 14 dias",
+      "status": "active",
+      "createdAt": "2026-07-26T10:17:11.926Z",
+      "result": null
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "artifact-20260726102843-aa7505b9",
+      "path": "app/lib/analytics.ts",
+      "type": "coletor first-party",
+      "proof": "landing_view, CTA, checkout e atribuição por sessão validados no domínio público",
+      "createdAt": "2026-07-26T10:28:43.704Z"
+    },
+    {
+      "id": "artifact-20260726102843-cec48b3d",
+      "path": "infra/checkout/index.mjs",
+      "type": "telemetria confiável de receita",
+      "proof": "pix_created gravado pelo backend após cobrança Woovi real",
+      "createdAt": "2026-07-26T10:28:43.761Z"
+    },
+    {
+      "id": "artifact-20260726102843-51d34a45",
+      "path": "infra/funnel.sh",
+      "type": "painel operacional",
+      "proof": "npm run funnel executado contra DynamoDB e retornou baseline limpo",
+      "createdAt": "2026-07-26T10:28:43.814Z"
+    }
+  ],
+  "sessions": [],
+  "learnings": [
+    {
+      "id": "learning-20260726102843-d2820abe",
+      "statement": "A próxima melhoria comercial deve ser escolhida pelos dados do funil, não por preferência estética",
+      "evidence": "exp-20260726101711-c93bfb9d e prova live do funil até Pix",
+      "createdAt": "2026-07-26T10:28:43.960Z"
+    }
+  ]
+}

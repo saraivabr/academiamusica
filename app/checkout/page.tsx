@@ -29,6 +29,7 @@ export default function Checkout() {
               href="https://wa.me/5511991143605?text=Oi%2C%20vim%20pelo%20site%20da%20Academia%20M%C3%BAsica%20IA%20e%20tenho%20uma%20d%C3%BAvida."
               target="_blank"
               rel="noreferrer"
+              data-track="support_click"
             >
               Conversar no WhatsApp ↗
             </a>

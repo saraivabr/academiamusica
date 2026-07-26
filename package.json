@@ -13,6 +13,7 @@
     "deploy:aws": "bash infra/deploy-site.sh",
     "deploy:checkout": "bash infra/deploy-checkout.sh",
     "orders": "bash infra/orders.sh",
+    "funnel": "bash infra/funnel.sh",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
     "test": "npm run build && node --test tests/rendered-html.test.mjs",
     "validate:artifact": "bash scripts/validate-artifact.sh",

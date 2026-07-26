@@ -78,7 +78,7 @@ export default function Home() {
           <a href="#biblioteca">Entregas</a>
           <a href="#duvidas">Dúvidas</a>
         </div>
-        <a href="/checkout" className="pill pill-outline">Tirar do arquivo <Arrow /></a>
+        <a href="/checkout" className="pill pill-outline" data-track="checkout_cta">Tirar do arquivo <Arrow /></a>
       </nav>
 
       <section className="hero" id="inicio">
@@ -99,7 +99,7 @@ export default function Home() {
           <h1>Da ideia<br />ao <em>Spotify.</em></h1>
           <p>Crie sua música com IA, faça sua capa e prepare seu lançamento nas plataformas — sem precisar cantar, tocar, produzir ou entender distribuição do zero.</p>
           <div className="hero-actions">
-            <a href="#oferta" className="pill pill-green">Quero tirar minha música do arquivo <Arrow /></a>
+            <a href="#oferta" className="pill pill-green" data-track="offer_cta">Quero tirar minha música do arquivo <Arrow /></a>
             <button className="play-link" onClick={toggleJingle} aria-label={jinglePlaying ? "Pausar jingle" : "Ouvir jingle"}>
               <span className="play-circle">{jinglePlaying ? "Ⅱ" : "▶"}</span>
               {jinglePlaying ? "Tocando o jingle" : "Ouvir o jingle"}
@@ -451,7 +451,7 @@ export default function Home() {
             {["Criação musical com IA", "Capa e identidade visual", "Spotify Canvas", "Distribuição nas plataformas", "Biblioteca Viva + comunidade"].map(item => <span key={item}><Check /> {item}</span>)}
           </div>
           <div className="price-row"><small>INVESTIMENTO</small><div><sup>R$</sup>197</div><span>pagamento único</span></div>
-          <a href="/checkout" className="pill pill-green pill-full">Quero tirar minha música do arquivo <Arrow /></a>
+          <a href="/checkout" className="pill pill-green pill-full" data-track="checkout_cta">Quero tirar minha música do arquivo <Arrow /></a>
           <small className="safe">🔒 Compra segura • acesso online • nível iniciante</small>
           <p className="external-costs">Custos externos de ferramentas ou distribuidoras, quando existirem, não estão incluídos no valor da Academia.</p>
         </div>
@@ -485,11 +485,11 @@ export default function Home() {
         <div className="eyebrow">SUA IDEIA JÁ É O COMEÇO</div>
         <h2>Sua música não precisa<br /><em>morrer como arquivo.</em></h2>
         <div className="final-stack"><span>SOM</span><i>+</i><span>CAPA</span><i>+</i><span>CANVAS</span><i>+</i><span>LINK</span><i>=</i><b>PRESENÇA</b></div>
-        <a href="/checkout" className="pill pill-dark">Quero colocar minha música no mundo <Arrow /></a>
+        <a href="/checkout" className="pill pill-dark" data-track="checkout_cta">Quero colocar minha música no mundo <Arrow /></a>
         <p>Você entra com uma ideia. A Academia organiza o caminho.</p>
       </section>
 
-      <a href="/checkout" className="mobile-sticky-cta">TIRAR MINHA MÚSICA DO ARQUIVO <Arrow /></a>
+      <a href="/checkout" className="mobile-sticky-cta" data-track="checkout_cta">TIRAR MINHA MÚSICA DO ARQUIVO <Arrow /></a>
 
       <footer>
         <a href="#inicio" className="brand"><span className="brand-disc"><i /><i /><i /></span><span>Academia <b>Música IA</b></span></a>

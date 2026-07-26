@@ -1,0 +1,11 @@
+{
+  "id": "exp-20260726101711-c93bfb9d",
+  "name": "Baseline do funil comercial",
+  "hypothesis": "Se instrumentarmos cada transição do funil sem adicionar atrito, então identificaremos o maior vazamento comercial em 14 dias porque teremos eventos comparáveis por sessão e origem",
+  "metric": "taxa entre landing_view, checkout_view, pix_created e purchase_confirmed",
+  "baseline": "unknown",
+  "target": "baseline confiável com pelo menos 100 sessões ou 14 dias",
+  "status": "active",
+  "createdAt": "2026-07-26T10:17:11.926Z",
+  "result": null
+}

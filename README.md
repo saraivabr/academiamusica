@@ -108,6 +108,7 @@ Woovi para gerar e confirmar cobranças Pix.
 - `npm run deploy:checkout`: atualiza o backend de pagamentos
 - `npm run deploy:aws`: publica o site e invalida a CDN
 - `npm run orders`: lista pedidos e pagamentos registrados
+- `npm run funnel`: mostra visitas, cliques, Pix, vendas, acesso e origem dos últimos 14 dias
 
 Os parâmetros secretos ficam em `/academia-musica/prod/` no SSM e nunca devem
 ser copiados para o repositório. As rotas `/academia`, `/biblioteca` e

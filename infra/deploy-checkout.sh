@@ -4,6 +4,7 @@ set -euo pipefail
 AWS_REGION="${AWS_REGION:-us-east-1}"
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 TABLE_NAME="academia-musica-orders"
+EVENTS_TABLE_NAME="academia-musica-events"
 FUNCTION_NAME="academia-musica-checkout"
 ROLE_NAME="academia-musica-checkout-lambda"
 API_NAME="academia-musica-checkout"
@@ -27,6 +28,24 @@ if ! aws dynamodb describe-table --region "$AWS_REGION" --table-name "$TABLE_NAM
   aws dynamodb update-continuous-backups \
     --region "$AWS_REGION" \
     --table-name "$TABLE_NAME" \
+    --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true >/dev/null
+fi
+
+if ! aws dynamodb describe-table --region "$AWS_REGION" --table-name "$EVENTS_TABLE_NAME" >/dev/null 2>&1; then
+  aws dynamodb create-table \
+    --region "$AWS_REGION" \
+    --table-name "$EVENTS_TABLE_NAME" \
+    --attribute-definitions AttributeName=id,AttributeType=S \
+    --key-schema AttributeName=id,KeyType=HASH \
+    --billing-mode PAY_PER_REQUEST >/dev/null
+  aws dynamodb wait table-exists --region "$AWS_REGION" --table-name "$EVENTS_TABLE_NAME"
+  aws dynamodb update-time-to-live \
+    --region "$AWS_REGION" \
+    --table-name "$EVENTS_TABLE_NAME" \
+    --time-to-live-specification Enabled=true,AttributeName=ttl >/dev/null
+  aws dynamodb update-continuous-backups \
+    --region "$AWS_REGION" \
+    --table-name "$EVENTS_TABLE_NAME" \
     --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true >/dev/null
 fi
 
@@ -62,7 +81,10 @@ cat >"$PERMISSIONS_POLICY" <<JSON
     {
       "Effect": "Allow",
       "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"],
-      "Resource": "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${TABLE_NAME}"
+      "Resource": [
+        "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${TABLE_NAME}",
+        "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${EVENTS_TABLE_NAME}"
+      ]
     },
     {
       "Effect": "Allow",
@@ -86,7 +108,7 @@ cp infra/checkout/index.mjs "$PACKAGE_DIR/index.mjs"
 (cd "$PACKAGE_DIR" && zip -q function.zip index.mjs)
 
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
-ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},SITE_ORIGIN=${SITE_ORIGIN},PRICE_CENTS=19700,WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER}}"
+ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},SITE_ORIGIN=${SITE_ORIGIN},PRICE_CENTS=19700,WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER}}"
 
 if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAME" >/dev/null 2>&1; then
   aws lambda wait function-active-v2 --region "$AWS_REGION" --function-name "$FUNCTION_NAME"

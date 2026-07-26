@@ -12,10 +12,23 @@ const dynamo = new DynamoDBClient({});
 const ssm = new SSMClient({});
 
 const TABLE_NAME = process.env.TABLE_NAME;
+const EVENTS_TABLE_NAME = process.env.EVENTS_TABLE_NAME;
 const SITE_ORIGIN = process.env.SITE_ORIGIN ?? "https://musicacom.ia.br";
 const PRICE_CENTS = Number(process.env.PRICE_CENTS ?? "19700");
 const PRODUCT_NAME = "Academia Música IA";
 const WOOVI_BASE_URL = "https://api.woovi.com/api/v1";
+const ALLOWED_CLIENT_EVENTS = new Set([
+  "landing_view",
+  "offer_cta",
+  "checkout_cta",
+  "checkout_view",
+  "checkout_started",
+  "checkout_error",
+  "pix_copied",
+  "woovi_opened",
+  "support_click",
+  "login_view",
+]);
 
 let cachedSecrets;
 
@@ -71,6 +84,10 @@ function itemToOrder(item) {
     paymentLinkUrl: item.paymentLinkUrl?.S,
     expiresAt: item.expiresAt?.S,
     paidAt: item.paidAt?.S,
+    sessionId: item.sessionId?.S,
+    source: item.source?.S,
+    medium: item.medium?.S,
+    campaign: item.campaign?.S,
   };
 }
 
@@ -85,6 +102,90 @@ function publicOrder(order) {
     expiresAt: order.expiresAt,
     paidAt: order.paidAt,
   };
+}
+
+function normalizedSessionId(value) {
+  const sessionId = safeString(value, 80).trim();
+  return /^[a-zA-Z0-9_-]{16,80}$/.test(sessionId) ? sessionId : "server";
+}
+
+function normalizedEventId(value) {
+  const eventId = safeString(value, 100).trim();
+  return /^[a-zA-Z0-9_-]{16,100}$/.test(eventId)
+    ? eventId
+    : `evt_${crypto.randomUUID().replaceAll("-", "")}`;
+}
+
+async function recordFunnelEvent({
+  id,
+  name,
+  sessionId,
+  path,
+  source,
+  medium,
+  campaign,
+  referrer,
+  orderId,
+  value,
+}) {
+  if (!EVENTS_TABLE_NAME) return;
+  const now = new Date().toISOString();
+  const item = {
+    id: { S: normalizedEventId(id) },
+    name: { S: safeString(name, 64) },
+    sessionId: { S: normalizedSessionId(sessionId) },
+    createdAt: { S: now },
+    ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 180) },
+    ...(path ? { path: { S: safeString(path, 240) } } : {}),
+    ...(source ? { source: { S: safeString(source, 100) } } : {}),
+    ...(medium ? { medium: { S: safeString(medium, 100) } } : {}),
+    ...(campaign ? { campaign: { S: safeString(campaign, 140) } } : {}),
+    ...(referrer ? { referrer: { S: safeString(referrer, 140) } } : {}),
+    ...(orderId ? { orderId: { S: safeString(orderId, 100) } } : {}),
+    ...(Number.isFinite(value) ? { value: { N: String(value) } } : {}),
+  };
+  try {
+    await dynamo.send(new PutItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Item: item,
+      ConditionExpression: "attribute_not_exists(id)",
+    }));
+  } catch (error) {
+    if (!(error instanceof ConditionalCheckFailedException)) {
+      console.error("Unable to record funnel event", {
+        eventId: item.id.S,
+        eventName: item.name.S,
+        message: error.message,
+      });
+    }
+  }
+}
+
+async function ingestClientEvent(event) {
+  const origin = event.headers?.origin ?? event.headers?.Origin;
+  if (origin !== SITE_ORIGIN) {
+    return response(403, { error: "Origem não autorizada." });
+  }
+  let body;
+  try {
+    body = readBody(event);
+  } catch {
+    return response(400, { error: "Evento inválido." });
+  }
+  if (!ALLOWED_CLIENT_EVENTS.has(body.name)) {
+    return response(400, { error: "Evento não permitido." });
+  }
+  await recordFunnelEvent({
+    id: body.eventId,
+    name: body.name,
+    sessionId: body.sessionId,
+    path: body.path,
+    source: body.source,
+    medium: body.medium,
+    campaign: body.campaign,
+    referrer: body.referrer,
+  });
+  return response(202, { accepted: true });
 }
 
 async function getSecrets() {
@@ -199,6 +300,10 @@ async function createCheckout(event) {
   const email = normalizeEmail(body.email);
   const phone = normalizePhone(body.phone);
   const idempotencyKey = safeString(body.idempotencyKey, 100);
+  const sessionId = normalizedSessionId(body.sessionId);
+  const source = safeString(body.source, 100);
+  const medium = safeString(body.medium, 100);
+  const campaign = safeString(body.campaign, 140);
 
   if (!name || !email || !/^[a-zA-Z0-9_-]{16,100}$/.test(idempotencyKey)) {
     return response(400, { error: "Informe nome e e-mail válidos." });
@@ -230,6 +335,10 @@ async function createCheckout(event) {
         name: { S: name },
         email: { S: email },
         ...(phone ? { phone: { S: phone } } : {}),
+        sessionId: { S: sessionId },
+        ...(source ? { source: { S: source } } : {}),
+        ...(medium ? { medium: { S: medium } } : {}),
+        ...(campaign ? { campaign: { S: campaign } } : {}),
         createdAt: { S: now },
         updatedAt: { S: now },
         ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 2) },
@@ -288,6 +397,17 @@ async function createCheckout(event) {
   const charge = providerData.charge ?? providerData;
   const order = chargeToOrder(orderId, charge);
   await saveCharge(order);
+  await recordFunnelEvent({
+    id: `pix_created_${orderId}`,
+    name: "pix_created",
+    sessionId,
+    path: "/checkout/",
+    source,
+    medium,
+    campaign,
+    orderId,
+    value: PRICE_CENTS,
+  });
   return response(201, { order: publicOrder(order) });
 }
 
@@ -318,18 +438,37 @@ async function getCheckout(orderId) {
 }
 
 async function markPaid(orderId, charge) {
-  await dynamo.send(new UpdateItemCommand({
-    TableName: TABLE_NAME,
-    Key: { id: { S: orderId } },
-    UpdateExpression: "SET #status = :status, paidAt = :paidAt, transactionId = :transactionId, updatedAt = :updatedAt",
-    ExpressionAttributeNames: { "#status": "status" },
-    ExpressionAttributeValues: {
-      ":status": { S: "PAID" },
-      ":paidAt": { S: charge.paidAt ?? new Date().toISOString() },
-      ":transactionId": { S: safeString(charge.transactionID || charge.identifier, 200) },
-      ":updatedAt": { S: new Date().toISOString() },
-    },
-  }));
+  const order = await findOrder(orderId);
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE_NAME,
+      Key: { id: { S: orderId } },
+      UpdateExpression: "SET #status = :paid, paidAt = :paidAt, transactionId = :transactionId, updatedAt = :updatedAt",
+      ConditionExpression: "attribute_exists(id) AND #status <> :paid",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":paid": { S: "PAID" },
+        ":paidAt": { S: charge.paidAt ?? new Date().toISOString() },
+        ":transactionId": { S: safeString(charge.transactionID || charge.identifier, 200) },
+        ":updatedAt": { S: new Date().toISOString() },
+      },
+    }));
+  } catch (error) {
+    if (error instanceof ConditionalCheckFailedException) return false;
+    throw error;
+  }
+  await recordFunnelEvent({
+    id: `purchase_confirmed_${orderId}`,
+    name: "purchase_confirmed",
+    sessionId: order?.sessionId,
+    path: "/checkout/",
+    source: order?.source,
+    medium: order?.medium,
+    campaign: order?.campaign,
+    orderId,
+    value: PRICE_CENTS,
+  });
+  return true;
 }
 
 async function handleWebhook(event) {
@@ -382,6 +521,17 @@ async function claimAccess(event) {
   const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 180;
   const payload = `v1.${expiresAt}.${orderId}`;
   const signature = crypto.createHmac("sha256", accessSecret).update(payload).digest("hex");
+  await recordFunnelEvent({
+    id: `access_activated_${orderId}`,
+    name: "access_activated",
+    sessionId: order.sessionId,
+    path: "/login/",
+    source: order.source,
+    medium: order.medium,
+    campaign: order.campaign,
+    orderId,
+    value: PRICE_CENTS,
+  });
   return response(200, {
     access: {
       token: `${payload}.${signature}`,
@@ -399,6 +549,7 @@ export const handler = async (event) => {
     if (method === "GET" && path === "/health") {
       return response(200, { ok: true, service: "academia-musica-checkout" });
     }
+    if (method === "POST" && path === "/v1/events") return await ingestClientEvent(event);
     if (method === "POST" && path === "/v1/checkout") return await createCheckout(event);
     if (method === "GET" && path.startsWith("/v1/checkout/")) {
       return await getCheckout(decodeURIComponent(path.slice("/v1/checkout/".length)));

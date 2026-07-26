@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { CHECKOUT_API } from "../lib/access";
+import { getAnalyticsContext, trackEvent } from "../lib/analytics";
 
 type Order = {
   id: string;
@@ -81,7 +82,9 @@ export default function CheckoutClient() {
     }
     setLoading(true);
     setError("");
+    trackEvent("checkout_started");
     try {
+      const analytics = getAnalyticsContext();
       const response = await fetch(`${CHECKOUT_API}/v1/checkout`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -91,7 +94,7 @@ export default function CheckoutClient() {
           phone,
           acceptedTerms,
           idempotencyKey: getIdempotencyKey(),
-          source: window.location.hostname,
+          ...analytics,
         }),
       });
       const data = await response.json();
@@ -100,6 +103,7 @@ export default function CheckoutClient() {
       }
       setOrder(data.order);
     } catch (requestError) {
+      trackEvent("checkout_error");
       setError(requestError instanceof Error ? requestError.message : "Não foi possível gerar o Pix.");
     } finally {
       setLoading(false);
@@ -109,6 +113,7 @@ export default function CheckoutClient() {
   async function copyPix() {
     if (!order?.brCode) return;
     await navigator.clipboard.writeText(order.brCode);
+    trackEvent("pix_copied");
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2500);
   }
@@ -137,7 +142,7 @@ export default function CheckoutClient() {
           </>
         ) : null}
         {order.paymentLinkUrl ? (
-          <a className="payment-link" href={order.paymentLinkUrl} target="_blank" rel="noreferrer">
+          <a className="payment-link" href={order.paymentLinkUrl} target="_blank" rel="noreferrer" onClick={() => trackEvent("woovi_opened")}>
             Prefiro abrir a página segura da Woovi ↗
           </a>
         ) : null}
