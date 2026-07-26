@@ -6,16 +6,16 @@ import "./experience-v2.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://musicacom.ia.br"),
-  title: "Aprenda criando 25 músicas | Academia Música IA",
+  title: "Conte sua história. Crie com o Produtor IA | Academia Música IA",
   description:
-    "Aprenda a criar músicas com IA e tenha 25 criações incluídas para ouvir e baixar dentro da plataforma.",
+    "Converse por texto ou voz com o Produtor IA e tenha 25 músicas incluídas para criar, ouvir e baixar.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Academia Música IA — Aprenda criando 25 músicas",
+    title: "Academia Música IA — Produtor IA + 25 músicas",
     description:
-      "Formação prática com 25 músicas incluídas para criar, ouvir e baixar.",
+      "Conte sua história por texto ou voz, confirme a direção e receba duas músicas por rodada.",
     url: "https://musicacom.ia.br",
     siteName: "Academia Música IA",
     locale: "pt_BR",
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Academia Música IA — Aprenda criando 25 músicas",
+    title: "Academia Música IA — Produtor IA + 25 músicas",
     description:
-      "Aprenda a criar e tenha 25 músicas incluídas para praticar dentro da plataforma.",
+      "Converse, confirme e crie com 25 músicas incluídas dentro da plataforma.",
     images: ["/hero-premium.webp"],
   },
   other: {

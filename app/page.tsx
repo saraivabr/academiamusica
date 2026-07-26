@@ -6,13 +6,16 @@ const Arrow = () => <span aria-hidden="true">↗</span>;
 const Check = () => <span className="check" aria-hidden="true">✓</span>;
 
 const tracks = [
-  ["01", "25 músicas para praticar", "Aprenda criando dentro do estúdio: defina estilo, tema, intenção e voz, gere versões e descubra sua direção.", "25 FAIXAS"],
-  ["02", "Identidade com presença", "Transforme a faixa em projeto: conceito, capa profissional, direção estética e Spotify Canvas.", "VISUAL"],
-  ["03", "Lançamento preparado", "Organize arquivos, dados e distribuição para levar sua música às plataformas e conquistar um link para compartilhar.", "LANÇAMENTO"],
+  ["01", "Conte por texto ou voz", "Fale como falaria com alguém. Você não precisa conhecer termos técnicos nem escrever prompt.", "CONVERSA"],
+  ["02", "Receba direção", "O Produtor IA faz uma pergunta útil por vez e organiza história, emoção, estilo, voz e refrão.", "PLANO"],
+  ["03", "Confirme antes de criar", "Você vê exatamente o que foi entendido e só usa seu saldo quando aprovar a direção.", "CONTROLE"],
+  ["04", "Ouça duas músicas", "A plataforma cria duas versões completas para você comparar, baixar e pedir uma nova direção.", "2 FAIXAS"],
+  ["05", "Construa a identidade", "Transforme a favorita em projeto com conceito, capa profissional e Spotify Canvas.", "VISUAL"],
+  ["06", "Prepare o lançamento", "Organize arquivos, dados e distribuição para conquistar um link para compartilhar.", "LANÇAMENTO"],
 ];
 
 const library = [
-  ["Estúdio com 25 músicas", "Conte sua ideia em perguntas simples, crie duas versões por vez e baixe suas favoritas.", "MÚSICA"],
+  ["Produtor IA + 25 músicas", "Converse por texto ou voz, confirme a direção e receba duas músicas por rodada.", "CONVERSA"],
   ["Roteiro de composição", "Desenvolva letras, conceitos e direções musicais com apoio da inteligência artificial.", "COMPOSIÇÃO"],
   ["Capa profissional", "Transforme sua foto ou ideia artística na identidade visual do lançamento.", "IDENTIDADE"],
   ["Spotify Canvas", "Crie o vídeo curto que acompanha sua música durante a reprodução.", "MOVIMENTO"],
@@ -24,6 +27,7 @@ const library = [
 const faqs = [
   ["Preciso saber cantar?", "Não. A Academia foi pensada para iniciantes e mostra como usar ferramentas que podem apoiar voz, composição e instrumentação."],
   ["Preciso tocar ou entender teoria musical?", "Não. O processo parte da sua ideia e das suas escolhas criativas. Os conceitos necessários aparecem de forma prática durante a criação."],
+  ["Como funciona o Produtor IA?", "Você conta sua ideia por texto ou voz. Ele faz uma pergunta por vez, organiza a direção da música e mostra um resumo para sua confirmação antes de criar duas versões."],
   ["As 25 músicas estão incluídas?", "Sim. Sua inscrição libera 25 criações musicais dentro do estúdio da Academia, sem cobrança adicional para gerar esse pacote."],
   ["Vou publicar direto no Spotify?", "Você aprende a preparar e distribuir sua música por meio dos serviços disponíveis. A publicação depende das regras, requisitos e aprovações das plataformas e distribuidoras utilizadas."],
   ["Posso monetizar minha música?", "Depende dos termos da ferramenta, da distribuidora e das plataformas usadas. A Academia mostra o caminho, mas não promete monetização, streams ou renda."],
@@ -77,7 +81,7 @@ export default function Home() {
           <a href="#biblioteca">Entregas</a>
           <a href="#duvidas">Dúvidas</a>
         </div>
-        <a href="/checkout" className="pill pill-outline" data-track="checkout_cta">Criar minhas músicas <Arrow /></a>
+        <a href="/checkout" className="pill pill-outline" data-track="checkout_cta">Conversar e criar <Arrow /></a>
       </nav>
 
       <section className="hero" id="inicio">
@@ -94,11 +98,11 @@ export default function Home() {
           <span className="motion-tile tile-c" />
         </div>
         <div className="hero-content">
-          <div className="status"><span /> Formação prática • 25 músicas incluídas</div>
-          <h1>Aprenda criando.<br />Saia com <em>25 músicas.</em></h1>
-          <p>Você aprende a transformar ideias em música dentro da própria plataforma. São 25 criações incluídas para praticar, ouvir e baixar — sem precisar cantar, tocar ou produzir.</p>
+          <div className="status"><span /> Produtor IA • 25 músicas incluídas</div>
+          <h1>Conte sua história.<br />O <em>Produtor IA</em> transforma em música.</h1>
+          <p>Escreva ou fale como falaria com alguém. O Produtor IA faz as perguntas certas, organiza estilo, emoção, voz e refrão e cria duas versões para você ouvir e baixar.</p>
           <div className="hero-actions">
-            <a href="#oferta" className="pill pill-green" data-track="offer_cta">Quero criar minhas 25 músicas <Arrow /></a>
+            <a href="#oferta" className="pill pill-green" data-track="offer_cta">Quero conversar e criar <Arrow /></a>
             <button className="play-link" onClick={toggleJingle} aria-label={jinglePlaying ? "Pausar jingle" : "Ouvir jingle"}>
               <span className="play-circle">{jinglePlaying ? "Ⅱ" : "▶"}</span>
               {jinglePlaying ? "Tocando o jingle" : "Ouvir o jingle"}
@@ -106,9 +110,9 @@ export default function Home() {
             </button>
           </div>
           <div className="hero-proof">
+            <span><Check /> Sem escrever prompt</span>
+            <span><Check /> Texto ou voz</span>
             <span><Check /> 25 músicas incluídas</span>
-            <span><Check /> Método para iniciantes</span>
-            <span><Check /> Investimento R$197</span>
           </div>
           <small className="hero-disclaimer">Sem promessa de fama, streams, renda ou aprovação automática pelas plataformas.</small>
         </div>
@@ -445,12 +449,12 @@ export default function Home() {
         <div className="offer-copy">
           <div className="eyebrow">APERTE O PLAY</div>
           <h2>Entre para a<br /><em>Academia Música IA</em></h2>
-          <p>Você não recebe apenas aulas. Aprende criando dentro da plataforma, com 25 músicas incluídas para testar estilos, comparar versões e escolher as que quer levar ao lançamento.</p>
+          <p>Você não recebe apenas aulas. Conversa com o Produtor IA, aprende enquanto cria e tem 25 músicas incluídas para testar estilos, comparar versões e escolher as favoritas.</p>
           <div className="included">
-            {["25 músicas para criar e baixar", "Método Da Ideia ao Link", "Capa e identidade visual", "Spotify Canvas + publicação", "Biblioteca Viva + comunidade"].map(item => <span key={item}><Check /> {item}</span>)}
+            {["Produtor IA por texto ou voz", "25 músicas para criar e baixar", "Método Da Ideia ao Link", "Capa + Spotify Canvas", "Publicação + comunidade"].map(item => <span key={item}><Check /> {item}</span>)}
           </div>
           <div className="price-row"><small>INVESTIMENTO</small><div><sup>R$</sup>197</div><span>pagamento único</span></div>
-          <a href="/checkout" className="pill pill-green pill-full" data-track="checkout_cta">Quero aprender criando 25 músicas <Arrow /></a>
+          <a href="/checkout" className="pill pill-green pill-full" data-track="checkout_cta">Quero meu Produtor IA + 25 músicas <Arrow /></a>
           <small className="safe">🔒 Compra segura • acesso online • nível iniciante</small>
           <p className="external-costs">As 25 músicas estão incluídas. Serviços opcionais de distribuição ou publicação podem ter custos externos.</p>
         </div>
@@ -482,13 +486,13 @@ export default function Home() {
         <div className="sound-rings" aria-hidden="true"><i /><i /><i /><i /></div>
         <img src="/elemento-play-3d.png" alt="" className="final-play-asset" aria-hidden="true" />
         <div className="eyebrow">SUA IDEIA JÁ É O COMEÇO</div>
-        <h2>Você não precisa esperar<br /><em>para começar a criar.</em></h2>
+        <h2>Sua primeira música<br /><em>começa com uma conversa.</em></h2>
         <div className="final-stack"><span>SOM</span><i>+</i><span>CAPA</span><i>+</i><span>CANVAS</span><i>+</i><span>LINK</span><i>=</i><b>PRESENÇA</b></div>
-        <a href="/checkout" className="pill pill-dark" data-track="checkout_cta">Quero minhas 25 músicas incluídas <Arrow /></a>
-        <p>Você entra com ideias. A Academia transforma prática em método.</p>
+        <a href="/checkout" className="pill pill-dark" data-track="checkout_cta">Quero conversar e criar <Arrow /></a>
+        <p>Você conta a história. O Produtor IA ajuda a transformar em música.</p>
       </section>
 
-      <a href="/checkout" className="mobile-sticky-cta" data-track="checkout_cta">CRIAR MINHAS 25 MÚSICAS <Arrow /></a>
+      <a href="/checkout" className="mobile-sticky-cta" data-track="checkout_cta">CONVERSAR E CRIAR <Arrow /></a>
 
       <footer>
         <a href="#inicio" className="brand"><span className="brand-disc"><i /><i /><i /></span><span>Academia <b>Música IA</b></span></a>

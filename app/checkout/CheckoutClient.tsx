@@ -184,6 +184,7 @@ export default function CheckoutClient() {
       </div>
       <div className="order-includes">
         <p><b>✓</b> Formação principal com acesso permanente</p>
+        <p><b>✓</b> Produtor IA por texto ou voz</p>
         <p><b>✓</b> 25 músicas incluídas para criar e baixar</p>
         <p><b>✓</b> Capa, Canvas e publicação guiadas</p>
         <p><b>✓</b> 30 dias de Biblioteca Viva e comunidade</p>
@@ -246,7 +247,7 @@ export default function CheckoutClient() {
         </label>
         {error ? <p className="checkout-error">{error}</p> : null}
         <button className="checkout-primary" disabled={loading}>
-          {loading ? "Gerando seu Pix…" : "Quero criar minhas 25 músicas • R$197"}
+          {loading ? "Gerando seu Pix…" : "Quero meu Produtor IA + 25 músicas • R$197"}
         </button>
       </form>
       <small className="payment-note">

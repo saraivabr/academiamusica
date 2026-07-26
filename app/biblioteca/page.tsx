@@ -1,6 +1,6 @@
 import { AcademyShell } from "../components/Portal";
 const items = [
-  ["25 MÚSICAS", "Estúdio de criação", "Aprenda criando duas versões por vez e acompanhe seu saldo na plataforma.", "/biblioteca/gerador"],
+  ["PRODUTOR IA", "Estúdio conversacional", "Converse por texto ou voz, confirme a direção e receba duas músicas por rodada.", "/biblioteca/gerador"],
   ["LETRA", "Roteiro de composição", "Transforme uma história real em uma letra humana, cantável e original.", "/biblioteca/compositor"],
   ["24 ESTILOS", "Mapa musical do Brasil", "Explore estilos brasileiros por região, instrumentos, voz e andamento.", "/biblioteca/estilos-brasileiros"],
   ["MÉTODO", "Da ideia às versões", "Aprenda a comparar resultados e escolher a direção mais forte.", "/academia/musica"],
@@ -14,9 +14,9 @@ export default function Biblioteca() {
         <div>
           <small>SEU PONTO DE PARTIDA</small>
           <h2>Crie primeiro.<br /><em>Aprofunde depois.</em></h2>
-          <p>Você tem 25 músicas incluídas para aprender criando. Use os outros materiais quando quiser aprofundar letra, estilo, visual e lançamento.</p>
+          <p>Você tem um Produtor IA e 25 músicas incluídas para aprender criando. Comece pela conversa e aprofunde letra, estilo, visual e lançamento quando precisar.</p>
         </div>
-        <a className="library-primary" href="/biblioteca/gerador">Criar minha música →</a>
+        <a className="library-primary" href="/biblioteca/gerador">Conversar e criar →</a>
       </section>
       <section className="resource-grid live">
         {items.map(([tag, title, text, href], index) => (
@@ -31,7 +31,7 @@ export default function Biblioteca() {
       </section>
       <section className="library-note">
         <b>Você não precisa dominar ferramentas</b>
-        <p>Comece pelo estúdio, crie duas versões por vez e use suas 25 músicas para descobrir a melhor direção. Toda a preparação técnica fica invisível durante a criação.</p>
+        <p>Comece contando uma história por texto ou voz. O Produtor IA organiza a direção e toda a preparação técnica continua invisível durante a criação.</p>
       </section>
     </AcademyShell>
   );

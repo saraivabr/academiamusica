@@ -96,6 +96,16 @@ cat >"$PERMISSIONS_POLICY" <<JSON
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${ACCESS_PARAMETER}",
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${SUNO_API_KEY_PARAMETER}"
       ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "bedrock:InvokeModel",
+      "Resource": [
+        "arn:aws:bedrock:us-east-1:${ACCOUNT_ID}:inference-profile/us.amazon.nova-2-lite-v1:0",
+        "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-2-lite-v1:0",
+        "arn:aws:bedrock:us-east-2::foundation-model/amazon.nova-2-lite-v1:0",
+        "arn:aws:bedrock:us-west-2::foundation-model/amazon.nova-2-lite-v1:0"
+      ]
     }
   ]
 }
@@ -110,7 +120,7 @@ cp infra/checkout/index.mjs "$PACKAGE_DIR/index.mjs"
 (cd "$PACKAGE_DIR" && zip -q function.zip index.mjs)
 
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
-ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,PRICE_CENTS=19700,WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},MUSIC_TRACKS_INCLUDED=25}"
+ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,PRICE_CENTS=19700,WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},MUSIC_TRACKS_INCLUDED=25,MUSIC_CONVERSATION_ENABLED=true,MUSIC_CONVERSATION_MODEL=us.amazon.nova-2-lite-v1:0}"
 
 if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAME" >/dev/null 2>&1; then
   aws lambda wait function-active-v2 --region "$AWS_REGION" --function-name "$FUNCTION_NAME"
@@ -124,7 +134,7 @@ if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAM
     --function-name "$FUNCTION_NAME" \
     --runtime nodejs22.x \
     --handler index.handler \
-    --timeout 20 \
+    --timeout 30 \
     --memory-size 256 \
     --environment "$ENVIRONMENT" >/dev/null
 else
@@ -134,7 +144,7 @@ else
     --function-name "$FUNCTION_NAME" \
     --runtime nodejs22.x \
     --handler index.handler \
-    --timeout 20 \
+    --timeout 30 \
     --memory-size 256 \
     --role "$ROLE_ARN" \
     --environment "$ENVIRONMENT" \

@@ -6,9 +6,14 @@ import {
   PutItemCommand,
   UpdateItemCommand,
 } from "@aws-sdk/client-dynamodb";
+import {
+  BedrockRuntimeClient,
+  ConverseCommand,
+} from "@aws-sdk/client-bedrock-runtime";
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
 
 const dynamo = new DynamoDBClient({});
+const bedrock = new BedrockRuntimeClient({});
 const ssm = new SSMClient({});
 
 const TABLE_NAME = process.env.TABLE_NAME;
@@ -24,6 +29,11 @@ const MUSIC_TRACKS_PER_GENERATION = 2;
 const MUSIC_GENERATION_LIMIT = Math.ceil(
   MUSIC_TRACKS_INCLUDED / MUSIC_TRACKS_PER_GENERATION,
 );
+const MUSIC_CONVERSATION_ENABLED = process.env.MUSIC_CONVERSATION_ENABLED !== "false";
+const MUSIC_CONVERSATION_MODEL = process.env.MUSIC_CONVERSATION_MODEL
+  ?? "us.amazon.nova-2-lite-v1:0";
+const MUSIC_CONVERSATION_DAILY_LIMIT = 60;
+const MUSIC_CONVERSATION_TOOL = "deliver_music_plan";
 const SUNO_GENERATION_COST_ESTIMATE = 12;
 const MUSIC_MODEL = "V5";
 const SUNO_FAILED_STATUSES = new Set([
@@ -88,6 +98,187 @@ function normalizePhone(value) {
 
 function safeString(value, maxLength = 500) {
   return String(value ?? "").slice(0, maxLength);
+}
+
+function normalizeConversationId(value) {
+  const conversationId = safeString(value, 80).trim();
+  return /^[a-zA-Z0-9_-]{8,80}$/.test(conversationId)
+    ? conversationId
+    : `music_${crypto.randomUUID().replaceAll("-", "")}`;
+}
+
+function normalizeConversationMessages(value) {
+  if (!Array.isArray(value)) return [];
+  const messages = [];
+  let totalLength = 0;
+  for (const item of value.slice(-16)) {
+    const role = item?.role === "assistant" ? "assistant" : item?.role === "user" ? "user" : null;
+    const text = safeString(item?.text ?? item?.content, 1_000).trim();
+    if (!role || !text || totalLength + text.length > 6_000) continue;
+    if (!messages.length && role !== "user") continue;
+    const previous = messages.at(-1);
+    if (previous?.role === role) {
+      previous.content[0].text = safeString(`${previous.content[0].text}\n${text}`, 1_000);
+    } else {
+      messages.push({ role, content: [{ text }] });
+    }
+    totalLength += text.length;
+  }
+  return messages.slice(-12);
+}
+
+function normalizeMusicPlan(value = {}) {
+  return {
+    theme: safeString(value.theme, 400).trim(),
+    emotion: safeString(value.emotion, 120).trim(),
+    style: safeString(value.style ?? value.styleName, 120).trim(),
+    voice: safeString(value.voice, 120).trim(),
+    hook: safeString(value.hook, 120).trim(),
+    instrumental: value.instrumental === true,
+  };
+}
+
+function missingMusicPlanFields(plan) {
+  const missing = [];
+  if (!plan.theme) missing.push("theme");
+  if (!plan.emotion) missing.push("emotion");
+  if (!plan.style) missing.push("style");
+  if (!plan.instrumental && !plan.voice) missing.push("voice");
+  if (!plan.instrumental && !plan.hook) missing.push("hook");
+  return missing;
+}
+
+function planQuestion(field) {
+  return {
+    theme: {
+      reply: "Qual história, pessoa ou momento você quer transformar em música?",
+      quickReplies: ["Uma homenagem", "Minha história", "Um romance", "Uma superação"],
+    },
+    emotion: {
+      reply: "Que sentimento deve ficar em quem ouvir essa música?",
+      quickReplies: ["Saudade", "Alegria", "Esperança", "Paixão"],
+    },
+    style: {
+      reply: "Que estilo combina com essa história?",
+      quickReplies: ["Sertanejo", "Pagode", "Forró", "Pop brasileiro"],
+    },
+    voice: {
+      reply: "Como você imagina a voz dessa música?",
+      quickReplies: ["Masculina e próxima", "Feminina e forte", "Dueto", "Quero instrumental"],
+    },
+    hook: {
+      reply: "Qual frase precisa aparecer no refrão?",
+      quickReplies: ["Quero sugerir uma frase", "Pode nascer da história"],
+    },
+  }[field];
+}
+
+function forceReadyDefaults(plan) {
+  const next = { ...plan };
+  if (!next.emotion) next.emotion = "emocionante, verdadeira e próxima";
+  if (!next.style) next.style = "Pop brasileiro";
+  if (!next.instrumental && !next.voice) next.voice = "voz brasileira natural e próxima";
+  if (!next.instrumental && !next.hook) {
+    next.hook = safeString(next.theme || "essa história merece virar música", 100);
+  }
+  return next;
+}
+
+function inferEmotionFromMessages(messages) {
+  const text = messages
+    .filter((message) => message.role === "user")
+    .map((message) => message.content?.[0]?.text ?? "")
+    .join(" ")
+    .toLocaleLowerCase("pt-BR");
+  const emotions = [];
+  const add = (emotion) => {
+    if (!emotions.includes(emotion)) emotions.push(emotion);
+  };
+  if (/\b(gratid[aã]o|agrade(?:cer|cimento)|obrigad[oa])\b/i.test(text)) add("gratidão");
+  if (/\b(saudade|saudades|sinto falta)\b/i.test(text)) add("saudade");
+  if (/\b(amor|romance|rom[aâ]ntic[oa]|apaixonad[oa])\b/i.test(text)) add("amor");
+  if (/\b(alegria|feliz|felicidade|celebrar|comemorar)\b/i.test(text)) add("alegria");
+  if (/\b(supera(?:ç[aã]o|r)|recome(?:ç|c)o|ven(?:cer|ci|ceu)|conquista)\b/i.test(text)) add("superação");
+  if (/\b(esperan[çc]a|f[eé]|confian[çc]a)\b/i.test(text)) add("esperança");
+  if (/\b(tristeza|dor|luto|despedida)\b/i.test(text)) add("tristeza");
+  return emotions.slice(0, 2).join(" e ");
+}
+
+function firstUsefulQuestion(value) {
+  const text = safeString(value, 360).trim();
+  const questionEnd = text.indexOf("?");
+  if (questionEnd < 0) return text;
+  const beforeQuestion = text.slice(0, questionEnd);
+  const sentenceStart = Math.max(
+    beforeQuestion.lastIndexOf(". "),
+    beforeQuestion.lastIndexOf("! "),
+  );
+  const question = text.slice(sentenceStart + 2, questionEnd + 1).trim();
+  return question.length >= 12 ? question : text.slice(0, questionEnd + 1).trim();
+}
+
+function normalizeConversationOutput(input, currentPlan, userTurnCount, messages = []) {
+  const current = normalizeMusicPlan(currentPlan);
+  const incoming = normalizeMusicPlan(input);
+  const plan = {
+    theme: incoming.theme || current.theme,
+    emotion: incoming.emotion || current.emotion || inferEmotionFromMessages(messages),
+    style: incoming.style || current.style,
+    voice: incoming.voice || current.voice,
+    hook: incoming.hook || current.hook,
+    instrumental: typeof input?.instrumental === "boolean"
+      ? incoming.instrumental
+      : current.instrumental,
+  };
+  const readyPlan = userTurnCount >= 6 ? forceReadyDefaults(plan) : plan;
+  const missingFields = missingMusicPlanFields(readyPlan);
+  const stage = missingFields.length ? "collecting" : "ready";
+  const fallback = stage === "ready"
+    ? {
+        reply: "Entendi sua direção. Confira o resumo e, se estiver certo, vamos criar duas músicas.",
+        quickReplies: ["Quero mudar algo"],
+      }
+    : planQuestion(missingFields[0]);
+  const quickReplies = stage === "ready"
+    ? fallback.quickReplies
+    : Array.isArray(input?.quickReplies)
+    ? input.quickReplies
+      .map((item) => safeString(item, 40).trim())
+      .filter(Boolean)
+      .slice(0, 4)
+    : fallback.quickReplies;
+  const rawReply = firstUsefulQuestion(safeString(input?.reply, 360).trim()
+    .replace(/^(oi[!.]?\s*)/i, "")
+    .replace(/^(adorei|que legal|perfeito|maravilhoso)[^.!?]*[.!?]\s*/i, ""));
+  const reply = stage === "ready"
+    ? fallback.reply
+    : rawReply || fallback.reply;
+  return {
+    reply,
+    stage,
+    quickReplies,
+    plan: readyPlan,
+    missingFields,
+  };
+}
+
+function deterministicConversationFallback(currentPlan, messages, userTurnCount, mode) {
+  const plan = normalizeMusicPlan(currentPlan);
+  const latestText = messages.at(-1)?.content?.[0]?.text ?? "";
+  const instrumental = /\b(instrumental|sem voz|só instrumentos?)\b/i.test(latestText);
+  if (instrumental) plan.instrumental = true;
+  const missingBefore = missingMusicPlanFields(plan);
+  const target = missingBefore[0];
+  if (latestText && target) {
+    if (target === "theme") plan.theme = latestText;
+    if (target === "emotion") plan.emotion = latestText;
+    if (target === "style") plan.style = latestText;
+    if (target === "voice" && !instrumental) plan.voice = latestText;
+    if (target === "hook" && !instrumental) plan.hook = latestText;
+  } else if (latestText && mode === "refine") {
+    plan.emotion = safeString(`${plan.emotion}; ajuste solicitado: ${latestText}`, 120);
+  }
+  return normalizeConversationOutput({}, plan, userTurnCount, messages);
 }
 
 function itemToOrder(item) {
@@ -175,6 +366,49 @@ async function recordFunnelEvent({
         message: error.message,
       });
     }
+  }
+}
+
+async function recordMemberMusicEvent(order, name, id, value) {
+  await recordFunnelEvent({
+    id,
+    name,
+    sessionId: order.sessionId,
+    path: "/biblioteca/gerador/",
+    source: order.source,
+    medium: order.medium,
+    campaign: order.campaign,
+    orderId: order.id,
+    value,
+  });
+}
+
+async function reserveConversationTurn(orderId) {
+  if (!EVENTS_TABLE_NAME) return true;
+  const day = new Date().toISOString().slice(0, 10);
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: `music_chat_limit_${orderId}_${day}` } },
+      UpdateExpression: "SET #name = :name, orderId = :orderId, updatedAt = :updatedAt, #ttl = :ttl ADD turnCount :one",
+      ConditionExpression: "attribute_not_exists(turnCount) OR turnCount < :limit",
+      ExpressionAttributeNames: {
+        "#name": "name",
+        "#ttl": "ttl",
+      },
+      ExpressionAttributeValues: {
+        ":name": { S: "music_conversation_rate_limit" },
+        ":orderId": { S: orderId },
+        ":updatedAt": { S: new Date().toISOString() },
+        ":ttl": { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 48) },
+        ":one": { N: "1" },
+        ":limit": { N: String(MUSIC_CONVERSATION_DAILY_LIMIT) },
+      },
+    }));
+    return true;
+  } catch (error) {
+    if (error instanceof ConditionalCheckFailedException) return false;
+    throw error;
   }
 }
 
@@ -360,6 +594,179 @@ function remainingMusicTracks(generationCount) {
   );
 }
 
+function conversationSystemPrompt({ mode, currentPlan, availableStyles, userTurnCount }) {
+  const styleNames = Array.isArray(availableStyles)
+    ? availableStyles
+      .map((item) => safeString(item?.name ?? item, 80).trim())
+      .filter(Boolean)
+      .slice(0, 40)
+    : [];
+  return [
+    "Você é o Produtor IA da Academia Música IA.",
+    "Conduza uma conversa curta, humana e acolhedora em português do Brasil.",
+    "Nunca fale de prompt, modelo, API, fornecedor ou detalhes técnicos.",
+    "Faça somente uma pergunta por resposta e não repita algo que o aluno já informou.",
+    "Extraia tema, emoção, estilo, voz, frase de refrão e se é instrumental.",
+    "Se a pessoa pedir instrumental, voz e refrão deixam de ser obrigatórios.",
+    "Se ela citar um artista, converta a referência em características musicais sem prometer imitação.",
+    "Não elogie genericamente. Reaja de forma breve e avance a criação.",
+    "Após seis respostas do aluno, escolha padrões plausíveis para o que faltar e entregue o plano pronto.",
+    "Quando o plano estiver completo, confirme que entendeu e convide a revisar o resumo.",
+    `Modo atual: ${mode}. Respostas do aluno: ${userTurnCount}.`,
+    `Plano atual: ${JSON.stringify(currentPlan)}.`,
+    styleNames.length ? `Estilos disponíveis: ${styleNames.join(", ")}.` : "",
+    `Sempre chame a ferramenta ${MUSIC_CONVERSATION_TOOL} uma vez com a resposta e o plano atualizado.`,
+  ].filter(Boolean).join("\n");
+}
+
+const conversationTool = {
+  toolSpec: {
+    name: MUSIC_CONVERSATION_TOOL,
+    description: "Entrega a próxima fala do Produtor IA e o plano musical acumulado.",
+    inputSchema: {
+      json: {
+        type: "object",
+        properties: {
+          reply: { type: "string", description: "Resposta curta em português, com no máximo uma pergunta." },
+          stage: { type: "string", description: "collecting enquanto faltam dados ou ready quando o plano pode ser confirmado." },
+          quickReplies: {
+            type: "array",
+            description: "Até quatro respostas curtas opcionais.",
+            items: { type: "string" },
+          },
+          theme: { type: "string", description: "História, pessoa, cena ou assunto da música." },
+          emotion: { type: "string", description: "Sentimento central desejado." },
+          style: { type: "string", description: "Estilo musical em linguagem clara." },
+          voice: { type: "string", description: "Direção da voz; vazio para instrumental." },
+          hook: { type: "string", description: "Frase ou ideia central do refrão; vazio para instrumental." },
+          instrumental: { type: "boolean", description: "Verdadeiro quando a música não deve ter voz nem letra." },
+        },
+        required: [
+          "reply",
+          "stage",
+          "quickReplies",
+          "theme",
+          "emotion",
+          "style",
+          "voice",
+          "hook",
+          "instrumental",
+        ],
+      },
+    },
+  },
+};
+
+async function createMusicConversation(event) {
+  const order = await authorizeMember(event);
+  if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+  if (!MUSIC_CONVERSATION_ENABLED) {
+    return response(503, {
+      error: "O Produtor IA está em manutenção. Use o modo guiado.",
+      conversationAvailable: false,
+    });
+  }
+
+  let body;
+  try {
+    body = readBody(event);
+  } catch {
+    return response(400, { error: "Conversa inválida." });
+  }
+  const messages = normalizeConversationMessages(body.messages);
+  if (!messages.length) {
+    return response(400, { error: "Conte uma ideia para começar a conversa." });
+  }
+  const conversationId = normalizeConversationId(body.conversationId);
+  const mode = body.mode === "refine" ? "refine" : "create";
+  const currentPlan = normalizeMusicPlan(body.plan);
+  const userTurnCount = messages.filter((item) => item.role === "user").length;
+  const remainingSongs = remainingMusicTracks(order.sunoGenerationCount);
+  if (!(await reserveConversationTurn(order.id))) {
+    return response(429, {
+      error: "Você chegou ao limite de conversas de hoje. Suas músicas e seu saldo continuam seguros.",
+    });
+  }
+
+  await recordMemberMusicEvent(
+    order,
+    "music_conversation_started",
+    `music_conversation_started_${conversationId}`,
+  );
+  if (body.inputMethod === "voice") {
+    await recordMemberMusicEvent(
+      order,
+      "music_voice_used",
+      `music_voice_used_${conversationId}`,
+    );
+  }
+  if (mode === "refine") {
+    await recordMemberMusicEvent(
+      order,
+      "music_refinement_started",
+      `music_refinement_started_${conversationId}`,
+    );
+  }
+
+  let result;
+  try {
+    const modelResponse = await bedrock.send(new ConverseCommand({
+      modelId: MUSIC_CONVERSATION_MODEL,
+      system: [{
+        text: conversationSystemPrompt({
+          mode,
+          currentPlan,
+          availableStyles: body.availableStyles,
+          userTurnCount,
+        }),
+      }],
+      messages,
+      toolConfig: {
+        tools: [conversationTool],
+        toolChoice: { tool: { name: MUSIC_CONVERSATION_TOOL } },
+      },
+      inferenceConfig: {
+        maxTokens: 1_200,
+        temperature: 0,
+      },
+    }));
+    const toolUse = modelResponse.output?.message?.content
+      ?.find((item) => item.toolUse?.name === MUSIC_CONVERSATION_TOOL)
+      ?.toolUse;
+    if (!toolUse?.input) throw new Error("Structured conversation output is unavailable");
+    result = normalizeConversationOutput(toolUse.input, currentPlan, userTurnCount, messages);
+  } catch (error) {
+    console.error("Music conversation fallback", {
+      orderId: order.id,
+      conversationId,
+      name: error.name,
+      message: error.message,
+    });
+    await recordMemberMusicEvent(
+      order,
+      "music_conversation_error",
+      `music_conversation_error_${conversationId}_${crypto.randomUUID().slice(0, 8)}`,
+    );
+    result = deterministicConversationFallback(currentPlan, messages, userTurnCount, mode);
+  }
+
+  if (result.stage === "ready") {
+    await recordMemberMusicEvent(
+      order,
+      "music_plan_ready",
+      `music_plan_ready_${conversationId}`,
+    );
+  }
+  return response(200, {
+    conversationId,
+    ...result,
+    conversationAvailable: true,
+    remainingSongs,
+    songsPerGeneration: MUSIC_TRACKS_PER_GENERATION,
+    remainingAfterGeneration: Math.max(0, remainingSongs - MUSIC_TRACKS_PER_GENERATION),
+  });
+}
+
 async function releaseSunoGeneration(orderId) {
   try {
     await dynamo.send(new UpdateItemCommand({
@@ -430,8 +837,10 @@ async function getSunoCredits(event) {
   const credits = await sunoRequest("/generate/credit", { method: "GET" });
   return response(200, {
     available: Number(credits) >= SUNO_GENERATION_COST_ESTIMATE,
+    conversationAvailable: MUSIC_CONVERSATION_ENABLED,
     remainingSongs: remainingMusicTracks(order.sunoGenerationCount),
     includedSongs: MUSIC_TRACKS_INCLUDED,
+    songsPerGeneration: MUSIC_TRACKS_PER_GENERATION,
   });
 }
 
@@ -447,6 +856,8 @@ async function createSunoGeneration(event) {
   }
   const prompt = safeString(body.brief ?? body.prompt, 501).trim();
   const instrumental = body.instrumental === true;
+  const conversationId = normalizeConversationId(body.conversationId);
+  const mode = body.mode === "refine" ? "refine" : "create";
   if (prompt.length < 20 || prompt.length > 500) {
     return response(400, { error: "Descreva a música em 20 a 500 caracteres." });
   }
@@ -479,12 +890,26 @@ async function createSunoGeneration(event) {
   }
   const taskId = safeString(data?.taskId, 100);
   if (!/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)) {
+    await releaseSunoGeneration(order.id);
     throw new Error("O serviço não devolveu um identificador de geração válido.");
   }
-  await rememberSunoTask(taskId, order.id);
+  try {
+    await rememberSunoTask(taskId, order.id);
+  } catch (error) {
+    await releaseSunoGeneration(order.id);
+    throw error;
+  }
+  await recordMemberMusicEvent(
+    order,
+    "music_generation_confirmed",
+    `music_generation_confirmed_${taskId}`,
+    MUSIC_TRACKS_PER_GENERATION,
+  );
   return response(202, {
     taskId,
     status: "PENDING",
+    conversationId,
+    mode,
     remainingSongs: remainingMusicTracks(generationCount),
     includedSongs: MUSIC_TRACKS_INCLUDED,
   });
@@ -510,6 +935,14 @@ async function getSunoGeneration(event, taskId) {
   const refunded = failed
     ? await refundFailedSunoTask(taskId, order.id)
     : false;
+  if (status === "SUCCESS") {
+    await recordMemberMusicEvent(
+      order,
+      "music_generation_completed",
+      `music_generation_completed_${taskId}`,
+      tracks.length,
+    );
+  }
   return response(200, {
     taskId,
     status,
@@ -870,6 +1303,9 @@ export const handler = async (event) => {
       method === "GET"
       && (path === "/v1/music/availability" || path === "/v1/suno/credits")
     ) return await getSunoCredits(event);
+    if (method === "POST" && path === "/v1/music/conversation") {
+      return await createMusicConversation(event);
+    }
     if (
       method === "POST"
       && (path === "/v1/music/generations" || path === "/v1/suno/generations")

@@ -7,7 +7,7 @@ export default function Estilos(){
   const families=["Todos",...Array.from(new Set(musicStyles.map(s=>s.family)))];
   const filtered=useMemo(()=>musicStyles.filter(s=>(family==="Todos"||s.family===family)&&`${s.name} ${s.region} ${s.family}`.toLowerCase().includes(query.toLowerCase())),[query,family]);
   const copy=async(slug:string,text:string)=>{await navigator.clipboard.writeText(text);setCopied(slug);setTimeout(()=>setCopied(""),1500)};
-  return <AcademyShell title="Estilos brasileiros" eyebrow="MAPA MUSICAL • MOTOR v5">
+  return <AcademyShell title="Estilos brasileiros" eyebrow="MAPA MUSICAL • BRASIL">
     <section className="styles-head"><div><h2>O Brasil não cabe em<br/><em>“Brazilian music”.</em></h2><p>Escolha o gênero e use uma direção que descreve groove, timbres, interpretação e produção.</p></div><strong>{musicStyles.length}<span>MAPAS DE ESTILO</span></strong></section>
     <div className="style-tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar estilo ou região…"/><select value={family} onChange={e=>setFamily(e.target.value)}>{families.map(f=><option key={f}>{f}</option>)}</select></div>
     <section className="style-catalog">{filtered.map((s,i)=><article key={s.slug} className={open===s.slug?"open":""}>
