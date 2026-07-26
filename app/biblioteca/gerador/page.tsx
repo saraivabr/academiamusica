@@ -33,7 +33,7 @@ export default function Gerador() {
   const [hook, setHook] = useState("eu não parei quando ficou difícil");
   const [instrumental, setInstrumental] = useState(false);
   const [providerReady, setProviderReady] = useState<boolean | null>(null);
-  const [remainingGenerations, setRemainingGenerations] = useState<number | null>(null);
+  const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
   const [taskId, setTaskId] = useState("");
   const [generationStatus, setGenerationStatus] = useState("IDLE");
   const [tracks, setTracks] = useState<GeneratedTrack[]>([]);
@@ -60,7 +60,7 @@ export default function Gerador() {
       .then((data) => {
         if (!active) return;
         setProviderReady(Boolean(data.available));
-        setRemainingGenerations(Number(data.remainingGenerations));
+        setRemainingSongs(Number(data.remainingSongs));
         const savedTask = window.localStorage.getItem(taskStorageKey);
         if (savedTask && /^[a-zA-Z0-9_-]{8,100}$/.test(savedTask)) {
           setTaskId(savedTask);
@@ -89,8 +89,8 @@ export default function Gerador() {
         setGenerationStatus(data.status);
         setTracks(data.tracks ?? []);
         setGenerationError(data.error ?? "");
-        if (typeof data.remainingGenerations === "number") {
-          setRemainingGenerations(data.remainingGenerations);
+        if (typeof data.remainingSongs === "number") {
+          setRemainingSongs(data.remainingSongs);
         }
         if (!completedStatuses.has(data.status)) {
           timer = window.setTimeout(check, 5000);
@@ -128,7 +128,7 @@ export default function Gerador() {
       setTaskId(data.taskId);
       window.localStorage.setItem(taskStorageKey, data.taskId);
       setGenerationStatus(data.status);
-      setRemainingGenerations(Number(data.remainingGenerations));
+      setRemainingSongs(Number(data.remainingSongs));
     } catch (error) {
       setGenerationStatus("IDLE");
       setGenerationError(error instanceof Error ? error.message : "Não foi possível iniciar a criação.");
@@ -151,7 +151,7 @@ export default function Gerador() {
         <div>
           <small>SEM TERMOS TÉCNICOS</small>
           <h2>Conte a ideia.<br />Receba a música.</h2>
-          <p>Você escolhe a história, a emoção e o estilo. O estúdio cuida da parte técnica e entrega duas versões para ouvir aqui dentro.</p>
+          <p>Você tem 25 músicas incluídas para aprender criando. Escolha a história, a emoção e o estilo; o estúdio cuida da parte técnica e entrega duas versões por vez.</p>
         </div>
         <ol aria-label="Etapas da criação">
           <li className={!isGenerating && !tracks.length ? "active" : ""}><span>1</span><b>Conte</b></li>
@@ -220,23 +220,23 @@ export default function Gerador() {
           <div className={`studio-status ${providerReady ? "ready" : ""}`} aria-live="polite">
             <i aria-hidden="true" />
             <div>
-              <b>{providerReady === null ? "Abrindo o estúdio…" : remainingGenerations === 0 ? "Suas versões estão salvas" : providerReady ? "Tudo pronto para criar" : "Estúdio indisponível"}</b>
-              <small>{remainingGenerations === 1 ? "1 criação disponível • 2 versões" : remainingGenerations === 0 ? "A criação deste acesso foi concluída" : "Verificando seu acesso"}</small>
+              <b>{providerReady === null ? "Abrindo o estúdio…" : remainingSongs === 0 ? "Suas 25 músicas foram utilizadas" : providerReady ? "Tudo pronto para criar" : "Estúdio indisponível"}</b>
+              <small>{remainingSongs === null ? "Verificando seu saldo" : remainingSongs === 0 ? "Você concluiu o pacote incluído" : `${remainingSongs} músicas disponíveis`}</small>
             </div>
           </div>
           {generationError ? <p className="generation-error" role="alert">{generationError}</p> : null}
           <button
             className="generate-music-button"
-            disabled={isGenerating || remainingGenerations !== 1 || providerReady !== true}
+            disabled={isGenerating || remainingSongs === null || remainingSongs <= 0 || providerReady !== true}
           >
             {isGenerating
               ? <><i aria-hidden="true" />{statusLabel}</>
-              : remainingGenerations === 0
-                ? "Criação já utilizada"
+              : remainingSongs === 0
+                ? "25 músicas concluídas"
                 : providerReady === null
                   ? "Preparando o estúdio…"
                   : providerReady
-                    ? "Criar minhas duas versões →"
+                    ? "Criar duas músicas agora →"
                     : "Tentar novamente mais tarde"}
           </button>
           <p className="generation-expectation">A criação costuma levar alguns minutos. Você pode deixar esta página aberta enquanto trabalhamos.</p>

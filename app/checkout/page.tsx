@@ -3,7 +3,7 @@ import CheckoutClient from "./CheckoutClient";
 
 export const metadata = {
   title: "Inscrição | Academia Música IA",
-  description: "Garanta seu acesso à Academia Música IA por Pix.",
+  description: "Garanta sua formação e 25 músicas incluídas por Pix.",
 };
 
 export default function Checkout() {
@@ -12,15 +12,15 @@ export default function Checkout() {
       <main className="checkout-page">
         <section className="checkout-intro">
           <div className="eyebrow">INSCRIÇÕES ABERTAS</div>
-          <h1>Tire sua música do arquivo.</h1>
+          <h1>Aprenda criando suas próprias músicas.</h1>
           <p>
-            Entre na Academia Música IA e siga um caminho prático para transformar
-            sua ideia em música, identidade e lançamento.
+            Entre na Academia Música IA, receba 25 criações no estúdio e siga um
+            caminho prático da primeira ideia ao lançamento.
           </p>
           <div className="checkout-proof">
             <span>✓ 7 dias de garantia</span>
             <span>✓ Pagamento único</span>
-            <span>✓ Acesso online</span>
+            <span>✓ 25 músicas incluídas</span>
           </div>
           <div className="checkout-help">
             <small>FICOU COM ALGUMA DÚVIDA?</small>

@@ -6,13 +6,13 @@ const Arrow = () => <span aria-hidden="true">↗</span>;
 const Check = () => <span className="check" aria-hidden="true">✓</span>;
 
 const tracks = [
-  ["01", "Música com direção", "Defina estilo, tema, intenção e voz. Gere versões, compare e refine até a faixa deixar de parecer uma tentativa aleatória.", "MÚSICA"],
+  ["01", "25 músicas para praticar", "Aprenda criando dentro do estúdio: defina estilo, tema, intenção e voz, gere versões e descubra sua direção.", "25 FAIXAS"],
   ["02", "Identidade com presença", "Transforme a faixa em projeto: conceito, capa profissional, direção estética e Spotify Canvas.", "VISUAL"],
   ["03", "Lançamento preparado", "Organize arquivos, dados e distribuição para levar sua música às plataformas e conquistar um link para compartilhar.", "LANÇAMENTO"],
 ];
 
 const library = [
-  ["Estúdio de criação", "Conte sua ideia em perguntas simples e receba duas versões completas para ouvir.", "MÚSICA"],
+  ["Estúdio com 25 músicas", "Conte sua ideia em perguntas simples, crie duas versões por vez e baixe suas favoritas.", "MÚSICA"],
   ["Roteiro de composição", "Desenvolva letras, conceitos e direções musicais com apoio da inteligência artificial.", "COMPOSIÇÃO"],
   ["Capa profissional", "Transforme sua foto ou ideia artística na identidade visual do lançamento.", "IDENTIDADE"],
   ["Spotify Canvas", "Crie o vídeo curto que acompanha sua música durante a reprodução.", "MOVIMENTO"],
@@ -24,9 +24,10 @@ const library = [
 const faqs = [
   ["Preciso saber cantar?", "Não. A Academia foi pensada para iniciantes e mostra como usar ferramentas que podem apoiar voz, composição e instrumentação."],
   ["Preciso tocar ou entender teoria musical?", "Não. O processo parte da sua ideia e das suas escolhas criativas. Os conceitos necessários aparecem de forma prática durante a criação."],
+  ["As 25 músicas estão incluídas?", "Sim. Sua inscrição libera 25 criações musicais dentro do estúdio da Academia, sem cobrança adicional para gerar esse pacote."],
   ["Vou publicar direto no Spotify?", "Você aprende a preparar e distribuir sua música por meio dos serviços disponíveis. A publicação depende das regras, requisitos e aprovações das plataformas e distribuidoras utilizadas."],
   ["Posso monetizar minha música?", "Depende dos termos da ferramenta, da distribuidora e das plataformas usadas. A Academia mostra o caminho, mas não promete monetização, streams ou renda."],
-  ["As ferramentas são gratuitas?", "Algumas oferecem versões gratuitas ou testes; outras possuem planos pagos. Custos de ferramentas e distribuidoras, quando existirem, são externos à Academia."],
+  ["Existem outros custos?", "As 25 músicas estão incluídas. Serviços opcionais de distribuição, publicação ou ferramentas externas podem ter custos próprios e são contratados separadamente."],
   ["A música fica perfeita de primeira?", "Provavelmente não. Por isso o método inclui geração de versões, comparação, seleção e refinamento. IA acelera a criação; direção continua sendo necessária."],
   ["Posso usar minha foto na capa?", "Sim. Você pode trabalhar com sua própria foto, uma ideia artística ou uma identidade criada especificamente para o lançamento."],
   ["Terei comunidade?", "Sim. A comunidade existe para você mostrar músicas, acompanhar outros criadores, trocar experiências e evoluir nos próximos lançamentos."],
@@ -76,7 +77,7 @@ export default function Home() {
           <a href="#biblioteca">Entregas</a>
           <a href="#duvidas">Dúvidas</a>
         </div>
-        <a href="/checkout" className="pill pill-outline" data-track="checkout_cta">Tirar do arquivo <Arrow /></a>
+        <a href="/checkout" className="pill pill-outline" data-track="checkout_cta">Criar minhas músicas <Arrow /></a>
       </nav>
 
       <section className="hero" id="inicio">
@@ -93,11 +94,11 @@ export default function Home() {
           <span className="motion-tile tile-c" />
         </div>
         <div className="hero-content">
-          <div className="status"><span /> Para iniciantes • processo guiado</div>
-          <h1>Da ideia<br />ao <em>Spotify.</em></h1>
-          <p>Crie sua música com IA, faça sua capa e prepare seu lançamento nas plataformas — sem precisar cantar, tocar, produzir ou entender distribuição do zero.</p>
+          <div className="status"><span /> Formação prática • 25 músicas incluídas</div>
+          <h1>Aprenda criando.<br />Saia com <em>25 músicas.</em></h1>
+          <p>Você aprende a transformar ideias em música dentro da própria plataforma. São 25 criações incluídas para praticar, ouvir e baixar — sem precisar cantar, tocar ou produzir.</p>
           <div className="hero-actions">
-            <a href="#oferta" className="pill pill-green" data-track="offer_cta">Quero tirar minha música do arquivo <Arrow /></a>
+            <a href="#oferta" className="pill pill-green" data-track="offer_cta">Quero criar minhas 25 músicas <Arrow /></a>
             <button className="play-link" onClick={toggleJingle} aria-label={jinglePlaying ? "Pausar jingle" : "Ouvir jingle"}>
               <span className="play-circle">{jinglePlaying ? "Ⅱ" : "▶"}</span>
               {jinglePlaying ? "Tocando o jingle" : "Ouvir o jingle"}
@@ -105,8 +106,8 @@ export default function Home() {
             </button>
           </div>
           <div className="hero-proof">
-            <span><Check /> Acesso online</span>
-            <span><Check /> Nível iniciante</span>
+            <span><Check /> 25 músicas incluídas</span>
+            <span><Check /> Método para iniciantes</span>
             <span><Check /> Investimento R$197</span>
           </div>
           <small className="hero-disclaimer">Sem promessa de fama, streams, renda ou aprovação automática pelas plataformas.</small>
@@ -444,14 +445,14 @@ export default function Home() {
         <div className="offer-copy">
           <div className="eyebrow">APERTE O PLAY</div>
           <h2>Entre para a<br /><em>Academia Música IA</em></h2>
-          <p>Tenha acesso ao processo para criar sua música, construir sua identidade visual e preparar seu lançamento — sem atravessar o labirinto sozinho.</p>
+          <p>Você não recebe apenas aulas. Aprende criando dentro da plataforma, com 25 músicas incluídas para testar estilos, comparar versões e escolher as que quer levar ao lançamento.</p>
           <div className="included">
-            {["Criação musical com IA", "Capa e identidade visual", "Spotify Canvas", "Distribuição nas plataformas", "Biblioteca Viva + comunidade"].map(item => <span key={item}><Check /> {item}</span>)}
+            {["25 músicas para criar e baixar", "Método Da Ideia ao Link", "Capa e identidade visual", "Spotify Canvas + publicação", "Biblioteca Viva + comunidade"].map(item => <span key={item}><Check /> {item}</span>)}
           </div>
           <div className="price-row"><small>INVESTIMENTO</small><div><sup>R$</sup>197</div><span>pagamento único</span></div>
-          <a href="/checkout" className="pill pill-green pill-full" data-track="checkout_cta">Quero tirar minha música do arquivo <Arrow /></a>
+          <a href="/checkout" className="pill pill-green pill-full" data-track="checkout_cta">Quero aprender criando 25 músicas <Arrow /></a>
           <small className="safe">🔒 Compra segura • acesso online • nível iniciante</small>
-          <p className="external-costs">Custos externos de ferramentas ou distribuidoras, quando existirem, não estão incluídos no valor da Academia.</p>
+          <p className="external-costs">As 25 músicas estão incluídas. Serviços opcionais de distribuição ou publicação podem ter custos externos.</p>
         </div>
       </section>
 
@@ -481,13 +482,13 @@ export default function Home() {
         <div className="sound-rings" aria-hidden="true"><i /><i /><i /><i /></div>
         <img src="/elemento-play-3d.png" alt="" className="final-play-asset" aria-hidden="true" />
         <div className="eyebrow">SUA IDEIA JÁ É O COMEÇO</div>
-        <h2>Sua música não precisa<br /><em>morrer como arquivo.</em></h2>
+        <h2>Você não precisa esperar<br /><em>para começar a criar.</em></h2>
         <div className="final-stack"><span>SOM</span><i>+</i><span>CAPA</span><i>+</i><span>CANVAS</span><i>+</i><span>LINK</span><i>=</i><b>PRESENÇA</b></div>
-        <a href="/checkout" className="pill pill-dark" data-track="checkout_cta">Quero colocar minha música no mundo <Arrow /></a>
-        <p>Você entra com uma ideia. A Academia organiza o caminho.</p>
+        <a href="/checkout" className="pill pill-dark" data-track="checkout_cta">Quero minhas 25 músicas incluídas <Arrow /></a>
+        <p>Você entra com ideias. A Academia transforma prática em método.</p>
       </section>
 
-      <a href="/checkout" className="mobile-sticky-cta" data-track="checkout_cta">TIRAR MINHA MÚSICA DO ARQUIVO <Arrow /></a>
+      <a href="/checkout" className="mobile-sticky-cta" data-track="checkout_cta">CRIAR MINHAS 25 MÚSICAS <Arrow /></a>
 
       <footer>
         <a href="#inicio" className="brand"><span className="brand-disc"><i /><i /><i /></span><span>Academia <b>Música IA</b></span></a>

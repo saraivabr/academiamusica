@@ -6,16 +6,16 @@ import "./experience-v2.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://musicacom.ia.br"),
-  title: "Da ideia ao Spotify | Academia Música IA",
+  title: "Aprenda criando 25 músicas | Academia Música IA",
   description:
-    "Crie sua música com IA, desenvolva sua identidade visual e publique nas principais plataformas de streaming.",
+    "Aprenda a criar músicas com IA e tenha 25 criações incluídas para ouvir e baixar dentro da plataforma.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Academia Música IA — Da ideia ao Spotify",
+    title: "Academia Música IA — Aprenda criando 25 músicas",
     description:
-      "O caminho guiado para criar sua música com IA, construir a identidade visual e preparar o lançamento.",
+      "Formação prática com 25 músicas incluídas para criar, ouvir e baixar.",
     url: "https://musicacom.ia.br",
     siteName: "Academia Música IA",
     locale: "pt_BR",
@@ -24,9 +24,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Academia Música IA — Da ideia ao Spotify",
+    title: "Academia Música IA — Aprenda criando 25 músicas",
     description:
-      "Crie sua música, identidade visual e lançamento com um processo guiado.",
+      "Aprenda a criar e tenha 25 músicas incluídas para praticar dentro da plataforma.",
     images: ["/hero-premium.webp"],
   },
   other: {

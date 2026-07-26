@@ -19,8 +19,10 @@ const PRODUCT_NAME = "Academia Música IA";
 const WOOVI_BASE_URL = "https://api.woovi.com/api/v1";
 const SUNO_BASE_URL = "https://api.sunoapi.org/api/v1";
 const PUBLIC_API_URL = process.env.PUBLIC_API_URL;
-const SUNO_MAX_GENERATIONS_PER_ORDER = Number(
-  process.env.SUNO_MAX_GENERATIONS_PER_ORDER ?? "1",
+const MUSIC_TRACKS_INCLUDED = Number(process.env.MUSIC_TRACKS_INCLUDED ?? "25");
+const MUSIC_TRACKS_PER_GENERATION = 2;
+const MUSIC_GENERATION_LIMIT = Math.ceil(
+  MUSIC_TRACKS_INCLUDED / MUSIC_TRACKS_PER_GENERATION,
 );
 const SUNO_GENERATION_COST_ESTIMATE = 12;
 const MUSIC_MODEL = "V5";
@@ -339,7 +341,7 @@ async function reserveSunoGeneration(orderId, accessStatus) {
       ExpressionAttributeValues: {
         ":zero": { N: "0" },
         ":one": { N: "1" },
-        ":limit": { N: String(SUNO_MAX_GENERATIONS_PER_ORDER) },
+        ":limit": { N: String(MUSIC_GENERATION_LIMIT) },
         ":accessStatus": { S: accessStatus },
       },
       ReturnValues: "UPDATED_NEW",
@@ -349,6 +351,13 @@ async function reserveSunoGeneration(orderId, accessStatus) {
     if (error instanceof ConditionalCheckFailedException) return null;
     throw error;
   }
+}
+
+function remainingMusicTracks(generationCount) {
+  return Math.max(
+    0,
+    MUSIC_TRACKS_INCLUDED - generationCount * MUSIC_TRACKS_PER_GENERATION,
+  );
 }
 
 async function releaseSunoGeneration(orderId) {
@@ -421,10 +430,8 @@ async function getSunoCredits(event) {
   const credits = await sunoRequest("/generate/credit", { method: "GET" });
   return response(200, {
     available: Number(credits) >= SUNO_GENERATION_COST_ESTIMATE,
-    remainingGenerations: Math.max(
-      0,
-      SUNO_MAX_GENERATIONS_PER_ORDER - order.sunoGenerationCount,
-    ),
+    remainingSongs: remainingMusicTracks(order.sunoGenerationCount),
+    includedSongs: MUSIC_TRACKS_INCLUDED,
   });
 }
 
@@ -450,7 +457,7 @@ async function createSunoGeneration(event) {
   const generationCount = await reserveSunoGeneration(order.id, order.status);
   if (generationCount === null) {
     return response(429, {
-      error: `Este acesso já usou os ${SUNO_MAX_GENERATIONS_PER_ORDER} testes disponíveis.`,
+      error: `Este acesso já utilizou as ${MUSIC_TRACKS_INCLUDED} músicas incluídas.`,
     });
   }
 
@@ -478,7 +485,8 @@ async function createSunoGeneration(event) {
   return response(202, {
     taskId,
     status: "PENDING",
-    remainingGenerations: Math.max(0, SUNO_MAX_GENERATIONS_PER_ORDER - generationCount),
+    remainingSongs: remainingMusicTracks(generationCount),
+    includedSongs: MUSIC_TRACKS_INCLUDED,
   });
 }
 
@@ -509,7 +517,9 @@ async function getSunoGeneration(event, taskId) {
     error: failed
       ? safeString(data?.errorMessage || "A geração falhou. Ajuste o briefing e tente novamente.", 240)
       : null,
-    remainingGenerations: refunded ? 1 : undefined,
+    remainingSongs: refunded
+      ? remainingMusicTracks(Math.max(0, order.sunoGenerationCount - 1))
+      : undefined,
   });
 }
 
