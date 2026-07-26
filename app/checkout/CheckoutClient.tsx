@@ -40,6 +40,7 @@ export default function CheckoutClient() {
   const [error, setError] = useState("");
   const [order, setOrder] = useState<Order | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pollRetry, setPollRetry] = useState(0);
   const pollingFailures = useRef(0);
 
   const expiresLabel = (() => {
@@ -110,7 +111,7 @@ export default function CheckoutClient() {
       if (timeout) window.clearTimeout(timeout);
       controller?.abort();
     };
-  }, [order?.id, order?.status]);
+  }, [order?.id, order?.status, pollRetry]);
 
   async function createOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -213,7 +214,7 @@ export default function CheckoutClient() {
               onClick={() => {
                 pollingFailures.current = 0;
                 setError("");
-                setOrder((current) => current ? { ...current } : current);
+                setPollRetry((current) => current + 1);
               }}
             >
               Consultar pagamento novamente
