@@ -17,6 +17,19 @@ const SITE_ORIGIN = process.env.SITE_ORIGIN ?? "https://musicacom.ia.br";
 const PRICE_CENTS = Number(process.env.PRICE_CENTS ?? "19700");
 const PRODUCT_NAME = "Academia Música IA";
 const WOOVI_BASE_URL = "https://api.woovi.com/api/v1";
+const SUNO_BASE_URL = "https://api.sunoapi.org/api/v1";
+const PUBLIC_API_URL = process.env.PUBLIC_API_URL;
+const SUNO_MAX_GENERATIONS_PER_ORDER = Number(
+  process.env.SUNO_MAX_GENERATIONS_PER_ORDER ?? "1",
+);
+const SUNO_GENERATION_COST_ESTIMATE = 12;
+const SUNO_MODELS = new Set(["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"]);
+const SUNO_FAILED_STATUSES = new Set([
+  "CREATE_TASK_FAILED",
+  "GENERATE_AUDIO_FAILED",
+  "CALLBACK_EXCEPTION",
+  "SENSITIVE_WORD_ERROR",
+]);
 const ALLOWED_CLIENT_EVENTS = new Set([
   "landing_view",
   "offer_cta",
@@ -31,6 +44,7 @@ const ALLOWED_CLIENT_EVENTS = new Set([
 ]);
 
 let cachedSecrets;
+let cachedSunoApiKey;
 
 const response = (statusCode, body, extraHeaders = {}) => ({
   statusCode,
@@ -88,6 +102,7 @@ function itemToOrder(item) {
     source: item.source?.S,
     medium: item.medium?.S,
     campaign: item.campaign?.S,
+    sunoGenerationCount: Number(item.sunoGenerationCount?.N ?? "0"),
   };
 }
 
@@ -213,6 +228,291 @@ async function getSecrets() {
     throw new Error("Checkout secrets are unavailable");
   }
   return cachedSecrets;
+}
+
+async function getSunoApiKey() {
+  if (cachedSunoApiKey) return cachedSunoApiKey;
+  const result = await ssm.send(new GetParameterCommand({
+    Name: process.env.SUNO_API_KEY_PARAMETER,
+    WithDecryption: true,
+  }));
+  cachedSunoApiKey = result.Parameter?.Value;
+  if (!cachedSunoApiKey) throw new Error("Suno API key is unavailable");
+  return cachedSunoApiKey;
+}
+
+function memberToken(event) {
+  const authorization = event.headers?.authorization ?? event.headers?.Authorization ?? "";
+  return authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : "";
+}
+
+async function authorizeMember(event) {
+  const token = memberToken(event);
+  const parts = token.split(".");
+  if (parts.length !== 4 || parts[0] !== "v1") return null;
+
+  const expiresAt = Number(parts[1]);
+  const orderId = parts[2];
+  const signature = parts[3];
+  if (
+    !Number.isInteger(expiresAt)
+    || expiresAt < Math.floor(Date.now() / 1000)
+    || !/^ami_[a-f0-9]{28}$/.test(orderId)
+    || !/^[a-f0-9]{64}$/.test(signature)
+  ) {
+    return null;
+  }
+
+  const { accessSecret } = await getSecrets();
+  const payload = `v1.${expiresAt}.${orderId}`;
+  const expected = crypto.createHmac("sha256", accessSecret).update(payload).digest("hex");
+  const suppliedBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expected, "hex");
+  if (
+    suppliedBuffer.length !== expectedBuffer.length
+    || !crypto.timingSafeEqual(suppliedBuffer, expectedBuffer)
+  ) {
+    return null;
+  }
+
+  const order = await findOrder(orderId);
+  return order?.status === "PAID" ? order : null;
+}
+
+function normalizeSunoTrack(track) {
+  return {
+    id: safeString(track.id, 100),
+    title: safeString(track.title || "Música gerada", 160),
+    tags: safeString(track.tags, 500),
+    duration: Number(track.duration) || null,
+    audioUrl: safeRemoteUrl(track.audioUrl || track.audio_url),
+    streamAudioUrl: safeRemoteUrl(track.streamAudioUrl || track.stream_audio_url),
+    imageUrl: safeRemoteUrl(track.imageUrl || track.image_url),
+  };
+}
+
+function safeRemoteUrl(value) {
+  try {
+    const url = new URL(safeString(value, 2_000));
+    return url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+async function sunoRequest(path, options = {}) {
+  const sunoApiKey = await getSunoApiKey();
+  const result = await fetch(`${SUNO_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      authorization: `Bearer ${sunoApiKey}`,
+      "content-type": "application/json",
+      ...options.headers,
+    },
+    signal: AbortSignal.timeout(18_000),
+  });
+  const text = await result.text();
+  let data = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { msg: "Resposta inválida do serviço de música." };
+  }
+  if (!result.ok || data.code !== 200) {
+    const error = new Error(safeString(data.msg || "A geração não pôde ser iniciada.", 240));
+    error.statusCode = result.status === 429 || data.code === 429 ? 429 : 502;
+    throw error;
+  }
+  return data.data;
+}
+
+async function reserveSunoGeneration(orderId) {
+  try {
+    const result = await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE_NAME,
+      Key: { id: { S: orderId } },
+      UpdateExpression: "SET sunoGenerationCount = if_not_exists(sunoGenerationCount, :zero) + :one",
+      ConditionExpression: "attribute_exists(id) AND #status = :paid AND (attribute_not_exists(sunoGenerationCount) OR sunoGenerationCount < :limit)",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":zero": { N: "0" },
+        ":one": { N: "1" },
+        ":limit": { N: String(SUNO_MAX_GENERATIONS_PER_ORDER) },
+        ":paid": { S: "PAID" },
+      },
+      ReturnValues: "UPDATED_NEW",
+    }));
+    return Number(result.Attributes?.sunoGenerationCount?.N ?? "0");
+  } catch (error) {
+    if (error instanceof ConditionalCheckFailedException) return null;
+    throw error;
+  }
+}
+
+async function releaseSunoGeneration(orderId) {
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE_NAME,
+      Key: { id: { S: orderId } },
+      UpdateExpression: "ADD sunoGenerationCount :minusOne",
+      ConditionExpression: "sunoGenerationCount > :zero",
+      ExpressionAttributeValues: {
+        ":minusOne": { N: "-1" },
+        ":zero": { N: "0" },
+      },
+    }));
+  } catch (error) {
+    console.error("Unable to release Suno generation reservation", {
+      orderId,
+      message: error.message,
+    });
+  }
+}
+
+async function rememberSunoTask(taskId, orderId) {
+  await dynamo.send(new PutItemCommand({
+    TableName: EVENTS_TABLE_NAME,
+    Item: {
+      id: { S: `suno_task_${taskId}` },
+      name: { S: "suno_generation_started" },
+      orderId: { S: orderId },
+      providerTaskId: { S: taskId },
+      createdAt: { S: new Date().toISOString() },
+      ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 15) },
+    },
+    ConditionExpression: "attribute_not_exists(id)",
+  }));
+}
+
+async function ownsSunoTask(taskId, orderId) {
+  const result = await dynamo.send(new GetItemCommand({
+    TableName: EVENTS_TABLE_NAME,
+    Key: { id: { S: `suno_task_${taskId}` } },
+    ConsistentRead: true,
+  }));
+  return result.Item?.orderId?.S === orderId;
+}
+
+async function refundFailedSunoTask(taskId, orderId) {
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: `suno_task_${taskId}` } },
+      UpdateExpression: "SET refundedAt = :refundedAt",
+      ConditionExpression: "orderId = :orderId AND attribute_not_exists(refundedAt)",
+      ExpressionAttributeValues: {
+        ":orderId": { S: orderId },
+        ":refundedAt": { S: new Date().toISOString() },
+      },
+    }));
+    await releaseSunoGeneration(orderId);
+    return true;
+  } catch (error) {
+    if (error instanceof ConditionalCheckFailedException) return false;
+    throw error;
+  }
+}
+
+async function getSunoCredits(event) {
+  const order = await authorizeMember(event);
+  if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+  const credits = await sunoRequest("/generate/credit", { method: "GET" });
+  return response(200, {
+    available: Number(credits) >= SUNO_GENERATION_COST_ESTIMATE,
+    remainingGenerations: Math.max(
+      0,
+      SUNO_MAX_GENERATIONS_PER_ORDER - order.sunoGenerationCount,
+    ),
+  });
+}
+
+async function createSunoGeneration(event) {
+  const order = await authorizeMember(event);
+  if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+
+  let body;
+  try {
+    body = readBody(event);
+  } catch {
+    return response(400, { error: "Briefing inválido." });
+  }
+  const prompt = safeString(body.prompt, 501).trim();
+  const model = safeString(body.model, 20);
+  const instrumental = body.instrumental === true;
+  if (prompt.length < 20 || prompt.length > 500) {
+    return response(400, { error: "Descreva a música em 20 a 500 caracteres." });
+  }
+  if (!SUNO_MODELS.has(model)) {
+    return response(400, { error: "Modelo de geração inválido." });
+  }
+  if (!PUBLIC_API_URL?.startsWith("https://")) {
+    throw new Error("Suno callback URL is unavailable");
+  }
+
+  const generationCount = await reserveSunoGeneration(order.id);
+  if (generationCount === null) {
+    return response(429, {
+      error: `Este acesso já usou os ${SUNO_MAX_GENERATIONS_PER_ORDER} testes disponíveis.`,
+    });
+  }
+
+  let data;
+  try {
+    data = await sunoRequest("/generate", {
+      method: "POST",
+      body: JSON.stringify({
+        customMode: false,
+        instrumental,
+        model,
+        callBackUrl: `${PUBLIC_API_URL}/v1/suno/callback`,
+        prompt,
+      }),
+    });
+  } catch (error) {
+    await releaseSunoGeneration(order.id);
+    throw error;
+  }
+  const taskId = safeString(data?.taskId, 100);
+  if (!/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)) {
+    throw new Error("O serviço não devolveu um identificador de geração válido.");
+  }
+  await rememberSunoTask(taskId, order.id);
+  return response(202, {
+    taskId,
+    status: "PENDING",
+    remainingGenerations: Math.max(0, SUNO_MAX_GENERATIONS_PER_ORDER - generationCount),
+  });
+}
+
+async function getSunoGeneration(event, taskId) {
+  const order = await authorizeMember(event);
+  if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+  if (
+    !/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)
+    || !(await ownsSunoTask(taskId, order.id))
+  ) {
+    return response(404, { error: "Geração não encontrada para este acesso." });
+  }
+
+  const data = await sunoRequest(
+    `/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
+    { method: "GET" },
+  );
+  const status = safeString(data?.status || "PENDING", 40);
+  const tracks = (data?.response?.sunoData ?? []).map(normalizeSunoTrack);
+  const failed = SUNO_FAILED_STATUSES.has(status);
+  const refunded = failed
+    ? await refundFailedSunoTask(taskId, order.id)
+    : false;
+  return response(200, {
+    taskId,
+    status,
+    tracks,
+    error: failed
+      ? safeString(data?.errorMessage || "A geração falhou. Ajuste o briefing e tente novamente.", 240)
+      : null,
+    remainingGenerations: refunded ? 1 : undefined,
+  });
 }
 
 async function wooviRequest(path, options = {}) {
@@ -556,13 +856,30 @@ export const handler = async (event) => {
     }
     if (method === "POST" && path === "/v1/webhooks/woovi") return await handleWebhook(event);
     if (method === "POST" && path === "/v1/access/claim") return await claimAccess(event);
+    if (method === "GET" && path === "/v1/suno/credits") return await getSunoCredits(event);
+    if (method === "POST" && path === "/v1/suno/generations") {
+      return await createSunoGeneration(event);
+    }
+    if (method === "GET" && path.startsWith("/v1/suno/generations/")) {
+      return await getSunoGeneration(
+        event,
+        decodeURIComponent(path.slice("/v1/suno/generations/".length)),
+      );
+    }
+    if (method === "POST" && path === "/v1/suno/callback") {
+      return response(200, { received: true });
+    }
     return response(404, { error: "Rota não encontrada." });
   } catch (error) {
-    console.error("Unhandled checkout error", {
+    console.error("Unhandled API error", {
       name: error.name,
       message: error.message,
       stack: error.stack,
     });
-    return response(500, { error: "O checkout encontrou um erro. Tente novamente." });
+    return response(error.statusCode ?? 500, {
+      error: error.statusCode
+        ? error.message
+        : "O serviço encontrou um erro. Tente novamente.",
+    });
   }
 };

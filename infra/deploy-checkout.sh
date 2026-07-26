@@ -11,6 +11,7 @@ API_NAME="academia-musica-checkout"
 WOOVI_PARAMETER="/academia-musica/prod/woovi/app-id"
 WEBHOOK_PARAMETER="/academia-musica/prod/woovi/webhook-secret"
 ACCESS_PARAMETER="/academia-musica/prod/access-secret"
+SUNO_API_KEY_PARAMETER="/academia-musica/prod/suno/api-key"
 SITE_ORIGIN="https://musicacom.ia.br"
 
 if ! aws dynamodb describe-table --region "$AWS_REGION" --table-name "$TABLE_NAME" >/dev/null 2>&1; then
@@ -92,7 +93,8 @@ cat >"$PERMISSIONS_POLICY" <<JSON
       "Resource": [
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${WOOVI_PARAMETER}",
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${WEBHOOK_PARAMETER}",
-        "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${ACCESS_PARAMETER}"
+        "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${ACCESS_PARAMETER}",
+        "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${SUNO_API_KEY_PARAMETER}"
       ]
     }
   ]
@@ -108,7 +110,7 @@ cp infra/checkout/index.mjs "$PACKAGE_DIR/index.mjs"
 (cd "$PACKAGE_DIR" && zip -q function.zip index.mjs)
 
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
-ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},SITE_ORIGIN=${SITE_ORIGIN},PRICE_CENTS=19700,WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER}}"
+ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,PRICE_CENTS=19700,WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},SUNO_MAX_GENERATIONS_PER_ORDER=1}"
 
 if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAME" >/dev/null 2>&1; then
   aws lambda wait function-active-v2 --region "$AWS_REGION" --function-name "$FUNCTION_NAME"

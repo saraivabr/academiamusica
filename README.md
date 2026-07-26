@@ -103,6 +103,8 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 O site público roda em `https://musicacom.ia.br`, servido por S3 privado e
 CloudFront. O checkout usa API Gateway, Lambda, DynamoDB, SSM Parameter Store e
 Woovi para gerar e confirmar cobranças Pix.
+O Gerador Suno usa a mesma API autenticada para iniciar tarefas assíncronas,
+acompanhar o processamento e entregar player e download dentro da área de alunos.
 
 - `npm run build:aws`: gera a exportação estática em `out/`
 - `npm run deploy:checkout`: atualiza o backend de pagamentos
@@ -114,6 +116,10 @@ Os parâmetros secretos ficam em `/academia-musica/prod/` no SSM e nunca devem
 ser copiados para o repositório. As rotas `/academia`, `/biblioteca` e
 `/comunidade` são protegidas no CloudFront e só aceitam o cookie de acesso
 assinado emitido após a confirmação do pagamento.
+
+A credencial do provedor musical deve existir como `SecureString` em
+`/academia-musica/prod/suno/api-key`. A API valida o token do aluno e limita a
+quantidade inicial de testes por pedido antes de consumir créditos.
 
 Use build and validation commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
 
