@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import FunnelAnalytics from "./components/FunnelAnalytics";
 import MetaPixel from "./components/MetaPixel";
 import "./globals.css";
+import "./experience-v2.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://musicacom.ia.br"),

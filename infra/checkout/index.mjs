@@ -23,7 +23,7 @@ const SUNO_MAX_GENERATIONS_PER_ORDER = Number(
   process.env.SUNO_MAX_GENERATIONS_PER_ORDER ?? "1",
 );
 const SUNO_GENERATION_COST_ESTIMATE = 12;
-const SUNO_MODELS = new Set(["V4", "V4_5", "V4_5PLUS", "V4_5ALL", "V5", "V5_5"]);
+const MUSIC_MODEL = "V5";
 const SUNO_FAILED_STATUSES = new Set([
   "CREATE_TASK_FAILED",
   "GENERATE_AUDIO_FAILED",
@@ -438,17 +438,13 @@ async function createSunoGeneration(event) {
   } catch {
     return response(400, { error: "Briefing inválido." });
   }
-  const prompt = safeString(body.prompt, 501).trim();
-  const model = safeString(body.model, 20);
+  const prompt = safeString(body.brief ?? body.prompt, 501).trim();
   const instrumental = body.instrumental === true;
   if (prompt.length < 20 || prompt.length > 500) {
     return response(400, { error: "Descreva a música em 20 a 500 caracteres." });
   }
-  if (!SUNO_MODELS.has(model)) {
-    return response(400, { error: "Modelo de geração inválido." });
-  }
   if (!PUBLIC_API_URL?.startsWith("https://")) {
-    throw new Error("Suno callback URL is unavailable");
+    throw new Error("Music callback URL is unavailable");
   }
 
   const generationCount = await reserveSunoGeneration(order.id, order.status);
@@ -465,7 +461,7 @@ async function createSunoGeneration(event) {
       body: JSON.stringify({
         customMode: false,
         instrumental,
-        model,
+        model: MUSIC_MODEL,
         callBackUrl: `${PUBLIC_API_URL}/v1/suno/callback`,
         prompt,
       }),
@@ -860,9 +856,21 @@ export const handler = async (event) => {
     }
     if (method === "POST" && path === "/v1/webhooks/woovi") return await handleWebhook(event);
     if (method === "POST" && path === "/v1/access/claim") return await claimAccess(event);
-    if (method === "GET" && path === "/v1/suno/credits") return await getSunoCredits(event);
-    if (method === "POST" && path === "/v1/suno/generations") {
+    if (
+      method === "GET"
+      && (path === "/v1/music/availability" || path === "/v1/suno/credits")
+    ) return await getSunoCredits(event);
+    if (
+      method === "POST"
+      && (path === "/v1/music/generations" || path === "/v1/suno/generations")
+    ) {
       return await createSunoGeneration(event);
+    }
+    if (method === "GET" && path.startsWith("/v1/music/generations/")) {
+      return await getSunoGeneration(
+        event,
+        decodeURIComponent(path.slice("/v1/music/generations/".length)),
+      );
     }
     if (method === "GET" && path.startsWith("/v1/suno/generations/")) {
       return await getSunoGeneration(

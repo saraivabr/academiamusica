@@ -12,8 +12,8 @@ const tracks = [
 ];
 
 const library = [
-  ["Prompts que funcionam", "Direcione estilo, emoção, ritmo e atmosfera sem depender de tentativa e erro.", "PROMPTS"],
-  ["Prompt compositor", "Desenvolva letras, conceitos e direções musicais com apoio da inteligência artificial.", "COMPOSIÇÃO"],
+  ["Estúdio de criação", "Conte sua ideia em perguntas simples e receba duas versões completas para ouvir.", "MÚSICA"],
+  ["Roteiro de composição", "Desenvolva letras, conceitos e direções musicais com apoio da inteligência artificial.", "COMPOSIÇÃO"],
   ["Capa profissional", "Transforme sua foto ou ideia artística na identidade visual do lançamento.", "IDENTIDADE"],
   ["Spotify Canvas", "Crie o vídeo curto que acompanha sua música durante a reprodução.", "MOVIMENTO"],
   ["Publicação", "Prepare e distribua sua música nas principais plataformas de streaming.", "DISTRIBUIÇÃO"],
@@ -72,9 +72,7 @@ export default function Home() {
           <span>Academia <b>Música IA</b></span>
         </a>
         <div className="nav-links">
-          <a href="#problema">O problema</a>
           <a href="#jornada">Método</a>
-          <a href="#mercado">Reconhecimento</a>
           <a href="#biblioteca">Entregas</a>
           <a href="#duvidas">Dúvidas</a>
         </div>
@@ -135,7 +133,7 @@ export default function Home() {
         <div className="jingle-copy">
           <div className="eyebrow">PROVA ANTES DA PROMESSA</div>
           <h2>Aperte o play.<br /><em>Isso começou como uma ideia.</em></h2>
-          <p>Antes de explicar o método, ouça uma amostra do que a inteligência artificial pode ajudar a construir quando existe intenção, prompt, estilo e refinamento.</p>
+          <p>Antes de explicar o método, ouça uma amostra do que a inteligência artificial pode ajudar a construir quando existe intenção, estilo e refinamento.</p>
           <div className="jingle-tags"><span>TRAP</span><span>JINGLE</span><span>CRIADA COM IA</span><span>3:08</span></div>
         </div>
         <div className={`custom-player ${jinglePlaying ? "active" : ""}`}>
@@ -260,13 +258,13 @@ export default function Home() {
             <small>O MERCADO SE MOVEU</small>
             <strong>De processo judicial<br />a parceria comercial.</strong>
           </div>
-          <a href="https://www.wmg.com/news/warner-music-group-and-suno-forge-groundbreaking-partnership" target="_blank" rel="noreferrer">
-            <span>WARNER × SUNO</span>
+          <a href="https://www.wmg.com/news" target="_blank" rel="noreferrer">
+            <span>GRAVADORAS × IA MUSICAL</span>
             <p>Desenvolvimento de música licenciada e novas oportunidades para artistas e compositores.</p>
             <b>LER FONTE ↗</b>
           </a>
-          <a href="https://www.universalmusic.com/universal-music-group-and-udio-announce-udios-first-strategic-agreements-for-new-licensed-ai-music-creation-platform/" target="_blank" rel="noreferrer">
-            <span>UNIVERSAL × UDIO</span>
+          <a href="https://www.universalmusic.com" target="_blank" rel="noreferrer">
+            <span>LICENCIAMENTO × IA MUSICAL</span>
             <p>Uma nova plataforma comercial de criação musical com conteúdo autorizado e licenciado.</p>
             <b>LER FONTE ↗</b>
           </a>

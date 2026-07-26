@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import MemberNav from "./MemberNav";
 
 export const Logo = () => (
   <Link href="/" className="portal-logo">
@@ -29,26 +30,17 @@ export function PublicShell({ children, compact = false }: { children: ReactNode
   );
 }
 
-const memberLinks = [
-  ["/academia", "Visão geral", "◉"],
-  ["/academia/comecar", "Comece aqui", "01"],
-  ["/academia/musica", "Crie sua música", "02"],
-  ["/academia/identidade", "Identidade visual", "03"],
-  ["/academia/publicacao", "Publicação", "04"],
-  ["/biblioteca", "Biblioteca Viva", "✦"],
-  ["/comunidade", "Comunidade", "●"],
-];
-
 export function AcademyShell({ children, title, eyebrow = "ÁREA DE MEMBROS" }: { children: ReactNode; title: string; eyebrow?: string }) {
   return (
     <div className="academy-shell">
       <aside className="academy-sidebar">
         <Logo />
-        <nav>{memberLinks.map(([href, label, icon]) => <Link key={href} href={href}><span>{icon}</span>{label}</Link>)}</nav>
-        <div className="academy-help"><small>PRECISA DE AJUDA?</small><Link href="/suporte">Falar com suporte ↗</Link></div>
+        <div className="academy-sidebar-label">SUA JORNADA</div>
+        <MemberNav />
+        <div className="academy-help"><small>PRECISA DE AJUDA?</small><p>Fale com a gente e continue de onde parou.</p><Link href="/suporte">Abrir suporte ↗</Link></div>
       </aside>
       <main className="academy-main">
-        <header className="academy-top"><div><small>{eyebrow}</small><h1>{title}</h1></div><Link href="/" className="avatar">SB</Link></header>
+        <header className="academy-top"><div><small>{eyebrow}</small><h1>{title}</h1></div><Link href="/" className="avatar" title="Voltar ao site">SB</Link></header>
         {children}
       </main>
     </div>

@@ -184,7 +184,7 @@ export default function CheckoutClient() {
       </div>
       <div className="order-includes">
         <p><b>✓</b> Formação principal com acesso permanente</p>
-        <p><b>✓</b> Prompts para música, letras e direção criativa</p>
+        <p><b>✓</b> Estúdio guiado para criar duas versões completas</p>
         <p><b>✓</b> Capa, Canvas e publicação guiadas</p>
         <p><b>✓</b> 30 dias de Biblioteca Viva e comunidade</p>
       </div>
