@@ -104,7 +104,7 @@ export default function MemberNav() {
 
       <Link className="academy-course-link" href="/academia/comecar">
         <span>▤</span>
-        <div><small>INCLUÍDO NO ACESSO</small><b>Academia</b></div>
+        <div><small>APRENDA NO FLUXO</small><b>Tutorial</b></div>
         <em>›</em>
       </Link>
     </div>

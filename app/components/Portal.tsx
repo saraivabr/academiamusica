@@ -16,7 +16,7 @@ export function PublicShell({ children, compact = false }: { children: ReactNode
       <header className="portal-header">
         <Logo />
         <nav>
-          <Link href="/#jornada">Método</Link>
+          <Link href="/#como-funciona">Como funciona</Link>
           <Link href="/#duvidas">Dúvidas</Link>
           <Link href="/login">Entrar</Link>
         </nav>
@@ -61,14 +61,14 @@ export function AcademyShell({
         <Link href="/academia"><span>INÍCIO</span></Link>
         <Link href="/biblioteca/gerador"><span>CRIAR</span></Link>
         <Link href="/biblioteca"><span>MÚSICAS</span></Link>
-        <Link href="/academia/comecar"><span>ACADEMIA</span></Link>
+        <Link href="/academia/comecar"><span>TUTORIAL</span></Link>
       </nav>
     </div>
   );
 }
 
 export function LessonCard({ number, title, text, time = "8 min", href = "#" }: { number: string; title: string; text: string; time?: string; href?: string }) {
-  return <Link href={href} className="lesson-card"><span>{number}</span><div><small>AULA • {time}</small><h3>{title}</h3><p>{text}</p></div><b>▶</b></Link>;
+  return <Link href={href} className="lesson-card"><span>{number}</span><div><small>TUTORIAL • {time}</small><h3>{title}</h3><p>{text}</p></div><b>▶</b></Link>;
 }
 
 export function LegalPage({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {

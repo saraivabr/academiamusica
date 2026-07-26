@@ -1,3 +1,23 @@
 import Link from "next/link";
 import { AcademyShell, LessonCard } from "../../components/Portal";
-export default function Comecar(){return <AcademyShell title="Comece aqui" eyebrow="MÓDULO 00"><section className="module-intro"><span>00</span><div><h2>Você não precisa chegar com tudo decidido.</h2><p>Conte uma história, uma pessoa ou um sentimento. O Produtor IA faz uma pergunta por vez e organiza a direção com você.</p></div></section><div className="lesson-list"><LessonCard number="01" title="Boas-vindas à jornada" text="Veja como usar a Academia sem se perder em ferramentas." time="5 min"/><LessonCard number="02" title="Converse por texto ou voz" text="Fale naturalmente. Você não precisa escrever prompt nem conhecer termos técnicos."/><LessonCard number="03" title="Confirme antes de criar" text="Veja o resumo e só use o saldo quando a direção estiver certa."/><LessonCard number="04" title="Ouça, compare e refaça" text="Cada rodada entrega duas músicas; uma nova direção utiliza mais duas do saldo." time="12 min"/></div><Link className="module-next" href="/biblioteca/gerador">Conversar com o Produtor IA →</Link></AcademyShell>}
+
+export default function Comecar() {
+  return (
+    <AcademyShell title="Como usar" eyebrow="TUTORIAL DA PLATAFORMA">
+      <section className="module-intro">
+        <span>00</span>
+        <div>
+          <h2>Você aprende enquanto cria.</h2>
+          <p>Comece com uma ideia e avance por escolhas visuais. O tutorial explica cada decisão no momento em que ela aparece.</p>
+        </div>
+      </section>
+      <div className="lesson-list">
+        <LessonCard number="01" title="Comece pela sua ideia" text="Escolha o tipo de música e descreva o essencial com as suas palavras." time="3 min" href="/biblioteca/gerador" />
+        <LessonCard number="02" title="Escolha emoção, ritmo e voz" text="Entenda como cada escolha muda o resultado sem precisar escrever prompt." time="5 min" href="/biblioteca/gerador" />
+        <LessonCard number="03" title="Confirme os créditos" text="Revise a direção e veja o custo antes de criar as duas versões." time="3 min" href="/biblioteca/gerador" />
+        <LessonCard number="04" title="Ouça, compare e continue" text="Escolha a favorita, peça uma nova direção ou siga para a criação da capa." time="6 min" href="/biblioteca" />
+      </div>
+      <Link className="module-next" href="/biblioteca/gerador">Abrir o criador →</Link>
+    </AcademyShell>
+  );
+}

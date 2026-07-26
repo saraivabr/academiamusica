@@ -3,44 +3,47 @@
 import { useRef, useState } from "react";
 
 const Arrow = () => <span aria-hidden="true">↗</span>;
-const Check = () => <span className="check" aria-hidden="true">✓</span>;
+const Check = () => <span aria-hidden="true">✓</span>;
 
-const tracks = [
-  ["01", "Conte por texto ou voz", "Fale como falaria com alguém. Você não precisa conhecer termos técnicos nem escrever prompt.", "CONVERSA"],
-  ["02", "Receba direção", "O Produtor IA faz uma pergunta útil por vez e organiza história, emoção, estilo, voz e refrão.", "PLANO"],
-  ["03", "Confirme antes de criar", "Você vê exatamente o que foi entendido e só usa seu saldo quando aprovar a direção.", "CONTROLE"],
-  ["04", "Ouça duas músicas", "A plataforma cria duas versões completas para você comparar, baixar e pedir uma nova direção.", "2 FAIXAS"],
-  ["05", "Construa a identidade", "Transforme a favorita em projeto com conceito, capa profissional e Spotify Canvas.", "VISUAL"],
-  ["06", "Prepare o lançamento", "Organize arquivos, dados e distribuição para conquistar um link para compartilhar.", "LANÇAMENTO"],
+const genres = [
+  ["Sertanejo", "Viola, romance e refrão que fica"],
+  ["Trap BR", "Grave, atitude e verdade na letra"],
+  ["Forró", "Sanfona, calor e vontade de dançar"],
+  ["Funk", "Batida, presença e energia de baile"],
+  ["Pagode", "Roda, sentimento e coro com a galera"],
+  ["Gospel", "Mensagem, emoção e voz que alcança"],
+  ["MPB", "Palavra, harmonia e identidade"],
+  ["Brega", "Drama, paixão e coração aberto"],
 ];
 
-const library = [
-  ["Produtor IA + 25 músicas", "Converse por texto ou voz, confirme a direção e receba duas músicas por rodada.", "CONVERSA"],
-  ["Roteiro de composição", "Desenvolva letras, conceitos e direções musicais com apoio da inteligência artificial.", "COMPOSIÇÃO"],
-  ["Capa profissional", "Transforme sua foto ou ideia artística na identidade visual do lançamento.", "IDENTIDADE"],
-  ["Spotify Canvas", "Crie o vídeo curto que acompanha sua música durante a reprodução.", "MOVIMENTO"],
-  ["Publicação", "Prepare e distribua sua música nas principais plataformas de streaming.", "DISTRIBUIÇÃO"],
-  ["Biblioteca Viva", "Novos conteúdos e atualizações para você continuar evoluindo.", "ATUALIZAÇÕES"],
-  ["Minhas músicas", "Reencontre, ouça e baixe todas as versões criadas no seu acesso.", "HISTÓRICO"],
+const steps = [
+  ["01", "Conte a ideia", "Uma lembrança, uma homenagem, um jingle ou só uma frase. Escreva do seu jeito."],
+  ["02", "Escolha a direção", "Defina sentimento, ritmo e voz com opções visuais. Sem prompt e sem termo técnico."],
+  ["03", "Receba duas músicas", "Compare as versões, ouça dentro da plataforma e escolha a que mais combina com você."],
+  ["04", "Dê cara ao lançamento", "Crie a capa, organize o projeto e siga o tutorial para colocar a música no mundo."],
+];
+
+const features = [
+  ["GERAÇÃO", "Duas versões por rodada", "A mesma ideia ganha duas interpretações para você comparar antes de escolher."],
+  ["REPERTÓRIO", "Suas músicas, no mesmo lugar", "Player, histórico, versões e downloads organizados como uma biblioteca musical."],
+  ["CAPA", "Visual com a sua identidade", "Use sua foto e a direção da música para construir uma capa coerente com o estilo."],
+  ["TUTORIAL", "Aprenda dentro da plataforma", "A orientação aparece no momento certo, enquanto você cria, escolhe e prepara o lançamento."],
 ];
 
 const faqs = [
-  ["Preciso saber cantar?", "Não. A Academia foi pensada para iniciantes e mostra como usar ferramentas que podem apoiar voz, composição e instrumentação."],
-  ["Preciso tocar ou entender teoria musical?", "Não. O processo parte da sua ideia e das suas escolhas criativas. Os conceitos necessários aparecem de forma prática durante a criação."],
-  ["Como funciona o Produtor IA?", "Você conta sua ideia por texto ou voz. Ele faz uma pergunta por vez, organiza a direção da música e mostra um resumo para sua confirmação antes de criar duas versões."],
-  ["As 25 músicas estão incluídas?", "Sim. Sua inscrição libera 25 criações musicais dentro do estúdio da Academia, sem cobrança adicional para gerar esse pacote."],
-  ["Vou publicar direto no Spotify?", "Você aprende a preparar e distribuir sua música por meio dos serviços disponíveis. A publicação depende das regras, requisitos e aprovações das plataformas e distribuidoras utilizadas."],
-  ["Posso monetizar minha música?", "Depende dos termos da ferramenta, da distribuidora e das plataformas usadas. A Academia mostra o caminho, mas não promete monetização, streams ou renda."],
-  ["Existem outros custos?", "As 25 músicas estão incluídas. Serviços opcionais de distribuição, publicação ou ferramentas externas podem ter custos próprios e são contratados separadamente."],
-  ["A música fica perfeita de primeira?", "Provavelmente não. Por isso o método inclui geração de versões, comparação, seleção e refinamento. IA acelera a criação; direção continua sendo necessária."],
-  ["Posso usar minha foto na capa?", "Sim. Você pode trabalhar com sua própria foto, uma ideia artística ou uma identidade criada especificamente para o lançamento."],
-  ["Onde ficam as músicas que eu criar?", "Na área Minhas músicas. Cada rodada fica organizada por data, com as duas versões, player e botão para baixar."],
+  ["Preciso saber cantar ou tocar?", "Não. Você parte da sua ideia e faz escolhas simples. A plataforma ajuda a organizar a direção musical e entrega versões completas para você ouvir."],
+  ["Preciso escrever um prompt?", "Não. Você informa o que quer contar e escolhe sentimento, estilo e voz em uma experiência visual e direta."],
+  ["Quais estilos posso criar?", "Você pode explorar ritmos brasileiros e outros estilos. A experiência dá destaque a referências como sertanejo, trap BR, forró, funk, pagode, gospel, MPB e brega."],
+  ["Quantas músicas são criadas por vez?", "Cada rodada gera duas versões para comparação. Antes de confirmar, a plataforma mostra quantos créditos serão usados."],
+  ["Onde ficam as músicas?", "No seu repertório. Você pode ouvir, comparar, baixar e continuar o projeto sem perder o histórico."],
+  ["Como funcionam os tutoriais?", "O aprendizado acontece dentro da própria plataforma. As orientações aparecem durante a criação, a capa e a preparação do lançamento."],
+  ["A música vai direto para as plataformas?", "O tutorial mostra como preparar a publicação, mas distribuição e aprovação seguem as regras dos serviços utilizados. Não prometemos streams, renda ou aprovação automática."],
 ];
 
-function Equalizer({ playing = false }: { playing?: boolean }) {
+function Equalizer({ playing }: { playing: boolean }) {
   return (
-    <span className={`equalizer ${playing ? "is-playing" : ""}`} aria-hidden="true">
-      {[1, 2, 3, 4].map(bar => <i key={bar} />)}
+    <span className={`br-equalizer ${playing ? "is-playing" : ""}`} aria-hidden="true">
+      <i /><i /><i /><i />
     </span>
   );
 }
@@ -54,115 +57,184 @@ function formatTime(value: number) {
 
 export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [jinglePlaying, setJinglePlaying] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(188.64);
   const [openFaq, setOpenFaq] = useState(0);
 
-  const toggleJingle = async () => {
+  const toggleAudio = async () => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (audio.paused) {
-      await audio.play();
-    } else {
-      audio.pause();
-    }
+    if (audio.paused) await audio.play();
+    else audio.pause();
   };
 
   return (
-    <main className={jinglePlaying ? "music-is-playing" : ""}>
-      <nav className="nav">
-        <a href="#inicio" className="brand" aria-label="Academia Música IA — início">
-          <span className="brand-disc"><i /><i /><i /></span>
+    <main className="br-home" id="inicio">
+      <nav className="br-nav" aria-label="Navegação principal">
+        <a className="br-brand" href="#inicio" aria-label="Academia Música IA — início">
+          <span className="br-brand-mark" aria-hidden="true"><i /><i /><i /></span>
           <span>Academia <b>Música IA</b></span>
         </a>
-        <div className="nav-links">
-          <a href="#jornada">Método</a>
-          <a href="#biblioteca">Entregas</a>
+        <div className="br-nav-links">
+          <a href="#plataforma">A plataforma</a>
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#tutorial">Tutorial</a>
           <a href="#duvidas">Dúvidas</a>
         </div>
-        <a href="/checkout" className="pill pill-outline" data-track="checkout_cta">Conversar e criar <Arrow /></a>
+        <div className="br-nav-actions">
+          <a href="/login" className="br-login">Entrar</a>
+          <a href="/checkout" className="br-button br-button-small" data-track="checkout_cta">Começar <Arrow /></a>
+        </div>
       </nav>
 
-      <section className="hero" id="inicio">
-        <img src="/hero-premium.webp" alt="Saraiva em um estúdio musical com inteligência artificial" className="hero-image" />
-        <div className="hero-overlay" />
-        <div className="hero-grid" aria-hidden="true" />
-        <img src="/elemento-play-3d.png" alt="" className="hero-play-asset" aria-hidden="true" />
-        <div className="hero-motion" aria-hidden="true">
-          <i className="motion-orbit orbit-a" />
-          <i className="motion-orbit orbit-b" />
-          <i className="motion-glow" />
-          <span className="motion-tile tile-a" />
-          <span className="motion-tile tile-b" />
-          <span className="motion-tile tile-c" />
-        </div>
-        <div className="hero-content">
-          <div className="status"><span /> Produtor IA • 25 músicas incluídas</div>
-          <h1>Conte sua história.<br />O <em>Produtor IA</em> transforma em música.</h1>
-          <p>Escreva ou fale como falaria com alguém. O Produtor IA faz as perguntas certas, organiza estilo, emoção, voz e refrão e cria duas versões para você ouvir e baixar.</p>
-          <div className="hero-actions">
-            <a href="#oferta" className="pill pill-green" data-track="offer_cta">Quero conversar e criar <Arrow /></a>
-            <button className="play-link" onClick={toggleJingle} aria-label={jinglePlaying ? "Pausar jingle" : "Ouvir jingle"}>
-              <span className="play-circle">{jinglePlaying ? "Ⅱ" : "▶"}</span>
-              {jinglePlaying ? "Tocando o jingle" : "Ouvir o jingle"}
-              <Equalizer playing={jinglePlaying} />
+      <section className="br-hero">
+        <div className="br-hero-glow" aria-hidden="true" />
+        <div className="br-hero-copy">
+          <div className="br-kicker"><span>●</span> FEITA NO BRASIL. PARA O SOM DO BRASIL.</div>
+          <h1>A plataforma de geração de música <em>100% brasileirada.</em></h1>
+          <p>
+            Tire sua música da cabeça sem entender de produção. Escolha a história,
+            o sentimento, o ritmo e a voz. A plataforma organiza tudo e cria duas
+            versões para você ouvir.
+          </p>
+          <div className="br-hero-actions">
+            <a href="/checkout" className="br-button" data-track="checkout_cta">Criar minha música <Arrow /></a>
+            <button type="button" className="br-play-button" onClick={toggleAudio}>
+              <span>{playing ? "Ⅱ" : "▶"}</span>
+              {playing ? "Pausar música" : "Ouvir uma música"}
+              <Equalizer playing={playing} />
             </button>
           </div>
-          <div className="hero-proof">
-            <span><Check /> Sem escrever prompt</span>
-            <span><Check /> Texto ou voz</span>
-            <span><Check /> 25 músicas incluídas</span>
+          <div className="br-proof-row">
+            <span><Check /> Sem prompt</span>
+            <span><Check /> Duas versões</span>
+            <span><Check /> Capa integrada</span>
+            <span><Check /> Tutorial durante a criação</span>
           </div>
-          <small className="hero-disclaimer">Sem promessa de fama, streams, renda ou aprovação automática pelas plataformas.</small>
         </div>
-        <div className="now-playing">
-          <div className="playing-cover">
+
+        <div className="br-product-stage" aria-label="Demonstração da plataforma">
+          <div className="br-stage-flag">BR</div>
+          <div className="br-product-window">
+            <header>
+              <span className="br-window-brand"><i /> CRIADOR</span>
+              <span className="br-credit-pill">23 créditos</span>
+            </header>
+            <div className="br-product-body">
+              <small>O QUE VOCÊ QUER CRIAR?</small>
+              <h2>Uma música com a sua cara.</h2>
+              <div className="br-idea-field">Uma homenagem para minha mãe</div>
+              <div className="br-choice-label"><span>Escolha o ritmo</span><b>Ver todos</b></div>
+              <div className="br-style-chips">
+                <span className="active">Sertanejo</span><span>Forró</span><span>Pagode</span><span>Trap BR</span>
+              </div>
+              <button type="button" tabIndex={-1}>Criar duas músicas <Arrow /></button>
+            </div>
+          </div>
+          <div className="br-track-card br-track-one">
             <img src="/album-grid-saraiva.webp" alt="" />
+            <div><small>VERSÃO 01</small><strong>Minha raiz</strong><span>Sertanejo • 3:12</span></div>
+            <i>▶</i>
           </div>
-          <div><small>OUÇA AGORA</small><strong>Academia Música IA</strong><span>Trap Jingle • musicasbyia</span></div>
-          <button onClick={toggleJingle} aria-label={jinglePlaying ? "Pausar faixa" : "Tocar faixa"}>{jinglePlaying ? "Ⅱ" : "▶"}</button>
+          <div className="br-track-card br-track-two">
+            <img src="/identidades-musicais.webp" alt="" />
+            <div><small>VERSÃO 02</small><strong>Casa da gente</strong><span>Sertanejo • 2:58</span></div>
+            <i>▶</i>
+          </div>
         </div>
-        <div className="scroll-note">ROLE PARA DESCOBRIR <span>↓</span></div>
+
+        <div className="br-hero-ticker" aria-hidden="true">
+          <div>
+            <span>SERTANEJO</span><i>✦</i><span>TRAP BR</span><i>✦</i><span>FORRÓ</span><i>✦</i>
+            <span>FUNK</span><i>✦</i><span>PAGODE</span><i>✦</i><span>GOSPEL</span><i>✦</i>
+            <span>MPB</span><i>✦</i><span>BREGA</span><i>✦</i>
+            <span>SERTANEJO</span><i>✦</i><span>TRAP BR</span><i>✦</i><span>FORRÓ</span><i>✦</i>
+            <span>FUNK</span><i>✦</i><span>PAGODE</span><i>✦</i><span>GOSPEL</span><i>✦</i>
+          </div>
+        </div>
       </section>
 
-      <section className="marquee" aria-label="Possibilidades criativas">
-        <div>
-          <span>IDEIA</span><i>→</i><span>MÚSICA</span><i>→</i><span>CAPA</span><i>→</i><span>CANVAS</span><i>→</i><span>PLATAFORMAS</span><i>→</i><span>LINK</span><i>✦</i>
-          <span>IDEIA</span><i>→</i><span>MÚSICA</span><i>→</i><span>CAPA</span><i>→</i><span>CANVAS</span><i>→</i><span>PLATAFORMAS</span><i>→</i><span>LINK</span><i>✦</i>
+      <section className="br-statement br-section">
+        <div className="br-section-tag">NOSSO JEITO DE CRIAR</div>
+        <div className="br-statement-grid">
+          <h2>Não é só traduzida.<br /><em>É brasileirada.</em></h2>
+          <div>
+            <p>Feita em português, pensada para quem fala do seu jeito e construída ao redor dos ritmos, sentimentos e histórias que vivem por aqui.</p>
+            <p>Você não precisa se adaptar a uma ferramenta complicada. A plataforma aproxima a tecnologia da forma brasileira de contar, cantar e compartilhar.</p>
+          </div>
+        </div>
+        <div className="br-pillars">
+          <article><b>01</b><strong>Português de verdade</strong><span>Orientações claras, escolhas simples e nada de manual técnico.</span></article>
+          <article><b>02</b><strong>Nossos ritmos na frente</strong><span>Do sertanejo ao funk, sem tratar música brasileira como detalhe.</span></article>
+          <article><b>03</b><strong>Do som ao lançamento</strong><span>Música, repertório, capa e tutorial dentro da mesma jornada.</span></article>
         </div>
       </section>
 
-      <section className="jingle section" id="jingle">
-        <img src="/elemento-onda-sonora.png" alt="" className="jingle-wave-asset" aria-hidden="true" />
-        <div className="jingle-copy">
-          <div className="eyebrow">PROVA ANTES DA PROMESSA</div>
-          <h2>Aperte o play.<br /><em>Isso começou como uma ideia.</em></h2>
-          <p>Antes de explicar o método, ouça uma amostra do que a inteligência artificial pode ajudar a construir quando existe intenção, estilo e refinamento.</p>
-          <div className="jingle-tags"><span>TRAP</span><span>JINGLE</span><span>CRIADA COM IA</span><span>3:08</span></div>
-        </div>
-        <div className={`custom-player ${jinglePlaying ? "active" : ""}`}>
-          <div className="player-art">
-            <img src="/album-grid-saraiva.webp" alt="Capa do Trap Jingle da Academia Música IA" />
-            <span className="player-disc" aria-hidden="true" />
+      <section className="br-sounds br-section" id="plataforma">
+        <div className="br-section-head">
+          <div>
+            <div className="br-section-tag">UM BRASIL INTEIRO DE POSSIBILIDADES</div>
+            <h2>Qual é o som<br /><em>da sua história?</em></h2>
           </div>
-          <div className="player-content">
-            <div className="player-top">
-              <div><small>FAIXA EXCLUSIVA</small><strong>Academia Música IA</strong><span>Trap Jingle • musicasbyia</span></div>
-              <Equalizer playing={jinglePlaying} />
+          <p>Comece pelo sentimento. A plataforma ajuda a encontrar uma direção musical sem limitar sua ideia a um gênero só.</p>
+        </div>
+        <div className="br-genre-grid">
+          {genres.map(([name, description], index) => (
+            <article key={name}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <div className={`br-genre-disc disc-${index + 1}`} aria-hidden="true"><i /></div>
+              <h3>{name}</h3>
+              <p>{description}</p>
+              <b>↗</b>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="br-flow br-section" id="como-funciona">
+        <div className="br-flow-intro">
+          <div className="br-section-tag">DA IDEIA AO PLAY</div>
+          <h2>Fazer música ficou<br /><em>mais simples.</em></h2>
+          <p>Uma decisão por vez. Você entende o que está escolhendo e vê o resultado dentro da própria plataforma.</p>
+          <a href="/checkout" className="br-text-link" data-track="checkout_cta">Quero começar <Arrow /></a>
+        </div>
+        <div className="br-step-list">
+          {steps.map(([number, title, description]) => (
+            <article key={number}>
+              <span>{number}</span>
+              <div><h3>{title}</h3><p>{description}</p></div>
+              <b>↗</b>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="br-player-section br-section">
+        <div className="br-listen-copy">
+          <div className="br-section-tag">PROVA ANTES DA PROMESSA</div>
+          <h2>Uma ideia virou<br /><em>essa música.</em></h2>
+          <p>Dê o play e sinta o tipo de experiência que começa com uma direção simples e ganha forma com escolhas.</p>
+          <div className="br-song-tags"><span>TRAP BR</span><span>JINGLE</span><span>3:08</span></div>
+        </div>
+        <div className={`br-audio-card ${playing ? "active" : ""}`}>
+          <img src="/album-grid-saraiva.webp" alt="Capa da música Academia Música IA" />
+          <div className="br-audio-info">
+            <small>CRIADA NA PLATAFORMA</small>
+            <strong>Academia Música IA</strong>
+            <span>Trap Jingle • musicasbyia</span>
+            <div className="br-wave" aria-hidden="true">
+              {Array.from({ length: 36 }, (_, index) => <i key={index} style={{ "--wave": `${22 + ((index * 19) % 68)}%` } as React.CSSProperties} />)}
             </div>
-            <div className="audio-spectrum" aria-hidden="true">
-              {Array.from({ length: 48 }, (_, index) => <i key={index} style={{ "--bar": `${18 + ((index * 17) % 52)}%` } as React.CSSProperties} />)}
-            </div>
-            <div className="progress-row">
+            <div className="br-progress">
               <span>{formatTime(currentTime)}</span>
               <input
+                aria-label="Posição da música"
                 type="range"
                 min="0"
                 max={duration || 0}
                 value={Math.min(currentTime, duration || 0)}
                 step="0.1"
-                aria-label="Posição da música"
                 onChange={(event) => {
                   const next = Number(event.target.value);
                   if (audioRef.current) audioRef.current.currentTime = next;
@@ -172,308 +244,89 @@ export default function Home() {
               />
               <span>{formatTime(duration)}</span>
             </div>
-            <div className="player-controls">
-              <button aria-label="Voltar 10 segundos" onClick={() => {
-                if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10);
-              }}>−10</button>
-              <button className="main-play" onClick={toggleJingle} aria-label={jinglePlaying ? "Pausar Academia Música IA Trap Jingle" : "Tocar Academia Música IA Trap Jingle"}>
-                {jinglePlaying ? "Ⅱ" : "▶"}
-              </button>
-              <button aria-label="Avançar 10 segundos" onClick={() => {
-                if (audioRef.current) audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10);
-              }}>+10</button>
-            </div>
           </div>
+          <button type="button" onClick={toggleAudio} aria-label={playing ? "Pausar música" : "Tocar música"}>{playing ? "Ⅱ" : "▶"}</button>
           <audio
             ref={audioRef}
             src="/academia-musica-ia-trap-jingle.mp3"
             preload="metadata"
-            onPlay={() => setJinglePlaying(true)}
-            onPause={() => setJinglePlaying(false)}
-            onEnded={() => setJinglePlaying(false)}
+            onPlay={() => setPlaying(true)}
+            onPause={() => setPlaying(false)}
+            onEnded={() => setPlaying(false)}
             onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
             onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
           />
         </div>
       </section>
 
-      <section className="manifest section" id="problema">
-        <div className="eyebrow">O PONTO ONDE QUASE TODO MUNDO TRAVA</div>
-        <div className="manifest-grid">
-          <h2>O problema não é gerar uma música.<br /><em>É fazer ela existir.</em></h2>
-          <div className="manifest-copy">
-            <p>Você abre uma ferramenta, digita uma ideia, gera uma faixa e talvez até goste do resultado.</p>
-            <p>Então trava. A música fica em uma pasta, numa conversa ou dentro da própria ferramenta: sem capa, sem Canvas, sem distribuição, sem link e sem presença.</p>
-            <strong>A inteligência artificial abriu a porta. Porta aberta ainda não é lançamento concluído.</strong>
-          </div>
-        </div>
-        <div className="transition-line">
-          <span>BRINCADEIRA</span><b>Um áudio perdido</b><i>→</i><span>PROJETO</span><b className="green">Som + capa + Canvas + link</b>
-        </div>
-        <a href="#jornada" className="pain-cta">QUERO CRIAR COM DIREÇÃO <Arrow /></a>
-      </section>
-
-      <section className="recognition section" id="mercado">
-        <div className="recognition-orbits" aria-hidden="true"><i /><i /><i /></div>
-        <div className="recognition-head">
+      <section className="br-features br-section">
+        <div className="br-section-head">
           <div>
-            <div className="eyebrow">A MÚSICA COM IA JÁ SAIU DA BOLHA</div>
-            <h2>Não é mais só curiosidade.<br /><em>É uma nova categoria.</em></h2>
+            <div className="br-section-tag">MAIS QUE UM GERADOR</div>
+            <h2>Seu estúdio.<br /><em>Seu repertório.</em></h2>
           </div>
-          <p>Ela entrou na Billboard, conquistou milhões de ouvintes, chegou às rádios e passou a fazer parte dos planos das maiores gravadoras. Isso prova a categoria — não garante o seu resultado.</p>
+          <p>Crie, compare, organize e dê identidade às músicas sem montar um quebra-cabeça de ferramentas.</p>
         </div>
-
-        <div className="recognition-chart" aria-label="Marcos da música criada com inteligência artificial">
-          <a className="chart-row chart-featured" href="https://abcnews.com/GMA/Culture/ai-generated-country-song-topping-billboards-country-digital/story?id=127445549" target="_blank" rel="noreferrer">
-            <span className="chart-position">01</span>
-            <span className="chart-cover chart-cover-rust"><i>BR</i></span>
-            <span className="chart-copy"><small>BILLBOARD • COUNTRY DIGITAL SONG SALES</small><strong>Uma música criada com IA chegou ao primeiro lugar</strong><span>“Walk My Walk”, do projeto Breaking Rust, ultrapassou 3 milhões de streams no Spotify em menos de um mês.</span></span>
-            <span className="chart-signal"><b>↑</b> #1</span>
-            <span className="chart-source">ABC NEWS ↗</span>
-          </a>
-
-          <a className="chart-row" href="https://www.billboard.com/pro/ai-music-artist-xania-monet-multimillion-dollar-record-deal/" target="_blank" rel="noreferrer">
-            <span className="chart-position">02</span>
-            <span className="chart-cover chart-cover-xania"><i>XM</i></span>
-            <span className="chart-copy"><small>CONTRATO E INDÚSTRIA</small><strong>US$ 3 milhões por um projeto musical criado com IA</strong><span>Xania Monet assinou com a Hallwood Media e acumulou milhões de streams nos Estados Unidos.</span></span>
-            <span className="chart-signal"><b>●</b> US$3M</span>
-            <span className="chart-source">BILLBOARD ↗</span>
-          </a>
-
-          <a className="chart-row" href="https://www.berklee.edu/berklee-now/news/velvet-sundown-ai-band-controversy" target="_blank" rel="noreferrer">
-            <span className="chart-position">03</span>
-            <span className="chart-cover chart-cover-velvet"><i>VS</i></span>
-            <span className="chart-copy"><small>AUDIÊNCIA NO SPOTIFY</small><strong>Mais de 1,4 milhão de ouvintes mensais</strong><span>The Velvet Sundown construiu música, integrantes e universo visual usando inteligência artificial.</span></span>
-            <span className="chart-signal"><b>◉</b> 1,4M+</span>
-            <span className="chart-source">BERKLEE ↗</span>
-          </a>
-
-          <a className="chart-row" href="https://newsroom-deezer.com/2025/11/deezer-ipsos-survey-ai-music/" target="_blank" rel="noreferrer">
-            <span className="chart-position">04</span>
-            <span className="chart-cover chart-cover-test"><i>97</i></span>
-            <span className="chart-copy"><small>PESQUISA DEEZER + IPSOS • INCLUIU O BRASIL</small><strong>97% não identificaram corretamente todas as músicas de IA</strong><span>Cerca de 9 mil pessoas, em oito países, participaram do teste cego.</span></span>
-            <span className="chart-signal"><b>≈</b> 97%</span>
-            <span className="chart-source">DEEZER ↗</span>
-          </a>
-        </div>
-
-        <div className="industry-deals">
-          <div className="industry-intro">
-            <span className="pulse-dot" />
-            <small>O MERCADO SE MOVEU</small>
-            <strong>De processo judicial<br />a parceria comercial.</strong>
-          </div>
-          <a href="https://www.wmg.com/news" target="_blank" rel="noreferrer">
-            <span>GRAVADORAS × IA MUSICAL</span>
-            <p>Desenvolvimento de música licenciada e novas oportunidades para artistas e compositores.</p>
-            <b>LER FONTE ↗</b>
-          </a>
-          <a href="https://www.universalmusic.com" target="_blank" rel="noreferrer">
-            <span>LICENCIAMENTO × IA MUSICAL</span>
-            <p>Uma nova plataforma comercial de criação musical com conteúdo autorizado e licenciado.</p>
-            <b>LER FONTE ↗</b>
-          </a>
-        </div>
-
-        <div className="recognition-thesis">
-          <span className="thesis-wave" aria-hidden="true">{Array.from({ length: 30 }, (_, index) => <i key={index} />)}</span>
-          <div>
-            <small>A VERDADE QUE IMPORTA</small>
-            <strong>O mundo não precisa de mais música genérica gerada em massa.</strong>
-            <p>Precisa de pessoas que saibam usar inteligência artificial com intenção, identidade e direção artística.</p>
-          </div>
-        </div>
-        <div className="center-cta"><a href="#jornada" className="pill pill-green">Quero construir uma música com identidade <Arrow /></a></div>
-      </section>
-
-      <section className="journey section" id="jornada">
-        <img src="/elemento-ideia-ao-link.png" alt="" className="journey-flow-asset" aria-hidden="true" />
-        <div className="journey-head">
-          <div>
-            <div className="eyebrow">O MECANISMO</div>
-            <h2>Método<br /><em>Da Ideia ao Link.</em></h2>
-          </div>
-          <p>Você não compra um passeio por ferramentas. Segue uma jornada organizada para construir música, identidade e lançamento.</p>
-        </div>
-        <div className="launch-line" aria-label="Etapas da ideia ao link">
-          {["IDEIA", "MÚSICA", "CAPA", "CANVAS", "PLATAFORMAS", "LINK"].map((item, index) => (
-            <span key={item}><i>{String(index + 1).padStart(2, "0")}</i><b>{item}</b></span>
-          ))}
-        </div>
-        <figure className="method-visual">
-          <img src="/metodo-ideia-ao-link.webp" alt="Saraiva produzindo uma música: da ideia, passando pela capa e pelo Canvas, até a publicação" />
-          <figcaption>
-            <small>O CAMINHO COMPLETO</small>
-            <strong>Criação, identidade e publicação dentro da mesma jornada.</strong>
-          </figcaption>
-        </figure>
-        <div className="tracklist">
-          <div className="tracklist-head"><span>#</span><span>ETAPA</span><span>O QUE ACONTECE</span><span>ENTREGA</span></div>
-          {tracks.map(([number, title, description, duration], index) => (
-            <article key={number} className={index === 0 ? "active" : ""}>
-              <span className="track-number">{index === 0 ? <Equalizer playing={jinglePlaying} /> : number}</span>
-              <strong>{title}</strong>
+        <div className="br-feature-grid">
+          {features.map(([tag, title, description], index) => (
+            <article key={tag} className={`feature-${index + 1}`}>
+              <small>{tag}</small>
+              <div className="br-feature-icon" aria-hidden="true">{index === 0 ? "♫" : index === 1 ? "▶" : index === 2 ? "▣" : "◎"}</div>
+              <h3>{title}</h3>
               <p>{description}</p>
-              <time>{duration}</time>
-              <span className="track-arrow">↗</span>
             </article>
           ))}
         </div>
-        <div className="journey-result">
-          <span className="result-icon">▶</span>
-          <div><small>RESULTADO DA JORNADA</small><strong>Uma música criada com intenção, apresentada com identidade e corretamente preparada para distribuição.</strong></div>
+      </section>
+
+      <section className="br-tutorial br-section" id="tutorial">
+        <div className="br-tutorial-art">
+          <img src="/studio-saraiva.webp" alt="Saraiva criando música em um estúdio" />
+          <div className="br-tutorial-label"><span>TUTORIAL INTEGRADO</span><b>Aprenda fazendo.</b></div>
+        </div>
+        <div className="br-tutorial-copy">
+          <div className="br-section-tag">APRENDA NO FLUXO</div>
+          <h2>A orientação aparece<br /><em>quando você precisa.</em></h2>
+          <p>O aprendizado faz parte da plataforma. Em cada etapa, você recebe explicações curtas para entender suas escolhas, melhorar o resultado e avançar até o lançamento.</p>
+          <ul>
+            <li><Check /> Comece sem experiência musical</li>
+            <li><Check /> Entenda suas escolhas criativas</li>
+            <li><Check /> Transforme a faixa em projeto</li>
+            <li><Check /> Prepare a apresentação do lançamento</li>
+          </ul>
         </div>
       </section>
 
-      <section className="transformation section">
-        <div className="transformation-head">
-          <div className="eyebrow">A TRANSFORMAÇÃO</div>
-          <h2>Sua música deixa de ser tentativa.<br /><em>Ela vira lançamento.</em></h2>
-        </div>
-        <div className="before-after">
-          <article className="before-card">
-            <small>ANTES</small>
-            <h3>Um arquivo que só você escuta.</h3>
-            {["Uma ideia solta", "Resultado genérico", "Dúvidas sobre direitos e plataformas", "Vergonha de mostrar algo incompleto"].map(item => <p key={item}><span>×</span>{item}</p>)}
-          </article>
-          <article className="after-card">
-            <small>DEPOIS</small>
-            <h3>Um projeto que você tem orgulho de mostrar.</h3>
-            {["Música criada com direção", "Capa com aparência profissional", "Identidade visual + Spotify Canvas", "Caminho de distribuição entendido"].map(item => <p key={item}><Check />{item}</p>)}
-          </article>
-        </div>
-      </section>
-
-      <section className="identity-showcase section">
-        <div className="identity-copy">
-          <div className="eyebrow">UMA IDEIA. MUITAS IDENTIDADES.</div>
-          <h2>Você não recebe uma estética pronta.<br /><em>Constrói a sua.</em></h2>
-          <p>Trap, pop, eletrônico ou romântico: a inteligência artificial amplia possibilidades. O método ajuda você a manter intenção, coerência e presença em cada escolha.</p>
-          <div className="identity-chips" aria-label="Exemplos de estilos musicais">
-            <span>TRAP</span><span>POP</span><span>ACÚSTICO</span><span>ELETRÔNICO</span>
+      <section className="br-access br-section" id="acesso">
+        <div className="br-access-copy">
+          <div className="br-section-tag">SEU PRIMEIRO PLAY COMEÇA AQUI</div>
+          <h2>Entre com uma ideia.<br /><em>Saia com música.</em></h2>
+          <p>O acesso reúne plataforma, créditos de criação e tutorial integrado. Confira a condição disponível hoje e comece pelo seu primeiro projeto.</p>
+          <div className="br-access-includes">
+            <span><Check /> Criador visual sem prompt</span>
+            <span><Check /> Duas versões por rodada</span>
+            <span><Check /> Repertório com player e download</span>
+            <span><Check /> Criação de capa</span>
+            <span><Check /> Tutorial integrado à experiência</span>
           </div>
+          <a href="/checkout" className="br-button br-button-light" data-track="checkout_cta">Ver condição de acesso <Arrow /></a>
+          <small>Pagamento por Pix • acesso online • experiência para iniciantes</small>
         </div>
-        <div className="identity-visual">
-          <img src="/identidades-musicais.webp" alt="Saraiva representado em quatro universos musicais diferentes" />
-          <span className="identity-scan" aria-hidden="true" />
-        </div>
-      </section>
-
-      <section className="founder section">
-        <div className="founder-image-wrap">
-          <img src="/studio-saraiva.webp" alt="Saraiva criando música em um estúdio com inteligência artificial" />
-          <div className="image-caption"><span>8.000+</span> gerações para transformar tentativa em método</div>
-        </div>
-        <div className="founder-copy">
-          <div className="eyebrow">QUEM VAI TE GUIAR</div>
-          <h2>Eu gerei. Errei. Refiz. E aprendi a <em>publicar.</em></h2>
-          <p>Eu também comecei gerando músicas e deixando tudo preso dentro da ferramenta. Depois de milhares de testes, distribuidoras, erros e versões, organizei o caminho completo que eu gostaria de ter recebido no começo.</p>
-          <blockquote>“Gerar o áudio é só o começo. A música passa a existir quando ganha identidade, lançamento e um lugar para ser ouvida.”</blockquote>
-          <div className="signature"><b>Saraiva</b><span>Criador da Academia Música IA</span></div>
+        <div className="br-access-art">
+          <img src="/kit-lancamento.webp" alt="Música, capa e materiais de lançamento reunidos" />
+          <span>IDEIA → MÚSICA → CAPA → LANÇAMENTO</span>
         </div>
       </section>
 
-      <section className="spotify-showcase section" id="musicas">
-        <div className="spotify-motion" aria-hidden="true">
-          <i /><i /><i /><i /><i />
+      <section className="br-faq br-section" id="duvidas">
+        <div>
+          <div className="br-section-tag">PERGUNTAS FREQUENTES</div>
+          <h2>Antes do seu<br /><em>primeiro play.</em></h2>
         </div>
-        <div className="spotify-copy">
-          <div className="eyebrow">MINHAS MÚSICAS JÁ ESTÃO NO MUNDO</div>
-          <h2>Ouça no Spotify.<br /><em>Sem sair da página.</em></h2>
-          <p>Esse é o resultado do processo completo: músicas criadas, finalizadas, distribuídas e disponíveis onde as pessoas realmente ouvem música.</p>
-          <a className="pill pill-green" href="https://open.spotify.com/intl-pt/artist/6QCboo7mQn9Yhux3GBQnNr" target="_blank" rel="noreferrer">Abrir perfil no Spotify <Arrow /></a>
-        </div>
-        <div className="spotify-embed-wrap">
-          <div className="embed-glow" aria-hidden="true" />
-          <iframe
-            title="Músicas de Saraiva no Spotify"
-            src="https://open.spotify.com/embed/artist/6QCboo7mQn9Yhux3GBQnNr?utm_source=generator&theme=0"
-            width="100%"
-            height="352"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-          />
-        </div>
-      </section>
-
-      <section className="library section" id="biblioteca">
-        <div className="library-visual">
-          <img src="/album-grid-saraiva.webp" alt="Coleção visual de capas musicais criadas com inteligência artificial" />
-          <img src="/elemento-vinil-capa.png" alt="" className="library-vinyl-asset" aria-hidden="true" />
-          <span className="library-badge">BIBLIOTECA<br /><b>VIVA</b></span>
-        </div>
-        <div className="library-content">
-          <div className="eyebrow">CADA ENTREGA APROXIMA DO LINK</div>
-          <h2>Menos conteúdo solto.<br /><em>Mais implementação.</em></h2>
-          <div className="library-list">
-            {library.map(([title, description, meta], index) => (
-              <article key={title}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <div><strong>{title}</strong><p>{description}</p></div>
-                <small>{meta}</small>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="audience section">
-        <div className="audience-title">
-          <div className="eyebrow">PARA QUEM É</div>
-          <h2>Você traz a ideia.<br /><em>A Academia mostra o caminho.</em></h2>
-        </div>
-        <div className="audience-cards">
-          {[
-            ["01", "A pessoa curiosa", "Ama música, nunca aprendeu a tocar e quer descobrir o que consegue criar."],
-            ["02", "Quem guarda histórias", "Tem letras, lembranças e sentimentos, mas nunca soube transformá-los em canção."],
-            ["03", "Quem quer estar no Spotify", "Deseja ter uma música própria publicada e um link real para compartilhar."],
-            ["04", "Quem já gerou e parou", "Tem arquivos de músicas com IA, mas nunca construiu capa, lançamento ou distribuição."],
-          ].map(([n, title, copy]) => (
-            <article key={n}><span>{n}</span><div className="vinyl" /><h3>{title}</h3><p>{copy}</p></article>
-          ))}
-        </div>
-        <div className="not-for">
-          <div><small>PARA QUEM NÃO É</small><h3>A promessa é processo.<br />Não milagre.</h3></div>
-          <div className="not-for-list">
-            {["Não é para quem procura botão mágico.", "Não é para quem quer copiar artista famoso.", "Não é para quem espera fama ou sucesso automático.", "Não é para quem quer ignorar regras de ferramentas e plataformas."].map(item => <p key={item}><span>×</span>{item}</p>)}
-          </div>
-        </div>
-      </section>
-
-      <section className="offer section" id="oferta">
-        <div className="offer-art">
-          <img src="/kit-lancamento.webp" alt="Kit visual de um lançamento musical com capa, player, Canvas, link e fones" />
-          <span className="offer-orbit orbit-one" aria-hidden="true" />
-          <span className="offer-orbit orbit-two" aria-hidden="true" />
-        </div>
-        <div className="offer-copy">
-          <div className="eyebrow">APERTE O PLAY</div>
-          <h2>Entre para a<br /><em>Academia Música IA</em></h2>
-          <p>Você não recebe apenas aulas. Conversa com o Produtor IA, aprende enquanto cria e tem 25 músicas incluídas para testar estilos, comparar versões e escolher as favoritas.</p>
-          <div className="included">
-            {["Produtor IA por texto ou voz", "25 músicas para criar e baixar", "Método Da Ideia ao Link", "Capa + Spotify Canvas", "Biblioteca com player e download"].map(item => <span key={item}><Check /> {item}</span>)}
-          </div>
-          <div className="price-row"><small>INVESTIMENTO</small><div><sup>R$</sup>197</div><span>pagamento único</span></div>
-          <a href="/checkout" className="pill pill-green pill-full" data-track="checkout_cta">Quero meu Produtor IA + 25 músicas <Arrow /></a>
-          <small className="safe">🔒 Compra segura • acesso online • nível iniciante</small>
-          <p className="external-costs">As 25 músicas estão incluídas. Serviços opcionais de distribuição ou publicação podem ter custos externos.</p>
-        </div>
-      </section>
-
-      <section className="guarantee section">
-        <div className="guarantee-number">7<span>DIAS</span></div>
-        <div><div className="eyebrow">VOCÊ DECIDE COM CLAREZA</div><h2>Entre. Explore.<br /><em>Decida com calma.</em></h2><p>Você tem 7 dias para conhecer o treinamento e avaliar se a experiência faz sentido. A solicitação de reembolso deve seguir as condições apresentadas no checkout.</p></div>
-      </section>
-
-      <section className="faq section" id="duvidas">
-        <div className="faq-title">
-          <div className="eyebrow">PERGUNTAS FREQUENTES</div>
-          <h2>Antes do seu<br />primeiro <em>play.</em></h2>
-        </div>
-        <div className="faq-list">
+        <div className="br-faq-list">
           {faqs.map(([question, answer], index) => (
             <article key={question} className={openFaq === index ? "open" : ""}>
-              <button onClick={() => setOpenFaq(openFaq === index ? -1 : index)} aria-expanded={openFaq === index}>
+              <button type="button" aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>
                 <span>{question}</span><i>{openFaq === index ? "−" : "+"}</i>
               </button>
               <div><p>{answer}</p></div>
@@ -482,22 +335,23 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="final-cta" id="checkout">
-        <div className="sound-rings" aria-hidden="true"><i /><i /><i /><i /></div>
-        <img src="/elemento-play-3d.png" alt="" className="final-play-asset" aria-hidden="true" />
-        <div className="eyebrow">SUA IDEIA JÁ É O COMEÇO</div>
-        <h2>Sua primeira música<br /><em>começa com uma conversa.</em></h2>
-        <div className="final-stack"><span>SOM</span><i>+</i><span>CAPA</span><i>+</i><span>CANVAS</span><i>+</i><span>LINK</span><i>=</i><b>PRESENÇA</b></div>
-        <a href="/checkout" className="pill pill-dark" data-track="checkout_cta">Quero conversar e criar <Arrow /></a>
-        <p>Você conta a história. O Produtor IA ajuda a transformar em música.</p>
+      <section className="br-final">
+        <div className="br-final-map" aria-hidden="true">BR</div>
+        <div className="br-section-tag">A SUA HISTÓRIA MERECE SOM</div>
+        <h2>O Brasil já tem ritmo.<br /><em>Agora falta o seu.</em></h2>
+        <p>Comece simples. Escolha a direção. Aperte o play.</p>
+        <a href="/checkout" className="br-button br-button-light" data-track="checkout_cta">Criar minha primeira música <Arrow /></a>
       </section>
 
-      <a href="/checkout" className="mobile-sticky-cta" data-track="checkout_cta">CONVERSAR E CRIAR <Arrow /></a>
+      <a href="/checkout" className="br-mobile-cta" data-track="checkout_cta">Criar minha música <Arrow /></a>
 
-      <footer>
-        <a href="#inicio" className="brand"><span className="brand-disc"><i /><i /><i /></span><span>Academia <b>Música IA</b></span></a>
-        <p>© 2026 Academia Música IA. Criado para quem decidiu criar.</p>
-        <div><a href="/termos">Termos</a><a href="/privacidade">Privacidade</a></div>
+      <footer className="br-footer">
+        <a className="br-brand" href="#inicio">
+          <span className="br-brand-mark" aria-hidden="true"><i /><i /><i /></span>
+          <span>Academia <b>Música IA</b></span>
+        </a>
+        <p>Plataforma brasileira para transformar ideias em música.</p>
+        <div><a href="/termos">Termos</a><a href="/privacidade">Privacidade</a><a href="/suporte">Suporte</a></div>
       </footer>
     </main>
   );

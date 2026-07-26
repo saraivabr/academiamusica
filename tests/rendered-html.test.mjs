@@ -27,8 +27,13 @@ test("renders finished production metadata", async () => {
     /^text\/html\b/i,
   );
   const html = await response.text();
-  assert.match(html, /<meta[^>]+property=["']og:title["'][^>]+Da ideia ao play/i);
+  assert.match(html, /<meta[^>]+property=["']og:title["'][^>]+100% brasileirada/i);
   assert.match(html, /<meta[^>]+property=["']og:image["'][^>]+musicacom\.ia\.br\/og\.png/i);
+  assert.match(html, /A plataforma de geração de música/i);
+  assert.match(html, /FEITA NO BRASIL\. PARA O SOM DO BRASIL\./i);
+  assert.match(html, /O aprendizado acontece dentro da própria plataforma/i);
+  assert.doesNotMatch(html, /Quero conversar e criar/i);
+  assert.doesNotMatch(html, /Produtor IA/i);
   assert.doesNotMatch(html, /codex-preview/i);
 });
 

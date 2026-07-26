@@ -116,7 +116,7 @@ export default function Academia() {
         </Link>
         <Link href="/academia/comecar">
           <i className="quick-method">01</i>
-          <b>Aprender o processo</b>
+          <b>Abrir tutorial</b>
           <span>▶</span>
         </Link>
       </section>
@@ -179,7 +179,7 @@ export default function Academia() {
       <section className="platform-section">
         <header className="platform-section-head">
           <div><small>O VALOR DO PROCESSO</small><h2>Você não recebe só um arquivo</h2></div>
-          <Link href="/academia/comecar">Ver o método</Link>
+          <Link href="/academia/comecar">Abrir tutorial</Link>
         </header>
         <div className="platform-journey-grid">
           {journey.map((item) => (

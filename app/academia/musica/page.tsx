@@ -1,3 +1,25 @@
 import Link from "next/link";
 import { AcademyShell, LessonCard } from "../../components/Portal";
-export default function Musica(){return <AcademyShell title="Crie sua música" eyebrow="ETAPA 01"><section className="module-intro accent"><span>01</span><div><h2>Transforme conversa em som.</h2><p>Comece pelo Produtor IA. Conte sua ideia, confirme o que ele entendeu e receba duas músicas para comparar.</p><Link className="module-intro-action" href="/biblioteca/gerador">Conversar e criar →</Link></div></section><div className="lesson-list"><LessonCard number="01" title="Converse com o Produtor IA" text="Escreva ou fale naturalmente; ele faz uma pergunta útil por vez." href="/biblioteca/gerador"/><LessonCard number="02" title="Roteiro de composição" text="Aprofunde conceito, letra e estrutura sem cair no genérico." time="18 min" href="/biblioteca/compositor"/><LessonCard number="03" title="Mapa de estilos brasileiros" text="Explore ritmo, instrumentação, energia e textura." href="/biblioteca/estilos-brasileiros"/><LessonCard number="04" title="Compare as versões" text="Escute refrão, emoção e arranjo para escolher a direção mais forte." time="20 min" href="/biblioteca/gerador"/><LessonCard number="05" title="Peça uma nova direção" text="Converse sobre o que quer mudar; a nova rodada cria outra dupla." href="/biblioteca/gerador"/></div><Link className="module-next" href="/academia/identidade">Próxima etapa: identidade visual →</Link></AcademyShell>}
+
+export default function Musica() {
+  return (
+    <AcademyShell title="Crie sua música" eyebrow="TUTORIAL • ETAPA 01">
+      <section className="module-intro accent">
+        <span>01</span>
+        <div>
+          <h2>Transforme escolhas simples em som.</h2>
+          <p>Conte o essencial, escolha emoção, estilo e voz e receba duas músicas para comparar.</p>
+          <Link className="module-intro-action" href="/biblioteca/gerador">Abrir o criador →</Link>
+        </div>
+      </section>
+      <div className="lesson-list">
+        <LessonCard number="01" title="Escolha o motivo da música" text="Comece por homenagem, romance, superação, jingle, instrumental ou sua própria história." href="/biblioteca/gerador" />
+        <LessonCard number="02" title="Dê uma direção clara" text="Use ideia, emoção, ritmo e voz para aproximar a música do que você imaginou." time="8 min" href="/biblioteca/gerador" />
+        <LessonCard number="03" title="Explore ritmos brasileiros" text="Compare instrumentação, energia e textura antes de decidir." href="/biblioteca/estilos-brasileiros" />
+        <LessonCard number="04" title="Compare as duas versões" text="Escute refrão, emoção e arranjo para escolher a versão mais forte." time="6 min" href="/biblioteca" />
+        <LessonCard number="05" title="Crie uma nova rodada" text="Escolha uma mudança rápida ou altere a direção antes de usar novos créditos." href="/biblioteca/gerador" />
+      </div>
+      <Link className="module-next" href="/academia/identidade">Próximo tutorial: identidade visual →</Link>
+    </AcademyShell>
+  );
+}
