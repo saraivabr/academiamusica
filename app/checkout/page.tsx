@@ -2,8 +2,8 @@ import { PublicShell } from "../components/Portal";
 import CheckoutClient from "./CheckoutClient";
 
 export const metadata = {
-  title: "Inscrição | Academia Música IA",
-  description: "Garanta seu Produtor IA, a formação e 25 músicas incluídas por Pix.",
+  title: "Acesso à plataforma | Academia Música IA",
+  description: "Entre na plataforma, crie suas músicas e aprenda pelo tutorial integrado.",
 };
 
 export default function Checkout() {
@@ -11,16 +11,16 @@ export default function Checkout() {
     <PublicShell compact>
       <main className="checkout-page">
         <section className="checkout-intro">
-          <div className="eyebrow">INSCRIÇÕES ABERTAS</div>
-          <h1>Conte sua história. Crie suas músicas.</h1>
+          <div className="eyebrow">ACESSO À PLATAFORMA</div>
+          <h1>Entre com uma ideia. Saia com música.</h1>
           <p>
-            Entre na Academia Música IA, converse com o Produtor IA por texto ou
-            voz e receba duas músicas por rodada, com 25 incluídas.
+            Escolha história, emoção, ritmo e voz sem escrever prompt. A plataforma
+            entrega duas versões por rodada e mantém tudo no seu repertório.
           </p>
           <div className="checkout-proof">
             <span>✓ 7 dias de garantia</span>
-            <span>✓ Produtor IA</span>
-            <span>✓ Texto ou voz</span>
+            <span>✓ Criador visual</span>
+            <span>✓ Tutorial integrado</span>
             <span>✓ 25 músicas incluídas</span>
           </div>
           <div className="checkout-help">

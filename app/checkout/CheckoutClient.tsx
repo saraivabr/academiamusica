@@ -177,16 +177,16 @@ export default function CheckoutClient() {
       <div className="order-title">
         <span className="cover-mini">AMI</span>
         <div>
-          <small>SUA INSCRIÇÃO</small>
+          <small>SEU ACESSO</small>
           <h2>Academia Música IA</h2>
-          <p>Método Da Ideia ao Link</p>
+          <p>Plataforma de criação musical</p>
         </div>
       </div>
       <div className="order-includes">
-        <p><b>✓</b> Formação principal com acesso permanente</p>
-        <p><b>✓</b> Produtor IA por texto ou voz</p>
+        <p><b>✓</b> Acesso permanente à plataforma</p>
+        <p><b>✓</b> Criador visual sem prompt</p>
         <p><b>✓</b> 25 músicas incluídas para criar e baixar</p>
-        <p><b>✓</b> Capa, Canvas e publicação guiadas</p>
+        <p><b>✓</b> Capa e tutorial de lançamento integrados</p>
         <p><b>✓</b> Biblioteca pessoal com player e download</p>
       </div>
       <div className="order-price">
@@ -247,7 +247,7 @@ export default function CheckoutClient() {
         </label>
         {error ? <p className="checkout-error">{error}</p> : null}
         <button className="checkout-primary" disabled={loading}>
-          {loading ? "Gerando seu Pix…" : "Quero meu Produtor IA + 25 músicas • R$197"}
+          {loading ? "Gerando seu Pix…" : "Entrar na plataforma + 25 músicas • R$197"}
         </button>
       </form>
       <small className="payment-note">
