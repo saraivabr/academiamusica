@@ -11,6 +11,7 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "infra/cloudfront-rewrite.js",
     "next-env.d.ts",
   ]),
 ]);

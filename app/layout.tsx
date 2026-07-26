@@ -1,21 +1,31 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
+  metadataBase: new URL("https://musicacom.ia.br"),
   title: "Da ideia ao Spotify | Academia Música IA",
   description:
     "Crie sua música com IA, desenvolva sua identidade visual e publique nas principais plataformas de streaming.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Academia Música IA — Da ideia ao Spotify",
+    description:
+      "O caminho guiado para criar sua música com IA, construir a identidade visual e preparar o lançamento.",
+    url: "https://musicacom.ia.br",
+    siteName: "Academia Música IA",
+    locale: "pt_BR",
+    type: "website",
+    images: [{ url: "/hero-premium.webp", width: 1536, height: 1024 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Academia Música IA — Da ideia ao Spotify",
+    description:
+      "Crie sua música, identidade visual e lançamento com um processo guiado.",
+    images: ["/hero-premium.webp"],
+  },
   other: {
     "codex-preview": "development",
   },
@@ -32,11 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

@@ -98,6 +98,22 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `npm run validate:artifact`: recheck an existing artifact's manifest and ESM `default.fetch` export
 - `npm run db:generate`: generate Drizzle migrations after schema changes
 
+## Produção comercial na AWS
+
+O site público roda em `https://musicacom.ia.br`, servido por S3 privado e
+CloudFront. O checkout usa API Gateway, Lambda, DynamoDB, SSM Parameter Store e
+Woovi para gerar e confirmar cobranças Pix.
+
+- `npm run build:aws`: gera a exportação estática em `out/`
+- `npm run deploy:checkout`: atualiza o backend de pagamentos
+- `npm run deploy:aws`: publica o site e invalida a CDN
+- `npm run orders`: lista pedidos e pagamentos registrados
+
+Os parâmetros secretos ficam em `/academia-musica/prod/` no SSM e nunca devem
+ser copiados para o repositório. As rotas `/academia`, `/biblioteca` e
+`/comunidade` são protegidas no CloudFront e só aceitam o cookie de acesso
+assinado emitido após a confirmação do pagamento.
+
 Use build and validation commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
 
 The timeout defaults can be overridden for a controlled canary with `SITES_INSTALL_TIMEOUT`, `SITES_INSTALL_KILL_AFTER`, `SITES_BUILD_TIMEOUT`, and `SITES_BUILD_KILL_AFTER`. A timeout fails the command; the helpers never retry an unchanged install or build.

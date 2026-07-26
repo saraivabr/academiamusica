@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 export const Logo = () => (
-  <a href="/" className="portal-logo">
+  <Link href="/" className="portal-logo">
     <span className="brand-disc"><i /><i /><i /></span>
     <span>Academia <b>Música IA</b></span>
-  </a>
+  </Link>
 );
 
 export function PublicShell({ children, compact = false }: { children: ReactNode; compact?: boolean }) {
@@ -13,9 +14,9 @@ export function PublicShell({ children, compact = false }: { children: ReactNode
       <header className="portal-header">
         <Logo />
         <nav>
-          <a href="/#jornada">Método</a>
-          <a href="/#duvidas">Dúvidas</a>
-          <a href="/login">Entrar</a>
+          <Link href="/#jornada">Método</Link>
+          <Link href="/#duvidas">Dúvidas</Link>
+          <Link href="/login">Entrar</Link>
         </nav>
       </header>
       {children}
@@ -43,11 +44,11 @@ export function AcademyShell({ children, title, eyebrow = "ÁREA DE MEMBROS" }: 
     <div className="academy-shell">
       <aside className="academy-sidebar">
         <Logo />
-        <nav>{memberLinks.map(([href, label, icon]) => <a key={href} href={href}><span>{icon}</span>{label}</a>)}</nav>
-        <div className="academy-help"><small>PRECISA DE AJUDA?</small><a href="/suporte">Falar com suporte ↗</a></div>
+        <nav>{memberLinks.map(([href, label, icon]) => <Link key={href} href={href}><span>{icon}</span>{label}</Link>)}</nav>
+        <div className="academy-help"><small>PRECISA DE AJUDA?</small><Link href="/suporte">Falar com suporte ↗</Link></div>
       </aside>
       <main className="academy-main">
-        <header className="academy-top"><div><small>{eyebrow}</small><h1>{title}</h1></div><a href="/" className="avatar">SB</a></header>
+        <header className="academy-top"><div><small>{eyebrow}</small><h1>{title}</h1></div><Link href="/" className="avatar">SB</Link></header>
         {children}
       </main>
     </div>
@@ -55,7 +56,7 @@ export function AcademyShell({ children, title, eyebrow = "ÁREA DE MEMBROS" }: 
 }
 
 export function LessonCard({ number, title, text, time = "8 min", href = "#" }: { number: string; title: string; text: string; time?: string; href?: string }) {
-  return <a href={href} className="lesson-card"><span>{number}</span><div><small>AULA • {time}</small><h3>{title}</h3><p>{text}</p></div><b>▶</b></a>;
+  return <Link href={href} className="lesson-card"><span>{number}</span><div><small>AULA • {time}</small><h3>{title}</h3><p>{text}</p></div><b>▶</b></Link>;
 }
 
 export function LegalPage({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {

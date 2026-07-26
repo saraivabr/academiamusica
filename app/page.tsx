@@ -451,7 +451,7 @@ export default function Home() {
             {["Criação musical com IA", "Capa e identidade visual", "Spotify Canvas", "Distribuição nas plataformas", "Biblioteca Viva + comunidade"].map(item => <span key={item}><Check /> {item}</span>)}
           </div>
           <div className="price-row"><small>INVESTIMENTO</small><div><sup>R$</sup>197</div><span>pagamento único</span></div>
-          <a href="#checkout" className="pill pill-green pill-full">Quero tirar minha música do arquivo <Arrow /></a>
+          <a href="/checkout" className="pill pill-green pill-full">Quero tirar minha música do arquivo <Arrow /></a>
           <small className="safe">🔒 Compra segura • acesso online • nível iniciante</small>
           <p className="external-costs">Custos externos de ferramentas ou distribuidoras, quando existirem, não estão incluídos no valor da Academia.</p>
         </div>
@@ -494,7 +494,7 @@ export default function Home() {
       <footer>
         <a href="#inicio" className="brand"><span className="brand-disc"><i /><i /><i /></span><span>Academia <b>Música IA</b></span></a>
         <p>© 2026 Academia Música IA. Criado para quem decidiu criar.</p>
-        <div><a href="#">Termos</a><a href="#">Privacidade</a></div>
+        <div><a href="/termos">Termos</a><a href="/privacidade">Privacidade</a></div>
       </footer>
     </main>
   );

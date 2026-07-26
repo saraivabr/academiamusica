@@ -1,2 +1,23 @@
 import { PublicShell } from "../components/Portal";
-export default function Login(){return <PublicShell compact><main className="login-page"><section><div className="eyebrow">BEM-VINDO DE VOLTA</div><h1>Sua próxima faixa começa aqui.</h1><p>Acesse a Academia, continue de onde parou e avance até o seu lançamento.</p></section><form className="login-card"><label>E-mail<input type="email" placeholder="voce@email.com" /></label><label>Senha<input type="password" placeholder="••••••••" /></label><button disabled>Entrar na Academia</button><a href="/academia">Ver demonstração da área de membros →</a><small>O login real será ativado quando a plataforma de membros for conectada.</small></form></main></PublicShell>}
+import AccessLogin from "./AccessLogin";
+
+export const metadata = {
+  title: "Entrar | Academia Música IA",
+};
+
+export default function Login() {
+  return (
+    <PublicShell compact>
+      <main className="login-page">
+        <section>
+          <div className="eyebrow">BEM-VINDO DE VOLTA</div>
+          <h1>Sua próxima faixa começa aqui.</h1>
+          <p>
+            Use o código do seu pedido confirmado para acessar a Academia neste dispositivo.
+          </p>
+        </section>
+        <AccessLogin />
+      </main>
+    </PublicShell>
+  );
+}

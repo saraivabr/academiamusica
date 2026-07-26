@@ -1,2 +1,10 @@
 import { PublicShell } from "../components/Portal";
-export default function Obrigado(){return <PublicShell compact><main className="status-page"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO</div><h1>Sua jornada começou.</h1><p>Agora você vai transformar sua primeira ideia em um lançamento completo.</p><div className="next-steps"><article><span>01</span><h2>Acesse a Academia</h2><p>Entre na área de membros e veja o mapa da jornada.</p><a href="/academia">Ir para a Academia →</a></article><article><span>02</span><h2>Comece pela ideia</h2><p>Escolha a história, emoção ou tema da sua primeira música.</p><a href="/academia/comecar">Começar agora →</a></article><article><span>03</span><h2>Entre na comunidade</h2><p>Apresente-se e compartilhe sua primeira intenção criativa.</p><a href="/comunidade">Conhecer a comunidade →</a></article></div></main></PublicShell>}
+import PurchaseConfirmation from "./PurchaseConfirmation";
+
+export default function Obrigado() {
+  return (
+    <PublicShell compact>
+      <PurchaseConfirmation />
+    </PublicShell>
+  );
+}
