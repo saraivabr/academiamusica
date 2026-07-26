@@ -1656,7 +1656,7 @@
   .academy-mobile-nav {
     position: fixed;
     right: 0;
-    bottom: 74px;
+    bottom: 124px;
     left: 0;
     z-index: 95;
     display: grid;
@@ -3240,7 +3240,7 @@
   }
 
   .academy-mobile-nav {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .express-hero {

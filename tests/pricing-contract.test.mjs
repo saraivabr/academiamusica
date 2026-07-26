@@ -52,3 +52,27 @@ test("crediting is idempotent and music generation keeps model V5", async () => 
   assert.match(backend, /const MUSIC_MODEL = "V5"/);
   assert.doesNotMatch(backend, /PRICE_CENTS/);
 });
+
+test("paid recharges and subscription installments use verified atomic crediting", async () => {
+  const backend = await source("infra/checkout/index.mjs");
+
+  assert.match(backend, /providerCompleted[\s\S]*?verifiedData[\s\S]*?await markPaid\(orderId, verifiedData\.charge \?\? verifiedData\)/);
+  assert.match(backend, /subscriptionId = stored\.subscriptionGlobalId \|\| orderId/);
+  assert.match(backend, /subscriptions\/\$\{encodeURIComponent\(subscriptionId\)\}\/installments/);
+  assert.match(backend, /Mensalidade não localizada no provedor/);
+  assert.match(backend, /attribute_not_exists\(creditsAppliedAt\)/);
+  assert.doesNotMatch(backend, /#status <> :paid OR attribute_not_exists\(creditsAppliedAt\)/);
+});
+
+test("mobile purchase flow keeps checkout and five destinations usable", async () => {
+  const [globals, experience, confirmation] = await Promise.all([
+    source("app/globals.css"),
+    source("app/spotify-experience.css"),
+    source("app/obrigado/PurchaseConfirmation.tsx"),
+  ]);
+
+  assert.match(globals, /\.checkout-page>\.checkout-card\{order:-1\}/);
+  assert.match(experience, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.doesNotMatch(confirmation, /`purchase_\$\{orderId\}`/);
+  assert.match(confirmation, /history\.replaceState/);
+});

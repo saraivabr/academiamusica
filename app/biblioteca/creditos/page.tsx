@@ -20,6 +20,7 @@ type CreditOrder = {
   brCode?: string;
   qrCodeImage?: string;
   paymentLinkUrl?: string;
+  expiresAt?: string;
 };
 
 type SubscriptionForm = {
@@ -53,6 +54,16 @@ function idempotencyKey(productId: string) {
   const key = crypto.randomUUID().replaceAll("-", "");
   window.sessionStorage.setItem(storageKey, key);
   return key;
+}
+
+function clearIdempotencyKey(productId: string) {
+  window.sessionStorage.removeItem(`academia-credit-checkout-${productId}`);
+}
+
+function orderExpired(order: CreditOrder) {
+  if (!order.expiresAt) return false;
+  const expiresAt = new Date(order.expiresAt).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now();
 }
 
 export default function CreditosPage() {
@@ -97,6 +108,12 @@ export default function CreditosPage() {
         const data = await response.json();
         if (!response.ok || !data.order) throw new Error("Pagamento indisponível.");
         pollingFailures.current = 0;
+        if (orderExpired(data.order)) {
+          if (selected) clearIdempotencyKey(selected.id);
+          setOrder(null);
+          setError("Esse Pix expirou. Escolha o pacote novamente para gerar um novo código.");
+          return;
+        }
         setOrder(data.order);
         if (data.order.status === "PAID") {
           window.sessionStorage.removeItem(`academia-credit-checkout-${selected?.id}`);
@@ -149,6 +166,13 @@ export default function CreditosPage() {
           ...(selected.type === "subscription" ? subscriptionForm : {}),
         }),
       });
+      if (data.order?.status === "PAID") {
+        clearIdempotencyKey(selected.id);
+        refreshBalance();
+      } else if (data.order && orderExpired(data.order)) {
+        clearIdempotencyKey(selected.id);
+        throw new Error("Esse Pix expirou. Clique novamente para gerar um novo código.");
+      }
       setOrder(data.order);
     } catch (requestError) {
       setError(requestError instanceof Error

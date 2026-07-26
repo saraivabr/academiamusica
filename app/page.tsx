@@ -119,7 +119,7 @@ export default function Home() {
           <div className="br-product-window">
             <header>
               <span className="br-window-brand"><i /> CRIADOR</span>
-              <span className="br-credit-pill">20 créditos</span>
+              <span className="br-credit-pill">20 músicas • 10 rodadas</span>
             </header>
             <div className="br-product-body">
               <small>O QUE VOCÊ QUER CRIAR?</small>

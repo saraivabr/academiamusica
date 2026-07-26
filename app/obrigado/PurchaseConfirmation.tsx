@@ -5,16 +5,26 @@ import { activateMemberAccess, CHECKOUT_API } from "../lib/access";
 import { hasMetaConsent, trackMetaEvent } from "../lib/metaPixel";
 import { STARTER_PRODUCT } from "../lib/musicProducts";
 
+type ConfirmedOrder = {
+  value: number;
+  credits: number;
+  productName: string;
+};
+
 export default function PurchaseConfirmation() {
   const [state, setState] = useState<"checking" | "paid" | "paid-access-error" | "pending" | "invalid">("checking");
   const [orderId, setOrderId] = useState("");
+  const [confirmedOrder, setConfirmedOrder] = useState<ConfirmedOrder | null>(null);
 
   useEffect(() => {
-    const orderId = new URLSearchParams(window.location.search).get("pedido");
+    const storedOrderId = window.sessionStorage.getItem("academia-confirmation-order");
+    const orderId = new URLSearchParams(window.location.search).get("pedido") || storedOrderId;
     if (!orderId) {
       const timeout = window.setTimeout(() => setState("invalid"), 0);
       return () => window.clearTimeout(timeout);
     }
+    window.sessionStorage.setItem("academia-confirmation-order", orderId);
+    window.history.replaceState({}, "", window.location.pathname);
     fetch(`${CHECKOUT_API}/v1/checkout/${encodeURIComponent(orderId)}`, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Pedido não encontrado");
@@ -24,11 +34,17 @@ export default function PurchaseConfirmation() {
           return;
         }
         setOrderId(orderId);
+        const confirmed = {
+          value: Number(data.order.value) || STARTER_PRODUCT.priceCents,
+          credits: Number(data.order.credits) || STARTER_PRODUCT.credits,
+          productName: data.order.productName || STARTER_PRODUCT.name,
+        };
+        setConfirmedOrder(confirmed);
         if (hasMetaConsent()) {
-          const purchaseKey = `academia-meta-purchase-${orderId}`;
+          const purchaseKey = "academia-meta-purchase-tracked";
           let alreadyTracked = false;
           try {
-            alreadyTracked = window.localStorage.getItem(purchaseKey) === "tracked";
+            alreadyTracked = window.sessionStorage.getItem(purchaseKey) === "tracked";
           } catch {
             // The event can still be sent when storage is unavailable.
           }
@@ -36,22 +52,25 @@ export default function PurchaseConfirmation() {
             trackMetaEvent(
               "Purchase",
               {
-                content_name: STARTER_PRODUCT.name,
+                content_name: confirmed.productName,
                 content_type: "product",
-                value: STARTER_PRODUCT.priceCents / 100,
+                value: confirmed.value / 100,
                 currency: "BRL",
               },
-              `purchase_${orderId}`,
+              `purchase_${crypto.randomUUID()}`,
             );
             try {
-              window.localStorage.setItem(purchaseKey, "tracked");
+              window.sessionStorage.setItem(purchaseKey, "tracked");
             } catch {
               // Purchase confirmation must never depend on analytics storage.
             }
           }
         }
         return activateMemberAccess(orderId)
-          .then(() => setState("paid"))
+          .then(() => {
+            window.sessionStorage.removeItem("academia-confirmation-order");
+            setState("paid");
+          })
           .catch(() => setState("paid-access-error"));
       })
       .catch(() => setState("invalid"));
@@ -70,8 +89,8 @@ export default function PurchaseConfirmation() {
   }
 
   if (state === "paid-access-error") {
-    return <main className="status-page narrow"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO</div><h1>Sua compra está segura.</h1><p>Confirmamos o pedido <strong>{orderId}</strong>, mas não conseguimos autorizar este dispositivo automaticamente. Use esse código na página de entrada ou fale com o suporte.</p><div className="status-actions"><a className="portal-button" href={`/login/?pedido=${encodeURIComponent(orderId)}`}>Liberar meu acesso</a><a className="portal-button ghost" href="/suporte/">Falar com suporte</a></div></main>;
+    return <main className="status-page narrow"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO</div><h1>Sua compra está segura.</h1><p>Confirmamos o pedido <strong>{orderId}</strong>, mas não conseguimos autorizar este dispositivo automaticamente. Use esse código na página de entrada ou fale com o suporte.</p><div className="status-actions"><a className="portal-button" href="/login/">Liberar meu acesso</a><a className="portal-button ghost" href="/suporte/">Falar com suporte</a></div></main>;
   }
 
-  return <main className="status-page"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO • PLATAFORMA LIBERADA</div><h1>Sua primeira música começa com uma ideia.</h1><p>Seu dispositivo está autorizado e seus 20 créditos foram liberados. Guarde o código <strong>{orderId}</strong> para entrar novamente em outro aparelho.</p><div className="next-steps"><article><span>01</span><h2>Crie sua música</h2><p>Escolha história, emoção, ritmo e voz. A plataforma entrega duas versões para comparar.</p><a href="/biblioteca/gerador/">Abrir o criador →</a></article><article><span>02</span><h2>Siga o tutorial</h2><p>Aprenda dentro da plataforma enquanto transforma a favorita em lançamento.</p><a href="/academia/comecar/">Abrir tutorial →</a></article><article><span>03</span><h2>Precisa de ajuda?</h2><p>Nosso atendimento pode orientar seus primeiros passos.</p><a href="/suporte/">Falar com o suporte →</a></article></div></main>;
+  return <main className="status-page"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO • PLATAFORMA LIBERADA</div><h1>Sua primeira música começa com uma ideia.</h1><p>Seu dispositivo está autorizado e seus {confirmedOrder?.credits ?? STARTER_PRODUCT.credits} créditos foram liberados. Guarde o código <strong>{orderId}</strong> para entrar novamente em outro aparelho.</p><div className="next-steps"><article><span>01</span><h2>Crie sua música</h2><p>Escolha história, emoção, ritmo e voz. A plataforma entrega duas versões para comparar.</p><a href="/biblioteca/gerador/">Abrir o criador →</a></article><article><span>02</span><h2>Siga o tutorial</h2><p>Aprenda dentro da plataforma enquanto transforma a favorita em lançamento.</p><a href="/academia/comecar/">Abrir tutorial →</a></article><article><span>03</span><h2>Precisa de ajuda?</h2><p>Nosso atendimento pode orientar seus primeiros passos.</p><a href="/suporte/">Falar com o suporte →</a></article></div></main>;
 }

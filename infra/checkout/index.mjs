@@ -462,8 +462,10 @@ function itemToOrder(item) {
     paymentLinkUrl: item.paymentLinkUrl?.S,
     expiresAt: item.expiresAt?.S,
     paidAt: item.paidAt?.S,
+    creditsAppliedAt: item.creditsAppliedAt?.S,
     subscriptionGlobalId: item.subscriptionGlobalId?.S,
     subscriptionStatus: item.subscriptionStatus?.S,
+    activeSubscriptionOrderId: item.activeSubscriptionOrderId?.S,
     sessionId: item.sessionId?.S,
     source: item.source?.S,
     medium: item.medium?.S,
@@ -865,7 +867,37 @@ async function reserveSunoGeneration(inputOrder) {
     }));
     return Number(result.Attributes?.musicCreditsBalance?.N ?? "0");
   } catch (error) {
-    if (error instanceof ConditionalCheckFailedException) return null;
+    if (error instanceof ConditionalCheckFailedException) {
+      // The former 25-song package promised 13 two-version rounds. Its final
+      // odd credit therefore keeps the historical bonus version.
+      if (
+        !order.productId
+        && MUSIC_TRACKS_INCLUDED % MUSIC_TRACKS_PER_GENERATION !== 0
+        && accountCreditsBalance(order) === 1
+      ) {
+        try {
+          const legacyResult = await dynamo.send(new UpdateItemCommand({
+            TableName: TABLE_NAME,
+            Key: { id: { S: order.id } },
+            UpdateExpression: "SET sunoGenerationCount = if_not_exists(sunoGenerationCount, :zero) + :one, musicCreditsBalance = :zero",
+            ConditionExpression: "attribute_exists(id) AND #status = :accessStatus AND musicCreditsBalance = :lastCredit",
+            ExpressionAttributeNames: { "#status": "status" },
+            ExpressionAttributeValues: {
+              ":zero": { N: "0" },
+              ":one": { N: "1" },
+              ":lastCredit": { N: "1" },
+              ":accessStatus": { S: order.status },
+            },
+            ReturnValues: "UPDATED_NEW",
+          }));
+          return Number(legacyResult.Attributes?.musicCreditsBalance?.N ?? "0");
+        } catch (legacyError) {
+          if (legacyError instanceof ConditionalCheckFailedException) return null;
+          throw legacyError;
+        }
+      }
+      return null;
+    }
     throw error;
   }
 }
@@ -1783,27 +1815,61 @@ async function ownsSunoTask(taskId, orderId) {
 
 async function refundFailedSunoTask(taskId, orderId) {
   try {
-    await dynamo.send(new UpdateItemCommand({
-      TableName: EVENTS_TABLE_NAME,
-      Key: { id: { S: `suno_task_${taskId}` } },
-      UpdateExpression: "SET refundedAt = :refundedAt",
-      ConditionExpression: "orderId = :orderId AND attribute_not_exists(refundedAt)",
-      ExpressionAttributeValues: {
-        ":orderId": { S: orderId },
-        ":refundedAt": { S: new Date().toISOString() },
-      },
+    const refundedAt = new Date().toISOString();
+    await dynamo.send(new TransactWriteItemsCommand({
+      TransactItems: [
+        {
+          Update: {
+            TableName: EVENTS_TABLE_NAME,
+            Key: { id: { S: `suno_task_${taskId}` } },
+            UpdateExpression: "SET refundedAt = :refundedAt",
+            ConditionExpression: "orderId = :orderId AND attribute_not_exists(refundedAt)",
+            ExpressionAttributeValues: {
+              ":orderId": { S: orderId },
+              ":refundedAt": { S: refundedAt },
+            },
+          },
+        },
+        {
+          Update: {
+            TableName: TABLE_NAME,
+            Key: { id: { S: orderId } },
+            UpdateExpression: "ADD sunoGenerationCount :minusOne, musicCreditsBalance :tracks",
+            ConditionExpression: "attribute_exists(id) AND sunoGenerationCount >= :one",
+            ExpressionAttributeValues: {
+              ":minusOne": { N: "-1" },
+              ":one": { N: "1" },
+              ":tracks": { N: String(MUSIC_TRACKS_PER_GENERATION) },
+            },
+          },
+        },
+      ],
     }));
-    await releaseSunoGeneration(orderId);
     return true;
   } catch (error) {
-    if (error instanceof ConditionalCheckFailedException) return false;
+    if (
+      error instanceof ConditionalCheckFailedException
+      || error instanceof TransactionCanceledException
+      || error.name === "TransactionCanceledException"
+    ) return false;
     throw error;
   }
 }
 
 async function getSunoCredits(event) {
-  const order = await authorizeMember(event);
+  let order = await authorizeMember(event);
   if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+  if (/^ams_[a-f0-9]{28}$/.test(order.activeSubscriptionOrderId ?? "")) {
+    try {
+      await getCheckout(order.activeSubscriptionOrderId);
+      order = await findOrder(order.id);
+    } catch (error) {
+      console.error("Unable to reconcile active subscription", {
+        accountOrderId: order.id,
+        message: error.message,
+      });
+    }
+  }
   const credits = await sunoRequest("/generate/credit", { method: "GET" });
   return response(200, {
     available: Number(credits) >= SUNO_GENERATION_COST_ESTIMATE,
@@ -1968,7 +2034,10 @@ async function findOrder(id) {
 function chargeToOrder(id, charge, product, purchaseType = product.type) {
   return {
     id,
-    status: charge.status === "COMPLETED" ? "PAID" : "AWAITING_PAYMENT",
+    // A provider response never credits the account by itself. Completed
+    // charges must still pass through markPaid's atomic transaction.
+    status: "AWAITING_PAYMENT",
+    providerCompleted: charge.status === "COMPLETED",
     value: product.value,
     productId: product.id,
     productName: product.name,
@@ -2000,31 +2069,39 @@ function subscriptionToOrder(id, subscription, product) {
 }
 
 async function saveProviderCheckout(order) {
-  await dynamo.send(new UpdateItemCommand({
-    TableName: TABLE_NAME,
-    Key: { id: { S: order.id } },
-    UpdateExpression: [
-      "SET #status = :status",
-      "brCode = :brCode",
-      "qrCodeImage = :qrCodeImage",
-      "paymentLinkUrl = :paymentLinkUrl",
-      "expiresAt = :expiresAt",
-      "subscriptionGlobalId = :subscriptionGlobalId",
-      "subscriptionStatus = :subscriptionStatus",
-      "updatedAt = :updatedAt",
-    ].join(", "),
-    ExpressionAttributeNames: { "#status": "status" },
-    ExpressionAttributeValues: {
-      ":status": { S: order.status },
-      ":brCode": { S: order.brCode ?? "" },
-      ":qrCodeImage": { S: order.qrCodeImage ?? "" },
-      ":paymentLinkUrl": { S: order.paymentLinkUrl ?? "" },
-      ":expiresAt": { S: order.expiresAt ?? "" },
-      ":subscriptionGlobalId": { S: order.subscriptionGlobalId ?? "" },
-      ":subscriptionStatus": { S: order.subscriptionStatus ?? "" },
-      ":updatedAt": { S: new Date().toISOString() },
-    },
-  }));
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE_NAME,
+      Key: { id: { S: order.id } },
+      UpdateExpression: [
+        "SET #status = :status",
+        "brCode = :brCode",
+        "qrCodeImage = :qrCodeImage",
+        "paymentLinkUrl = :paymentLinkUrl",
+        "expiresAt = :expiresAt",
+        "subscriptionGlobalId = :subscriptionGlobalId",
+        "subscriptionStatus = :subscriptionStatus",
+        "updatedAt = :updatedAt",
+      ].join(", "),
+      ConditionExpression: "attribute_exists(id) AND #status <> :paid AND attribute_not_exists(creditsAppliedAt)",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":status": { S: order.status },
+        ":paid": { S: "PAID" },
+        ":brCode": { S: order.brCode ?? "" },
+        ":qrCodeImage": { S: order.qrCodeImage ?? "" },
+        ":paymentLinkUrl": { S: order.paymentLinkUrl ?? "" },
+        ":expiresAt": { S: order.expiresAt ?? "" },
+        ":subscriptionGlobalId": { S: order.subscriptionGlobalId ?? "" },
+        ":subscriptionStatus": { S: order.subscriptionStatus ?? "" },
+        ":updatedAt": { S: new Date().toISOString() },
+      },
+    }));
+    return true;
+  } catch (error) {
+    if (error instanceof ConditionalCheckFailedException) return false;
+    throw error;
+  }
 }
 
 function productForId(productId, allowedTypes) {
@@ -2126,17 +2203,23 @@ async function createWooviCharge({ orderId, digest, product, name, email, phone 
 }
 
 async function markCheckoutCreateFailed(orderId, error) {
-  await dynamo.send(new UpdateItemCommand({
-    TableName: TABLE_NAME,
-    Key: { id: { S: orderId } },
-    UpdateExpression: "SET #status = :status, updatedAt = :updatedAt, failureReason = :reason",
-    ExpressionAttributeNames: { "#status": "status" },
-    ExpressionAttributeValues: {
-      ":status": { S: "CREATE_FAILED" },
-      ":updatedAt": { S: new Date().toISOString() },
-      ":reason": { S: safeString(error.message, 240) },
-    },
-  }));
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE_NAME,
+      Key: { id: { S: orderId } },
+      UpdateExpression: "SET #status = :status, updatedAt = :updatedAt, failureReason = :reason",
+      ConditionExpression: "attribute_exists(id) AND #status <> :paid AND attribute_not_exists(creditsAppliedAt)",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":status": { S: "CREATE_FAILED" },
+        ":paid": { S: "PAID" },
+        ":updatedAt": { S: new Date().toISOString() },
+        ":reason": { S: safeString(error.message, 240) },
+      },
+    }));
+  } catch (updateError) {
+    if (!(updateError instanceof ConditionalCheckFailedException)) throw updateError;
+  }
 }
 
 async function createCheckout(event) {
@@ -2193,6 +2276,11 @@ async function createCheckout(event) {
 
   const order = chargeToOrder(orderId, charge, product);
   await saveProviderCheckout(order);
+  if (order.providerCompleted) {
+    const verifiedData = await wooviRequest(`/charge/${encodeURIComponent(orderId)}`);
+    await markPaid(orderId, verifiedData.charge ?? verifiedData);
+    Object.assign(order, await findOrder(orderId));
+  }
   await recordFunnelEvent({
     id: `pix_created_${orderId}`,
     name: "pix_created",
@@ -2340,6 +2428,19 @@ async function createCreditCheckout(event) {
       const subscription = providerData.subscription ?? providerData;
       order = subscriptionToOrder(orderId, subscription, product);
       await rememberSubscription(subscription.globalID, orderId, account.id);
+      await dynamo.send(new UpdateItemCommand({
+        TableName: TABLE_NAME,
+        Key: { id: { S: account.id } },
+        UpdateExpression: "SET activeSubscriptionOrderId = :orderId, updatedAt = :updatedAt",
+        ConditionExpression: "attribute_exists(id) AND (#status = :paid OR #status = :owner)",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":orderId": { S: orderId },
+          ":updatedAt": { S: new Date().toISOString() },
+          ":paid": { S: "PAID" },
+          ":owner": { S: "OWNER" },
+        },
+      }));
     } else {
       const charge = await createWooviCharge({
         orderId,
@@ -2361,6 +2462,11 @@ async function createCreditCheckout(event) {
   }
 
   await saveProviderCheckout(order);
+  if (order.providerCompleted) {
+    const verifiedData = await wooviRequest(`/charge/${encodeURIComponent(orderId)}`);
+    await markPaid(orderId, verifiedData.charge ?? verifiedData);
+    Object.assign(order, await findOrder(orderId));
+  }
   await recordFunnelEvent({
     id: `credit_checkout_created_${orderId}`,
     name: product.type === "subscription"
@@ -2383,27 +2489,37 @@ async function getCheckout(orderId) {
   }
   const stored = await findOrder(orderId);
   if (!stored) return response(404, { error: "Pedido não encontrado." });
-  if (stored.status === "PAID") {
+  if (
+    stored.status === "PAID"
+    && stored.providerType !== "SUBSCRIPTION"
+    && (!stored.accountOrderId || stored.creditsAppliedAt)
+  ) {
     return response(200, { order: publicOrder(stored) });
   }
 
   try {
     if (stored.providerType === "SUBSCRIPTION") {
-      const providerData = await wooviRequest(`/subscriptions/${encodeURIComponent(orderId)}`);
+      const subscriptionId = stored.subscriptionGlobalId || orderId;
+      const providerData = await wooviRequest(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
       const subscription = providerData.subscription ?? providerData;
       if (Number(subscription.value) !== stored.value) {
         return response(409, { error: "O valor da assinatura não confere." });
       }
       const installmentsData = await wooviRequest(
-        `/subscriptions/${encodeURIComponent(orderId)}/installments`,
+        `/subscriptions/${encodeURIComponent(subscriptionId)}/installments`,
       );
       const completed = (installmentsData.installments ?? [])
         .filter((item) => item.status === "COMPLETED")
-        .sort((a, b) => Number(b.installmentNumber) - Number(a.installmentNumber))[0];
-      if (completed) {
-        await applySubscriptionInstallment(stored, completed);
+        .sort((a, b) => Number(a.installmentNumber) - Number(b.installmentNumber));
+      if (completed.length) {
+        for (const installment of completed) {
+          await applySubscriptionInstallment(stored, installment);
+        }
         const refreshed = await findOrder(orderId);
         return response(200, { order: publicOrder(refreshed) });
+      }
+      if (stored.status === "PAID") {
+        return response(200, { order: publicOrder(stored) });
       }
       const pendingOrder = subscriptionToOrder(
         orderId,
@@ -2418,8 +2534,9 @@ async function getCheckout(orderId) {
     const charge = providerData.charge ?? providerData;
     if (charge.status === "COMPLETED" && Number(charge.value) === stored.value) {
       await markPaid(orderId, charge);
+      const refreshed = await findOrder(orderId);
       return response(200, {
-        order: publicOrder({ ...stored, status: "PAID", paidAt: charge.paidAt ?? new Date().toISOString() }),
+        order: publicOrder(refreshed),
       });
     }
   } catch (error) {
@@ -2432,6 +2549,18 @@ async function getCheckout(orderId) {
 async function markPaid(orderId, charge) {
   const order = await findOrder(orderId);
   if (!order) return false;
+  if (
+    charge?.status !== "COMPLETED"
+    || Number(charge?.value) !== order.value
+    || charge?.correlationID !== orderId
+  ) {
+    throw Object.assign(new Error("Cobrança não confere com o pedido."), {
+      statusCode: 409,
+    });
+  }
+  if (order.status === "PAID" && (!order.accountOrderId || order.creditsAppliedAt)) {
+    return false;
+  }
   const paidAt = charge.paidAt ?? new Date().toISOString();
   const transactionId = safeString(charge.transactionID || charge.identifier, 200);
   try {
@@ -2446,7 +2575,7 @@ async function markPaid(orderId, charge) {
               TableName: TABLE_NAME,
               Key: { id: { S: orderId } },
               UpdateExpression: "SET #status = :paid, paidAt = :paidAt, transactionId = :transactionId, creditsAppliedAt = :paidAt, updatedAt = :updatedAt",
-              ConditionExpression: "attribute_exists(id) AND #status <> :paid AND attribute_not_exists(creditsAppliedAt)",
+              ConditionExpression: "attribute_exists(id) AND attribute_not_exists(creditsAppliedAt)",
               ExpressionAttributeNames: { "#status": "status" },
               ExpressionAttributeValues: {
                 ":paid": { S: "PAID" },
@@ -2492,7 +2621,14 @@ async function markPaid(orderId, charge) {
       error instanceof ConditionalCheckFailedException
       || error instanceof TransactionCanceledException
       || error.name === "TransactionCanceledException"
-    ) return false;
+    ) {
+      const refreshed = await findOrder(orderId);
+      if (
+        refreshed?.status === "PAID"
+        && (!refreshed.accountOrderId || refreshed.creditsAppliedAt)
+      ) return false;
+      throw error;
+    }
     throw error;
   }
   await recordFunnelEvent({
@@ -2579,7 +2715,13 @@ async function applySubscriptionInstallment(order, installment) {
     }));
   } catch (error) {
     if (error instanceof TransactionCanceledException || error.name === "TransactionCanceledException") {
-      return false;
+      const existing = await dynamo.send(new GetItemCommand({
+        TableName: EVENTS_TABLE_NAME,
+        Key: { id: { S: eventId } },
+        ConsistentRead: true,
+      }));
+      if (existing.Item) return false;
+      throw error;
     }
     throw error;
   }
@@ -2629,7 +2771,25 @@ async function handleWebhook(event) {
     if (!order || Number(body.value) !== order.value || body.status !== "COMPLETED") {
       return response(409, { error: "Mensalidade ainda não confirmada." });
     }
-    await applySubscriptionInstallment(order, body);
+    const subscriptionId = order.subscriptionGlobalId || subscriptionGlobalId;
+    const installmentsData = await wooviRequest(
+      `/subscriptions/${encodeURIComponent(subscriptionId)}/installments`,
+    );
+    const payloadInstallmentId = safeString(
+      body.globalID || body.cobr?.identifierId,
+      240,
+    );
+    const verifiedInstallment = (installmentsData.installments ?? []).find((item) => {
+      const itemId = safeString(item.globalID || item.cobr?.identifierId, 240);
+      return item.status === "COMPLETED"
+        && Number(item.value) === order.value
+        && itemId
+        && itemId === payloadInstallmentId;
+    });
+    if (!verifiedInstallment) {
+      return response(409, { error: "Mensalidade não localizada no provedor." });
+    }
+    await applySubscriptionInstallment(order, verifiedInstallment);
     return response(200, { received: true });
   }
 

@@ -25,6 +25,18 @@ function getIdempotencyKey() {
   return key;
 }
 
+function clearCheckoutKey() {
+  window.sessionStorage.removeItem(
+    `academia-musica-checkout-key-${STARTER_PRODUCT.id}`,
+  );
+}
+
+function orderExpired(order: Order) {
+  if (!order.expiresAt) return false;
+  const expiresAt = new Date(order.expiresAt).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now();
+}
+
 export default function CheckoutClient() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -73,13 +85,18 @@ export default function CheckoutClient() {
 
         pollingFailures.current = 0;
         setError("");
+        if (orderExpired(data.order)) {
+          clearCheckoutKey();
+          setOrder(null);
+          setError("Esse Pix expirou. Envie o formulário novamente para gerar um novo código.");
+          return;
+        }
         setOrder(data.order);
 
         if (data.order.status === "PAID") {
-          window.sessionStorage.removeItem(
-            `academia-musica-checkout-key-${STARTER_PRODUCT.id}`,
-          );
-          window.location.assign(`/obrigado?pedido=${encodeURIComponent(data.order.id)}`);
+          clearCheckoutKey();
+          window.sessionStorage.setItem("academia-confirmation-order", data.order.id);
+          window.location.assign("/obrigado/");
           return;
         }
 
@@ -142,6 +159,16 @@ export default function CheckoutClient() {
       const data = await response.json();
       if (!response.ok || !data.order) {
         throw new Error(data.error || "Não foi possível gerar o Pix.");
+      }
+      if (data.order.status === "PAID") {
+        clearCheckoutKey();
+        window.sessionStorage.setItem("academia-confirmation-order", data.order.id);
+        window.location.assign("/obrigado/");
+        return;
+      }
+      if (orderExpired(data.order)) {
+        clearCheckoutKey();
+        throw new Error("Esse Pix expirou. Envie novamente para gerar um novo código.");
       }
       setOrder(data.order);
       trackMetaEvent("AddPaymentInfo", {
@@ -267,7 +294,7 @@ export default function CheckoutClient() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            placeholder="Você receberá as orientações aqui"
+            placeholder="Use um e-mail que você consulta"
           />
         </label>
         <label>
@@ -301,7 +328,8 @@ export default function CheckoutClient() {
         </button>
       </form>
       <small className="payment-note">
-        Pagamento processado pela Woovi. A Academia não recebe seus dados bancários.
+        Pagamento processado pela Woovi. Após gerar o Pix, copie e guarde o código
+        do pedido para entrar em outro aparelho.
       </small>
       <div className="secure-row">
         <span>🔒 Ambiente seguro</span>
