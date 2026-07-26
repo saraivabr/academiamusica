@@ -1115,61 +1115,86 @@ function motorImageCandidate(payload) {
 
 async function generateMusicCoverArtwork(prompt, photo, photoContentType) {
   const imageApiKey = await getImageProxyKey();
-  const result = await fetch(IMAGE_API_URL, {
-    method: "POST",
-    headers: {
-      "x-academia-proxy-key": imageApiKey,
-      "content-type": "application/json",
-      accept: "text/event-stream",
-      "user-agent": "curl/8.7.1",
-    },
-    body: JSON.stringify({
-      model: IMAGE_MODEL,
-      instructions: "You must call image_generation exactly once to edit the provided reference photo. Return no prose.",
-      input: [{
-        role: "user",
-        content: [
-          { type: "input_text", text: prompt },
-          {
-            type: "input_image",
-            image_url: `data:${photoContentType};base64,${photo.toString("base64")}`,
-          },
-        ],
-      }],
-      tools: [{
-        type: "image_generation",
-        action: "edit",
-        output_format: "png",
-        size: "1024x1024",
-        quality: "high",
-      }],
-      stream: true,
-      store: false,
-    }),
-    signal: AbortSignal.timeout(170_000),
+  const requestBody = JSON.stringify({
+    model: IMAGE_MODEL,
+    instructions: "You must call image_generation exactly once to edit the provided reference photo. Return no prose.",
+    input: [{
+      role: "user",
+      content: [
+        { type: "input_text", text: prompt },
+        {
+          type: "input_image",
+          image_url: `data:${photoContentType};base64,${photo.toString("base64")}`,
+        },
+      ],
+    }],
+    tools: [{
+      type: "image_generation",
+      action: "edit",
+      output_format: "png",
+      size: "1024x1024",
+      quality: "high",
+    }],
+    stream: true,
+    store: false,
   });
-  const text = await result.text();
-  if (!result.ok) {
+  const retryableStatuses = new Set([429, 502, 503, 504, 520, 522, 524]);
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    let result;
+    let text;
+    try {
+      result = await fetch(IMAGE_API_URL, {
+        method: "POST",
+        headers: {
+          "x-academia-proxy-key": imageApiKey,
+          "content-type": "application/json",
+          accept: "text/event-stream",
+          "user-agent": "AcademiaMusica/1.0",
+        },
+        body: requestBody,
+        signal: AbortSignal.timeout(175_000),
+      });
+      text = await result.text();
+    } catch (error) {
+      console.error("Image service request interrupted", {
+        name: error.name,
+        attempt,
+      });
+      if (attempt === 3) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 1_500 * attempt));
+      continue;
+    }
+    if (result.ok) {
+      const payloads = text
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trim())
+        .filter((line) => line && line !== "[DONE]")
+        .reverse();
+      if (!payloads.length) payloads.push(text.trim());
+      for (const payload of payloads) {
+        try {
+          const image = motorImageCandidate(JSON.parse(payload));
+          if (image) return image;
+        } catch {
+          // Ignore partial stream events that are not complete JSON.
+        }
+      }
+      throw new Error("Image service returned no image");
+    }
+
+    const contentType = result.headers.get("content-type") || "";
     console.error("Image service request rejected", {
       status: result.status,
-      contentType: result.headers.get("content-type"),
+      contentType,
+      attempt,
     });
-    throw new Error(`Image service returned ${result.status}`);
-  }
-  const payloads = text
-    .split(/\r?\n/)
-    .filter((line) => line.startsWith("data:"))
-    .map((line) => line.slice(5).trim())
-    .filter((line) => line && line !== "[DONE]")
-    .reverse();
-  if (!payloads.length) payloads.push(text.trim());
-  for (const payload of payloads) {
-    try {
-      const image = motorImageCandidate(JSON.parse(payload));
-      if (image) return image;
-    } catch {
-      // Ignore partial stream events that are not complete JSON.
+    const retryableChallenge = result.status === 403 && contentType.includes("text/html");
+    if ((!retryableStatuses.has(result.status) && !retryableChallenge) || attempt === 3) {
+      throw new Error(`Image service returned ${result.status}`);
     }
+    await new Promise((resolve) => setTimeout(resolve, 1_500 * attempt));
   }
   throw new Error("Image service returned no image");
 }
@@ -1382,6 +1407,28 @@ async function getMusicCoverJob(event, jobId) {
   if (job.status?.S === "FAILED") {
     return response(502, {
       error: job.errorMessage?.S || "Não consegui preparar a imagem agora.",
+    });
+  }
+  const createdAt = Date.parse(job.createdAt?.S ?? "");
+  if (
+    job.status?.S === "PROCESSING"
+    && Number.isFinite(createdAt)
+    && Date.now() - createdAt > 12 * 60 * 1_000
+  ) {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: musicCoverJobId(jobId) } },
+      UpdateExpression: "SET #status = :failed, errorMessage = :errorMessage, updatedAt = :updatedAt",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":failed": { S: "FAILED" },
+        ":errorMessage": { S: "A criação demorou além do esperado. Tente novamente." },
+        ":updatedAt": { S: new Date().toISOString() },
+      },
+    }));
+    await releaseCoverGeneration(order.id);
+    return response(504, {
+      error: "A criação demorou além do esperado. Tente novamente.",
     });
   }
   if (job.status?.S !== "READY" || !job.artworkKey?.S) {

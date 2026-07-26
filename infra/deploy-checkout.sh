@@ -187,7 +187,7 @@ if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAM
     --function-name "$FUNCTION_NAME" \
     --runtime nodejs22.x \
     --handler index.handler \
-    --timeout 180 \
+    --timeout 600 \
     --memory-size 1024 \
     --environment "$ENVIRONMENT" >/dev/null
 else
@@ -197,7 +197,7 @@ else
     --function-name "$FUNCTION_NAME" \
     --runtime nodejs22.x \
     --handler index.handler \
-    --timeout 180 \
+    --timeout 600 \
     --memory-size 1024 \
     --role "$ROLE_ARN" \
     --environment "$ENVIRONMENT" \

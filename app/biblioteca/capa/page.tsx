@@ -27,6 +27,80 @@ type CoverPreparation = {
   stage: "processing" | "ready";
 };
 
+type CoverCreationStage = "idle" | "uploading" | "directing" | "composing" | "saving" | "complete";
+
+type PendingCoverJob = {
+  jobId: string;
+  trackId: string;
+  title: string;
+  artist: string;
+  familyId: CoverFamily;
+  directionId: CoverDirection["id"];
+};
+
+const PENDING_COVER_KEY = "academia-musica:pending-cover";
+const coverCreationSteps: Array<{ id: Exclude<CoverCreationStage, "idle" | "complete">; label: string }> = [
+  { id: "uploading", label: "Recebendo sua foto" },
+  { id: "directing", label: "Criando a direção visual" },
+  { id: "composing", label: "Montando título e assinatura" },
+  { id: "saving", label: "Salvando no seu repertório" },
+];
+
+function stagePosition(stage: CoverCreationStage) {
+  if (stage === "complete") return coverCreationSteps.length;
+  return Math.max(0, coverCreationSteps.findIndex((item) => item.id === stage));
+}
+
+function CoverGenerationExperience({
+  stage,
+  progress,
+  photo,
+  title,
+  family,
+}: {
+  stage: CoverCreationStage;
+  progress: string;
+  photo: string;
+  title: string;
+  family: ReturnType<typeof coverFamilyById>;
+}) {
+  const position = stagePosition(stage);
+  return (
+    <div className="cover-generation-overlay" role="dialog" aria-modal="true" aria-label="Criação da capa em andamento">
+      <div className="cover-generation-stage" style={{ "--cover-a": family.palette[0], "--cover-b": family.palette[1], "--cover-c": family.palette[2] } as CSSProperties}>
+        <div className="cover-generation-art" aria-hidden="true">
+          <div className="cover-generation-halo" />
+          <div className="cover-generation-sleeve">
+            {photo ? (
+              // A imagem é uma prévia local escolhida pelo próprio usuário.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photo} alt="" />
+            ) : <i />}
+            <span>{title || "Sua nova capa"}</span>
+          </div>
+          <div className="cover-generation-vinyl"><i /></div>
+          <div className="cover-generation-scan" />
+        </div>
+        <div className="cover-generation-copy">
+          <small>DIREÇÃO DE ARTE EM ANDAMENTO</small>
+          <h2>Sua música está ganhando uma identidade.</h2>
+          <p aria-live="polite">{progress || "Preparando sua capa…"}</p>
+          <ol>
+            {coverCreationSteps.map((item, index) => (
+              <li key={item.id} className={index < position ? "done" : index === position ? "active" : ""}>
+                <span>{index < position ? "✓" : index + 1}</span>
+                {item.label}
+              </li>
+            ))}
+          </ol>
+          <div className="cover-generation-progress" aria-hidden="true"><i style={{ width: `${Math.min(100, Math.max(12, ((position + .45) / coverCreationSteps.length) * 100))}%` }} /></div>
+          <em>Normalmente leva de 1 a 4 minutos. Pode deixar esta tela aberta.</em>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -146,7 +220,7 @@ async function compressPhoto(file: File) {
   const objectUrl = URL.createObjectURL(file);
   try {
     const image = await loadImage(objectUrl);
-    const maxSide = 1536;
+    const maxSide = 1024;
     const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(64, Math.round(image.naturalWidth * scale));
@@ -154,7 +228,7 @@ async function compressPhoto(file: File) {
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Seu navegador não conseguiu preparar a foto.");
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL("image/jpeg", .88);
+    return canvas.toDataURL("image/jpeg", .84);
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
@@ -164,17 +238,19 @@ async function waitForPreparedCover(
   jobId: string,
   onProgress: (message: string) => void,
 ) {
-  for (let attempt = 0; attempt < 50; attempt += 1) {
+  for (let attempt = 0; attempt < 190; attempt += 1) {
     const result = await memberApi(`/v1/music/covers/jobs/${encodeURIComponent(jobId)}`) as (
       PreparedCover & CoverPreparation
     );
     if (result.stage === "ready" && result.artwork) return result;
-    onProgress(attempt < 8
-      ? "O GPT está transformando sua foto em capa…"
-      : "O GPT está caprichando nos últimos detalhes…");
+    onProgress(attempt < 20
+      ? "Estudando sua foto e o universo da música…"
+      : attempt < 55
+        ? "Construindo luz, cenário e identidade visual…"
+        : "Finalizando os detalhes da sua nova capa…");
     await new Promise((resolve) => window.setTimeout(resolve, 3_000));
   }
-  throw new Error("A capa está demorando mais que o normal. Tente novamente em alguns instantes.");
+  throw new Error("A criação demorou além do esperado. Você pode tentar novamente.");
 }
 
 export default function CoverStudioPage() {
@@ -189,12 +265,14 @@ export default function CoverStudioPage() {
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [creationStage, setCreationStage] = useState<CoverCreationStage>("idle");
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [finalCover, setFinalCover] = useState("");
   const [savedCoverUrl, setSavedCoverUrl] = useState("");
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const resumedJobRef = useRef(false);
 
   const selectedTrack = tracks.find((track) => track.id === selectedTrackId) ?? null;
   const family = coverFamilyById(familyId);
@@ -230,6 +308,36 @@ export default function CoverStudioPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!tracks.length || resumedJobRef.current) return;
+    resumedJobRef.current = true;
+    let pending: PendingCoverJob | null = null;
+    try {
+      pending = JSON.parse(window.localStorage.getItem(PENDING_COVER_KEY) || "null") as PendingCoverJob | null;
+    } catch {
+      window.localStorage.removeItem(PENDING_COVER_KEY);
+    }
+    if (!pending?.jobId || !pending.trackId) return;
+    const track = tracks.find((item) => item.id === pending?.trackId);
+    if (!track) {
+      window.localStorage.removeItem(PENDING_COVER_KEY);
+      return;
+    }
+
+    const resumeTimer = window.setTimeout(() => {
+      setSelectedTrackId(track.id);
+      setTitle(pending.title);
+      setArtist(pending.artist);
+      setFamilyId(pending.familyId);
+      setDirectionId(pending.directionId);
+      setCreating(true);
+      setCreationStage("directing");
+      setProgress("Retomando a criação da sua capa…");
+      void finishCoverJob(pending, track);
+    }, 0);
+    return () => window.clearTimeout(resumeTimer);
+  }, [tracks]);
+
   function selectTrack(track: PlatformTrack) {
     setSelectedTrackId(track.id);
     setTitle(track.title);
@@ -259,6 +367,57 @@ export default function CoverStudioPage() {
     }
   }
 
+  async function finishCoverJob(pending: PendingCoverJob, track: PlatformTrack) {
+    try {
+      const pendingFamily = coverFamilyById(pending.familyId);
+      const pendingDirection = pendingFamily.directions.find((item) => item.id === pending.directionId)
+        ?? pendingFamily.directions[0];
+      setCreationStage("directing");
+      const prepared = await waitForPreparedCover(pending.jobId, setProgress);
+      setCreationStage("composing");
+      setProgress("Aplicando título e assinatura com acabamento de lançamento…");
+      const composed = await composeCover({
+        prepared,
+        title: pending.title,
+        artist: pending.artist,
+        familyId: pending.familyId,
+        direction: pendingDirection,
+      });
+      setFinalCover(composed);
+
+      setCreationStage("saving");
+      setProgress("Salvando a capa junto da sua música…");
+      const saved = await memberApi("/v1/music/covers/save", {
+        method: "POST",
+        body: JSON.stringify({
+          trackId: track.id,
+          trackToken: track.coverToken,
+          jobId: prepared.jobId,
+          title: pending.title,
+          artist: pending.artist,
+          genreFamily: pending.familyId,
+          direction: pendingDirection.id,
+          image: composed,
+        }),
+      });
+      setSavedCoverUrl(saved.coverUrl || "");
+      setCreationStage("complete");
+      setProgress("Capa pronta e salva no seu repertório.");
+      window.localStorage.removeItem(PENDING_COVER_KEY);
+      window.setTimeout(() => {
+        setCreating(false);
+        setCreationStage("idle");
+        setProgress("");
+      }, 900);
+    } catch (requestError) {
+      window.localStorage.removeItem(PENDING_COVER_KEY);
+      setError(requestError instanceof Error ? requestError.message : "Não foi possível criar a capa agora.");
+      setCreating(false);
+      setCreationStage("idle");
+      setProgress("");
+    }
+  }
+
   async function createCover() {
     if (!canCreate || !selectedTrack) return;
     setCreating(true);
@@ -266,7 +425,8 @@ export default function CoverStudioPage() {
     setFinalCover("");
     setSavedCoverUrl("");
     try {
-      setProgress("Enviando sua referência ao GPT…");
+      setCreationStage("uploading");
+      setProgress("Recebendo sua foto com segurança…");
       const preparation = await memberApi("/v1/music/covers/prepare", {
         method: "POST",
         body: JSON.stringify({
@@ -281,38 +441,21 @@ export default function CoverStudioPage() {
         }),
       }) as CoverPreparation;
 
-      setProgress("O GPT está criando a direção visual…");
-      const prepared = await waitForPreparedCover(preparation.jobId, setProgress);
-      setProgress("Aplicando título e assinatura…");
-      const composed = await composeCover({
-        prepared,
-        title,
-        artist,
+      const pending: PendingCoverJob = {
+        jobId: preparation.jobId,
+        trackId: selectedTrack.id,
+        title: title.trim(),
+        artist: artist.trim(),
         familyId,
-        direction,
-      });
-      setFinalCover(composed);
-
-      setProgress("Salvando no seu repertório…");
-      const saved = await memberApi("/v1/music/covers/save", {
-        method: "POST",
-        body: JSON.stringify({
-          trackId: selectedTrack.id,
-          trackToken: selectedTrack.coverToken,
-          jobId: prepared.jobId,
-          title: title.trim(),
-          artist: artist.trim(),
-          genreFamily: familyId,
-          direction: direction.id,
-          image: composed,
-        }),
-      });
-      setSavedCoverUrl(saved.coverUrl || "");
-      setProgress("");
+        directionId: direction.id,
+      };
+      window.localStorage.setItem(PENDING_COVER_KEY, JSON.stringify(pending));
+      await finishCoverJob(pending, selectedTrack);
     } catch (requestError) {
+      window.localStorage.removeItem(PENDING_COVER_KEY);
       setError(requestError instanceof Error ? requestError.message : "Não foi possível criar a capa agora.");
+      setCreationStage("idle");
       setProgress("");
-    } finally {
       setCreating(false);
     }
   }
@@ -323,7 +466,7 @@ export default function CoverStudioPage() {
         <div>
           <small>SUA MÚSICA PRECISA SER RECONHECIDA ANTES DO PLAY</small>
           <h2>Transforme uma foto sua em capa de lançamento.</h2>
-          <p>Escolha a música e uma direção inspirada na linguagem visual do gênero. O GPT usa sua foto como referência, cria a arte completa e a Academia aplica o título corretamente.</p>
+          <p>Escolha a música, o estilo visual e uma foto. O Diretor de Capa transforma tudo em uma arte pronta e salva o resultado no seu repertório.</p>
         </div>
         <ol aria-label="Etapas da criação da capa">
           <li className={selectedTrack ? "done" : "active"}><span>1</span> Música</li>
@@ -339,7 +482,7 @@ export default function CoverStudioPage() {
           <small>PRIMEIRO PASSO</small>
           <h2>Crie uma música antes da capa.</h2>
           <p>O Diretor de Capa usa o título e o estilo da sua música para indicar a direção visual.</p>
-          <a href="/biblioteca/gerador">Conversar e criar música →</a>
+          <a href="/biblioteca/gerador">Criar uma música →</a>
         </div>
       ) : null}
 
@@ -427,49 +570,70 @@ export default function CoverStudioPage() {
             </section>
           </div>
 
-          <aside className="cover-preview-panel">
-            <header><small>PRÉVIA DA CAPA</small><span>1:1 • ALTA RESOLUÇÃO</span></header>
-            <div
-              className={`cover-preview ${finalCover ? "has-result" : ""}`}
-              style={{ "--cover-a": family.palette[0], "--cover-b": family.palette[1], "--cover-c": family.palette[2] } as CSSProperties}
-            >
-              {finalCover ? (
-                // A capa final é montada no canvas antes de ser salva.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={finalCover} alt={`Capa criada para ${title}`} />
-              ) : (
-                <>
-                  {photo ? (
-                    // Prévia local da foto; não há URL que o otimizador possa buscar.
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photo} alt="" />
-                  ) : <i />}
-                  <div><small>{artist || "SEU NOME ARTÍSTICO"}</small><strong>{title || "TÍTULO DA MÚSICA"}</strong><span>{direction.name}</span></div>
-                </>
-              )}
-            </div>
-            <div className="cover-choice-summary">
-              <small>DIREÇÃO ESCOLHIDA</small>
-              <b>{direction.name}</b>
-              <p>{family.label} • {direction.treatment}</p>
-            </div>
-            {error ? <p className="cover-error" role="alert">{error}</p> : null}
-            <button className="cover-create-button" type="button" disabled={!canCreate} onClick={() => void createCover()}>
-              {creating
-                ? progress || "Criando sua capa…"
-                : finalCover
-                  ? "Criar outra capa →"
-                  : "Criar minha capa →"}
-            </button>
-            {!canCreate && !creating ? <p className="cover-guidance">Escolha a música, envie sua foto, informe seu nome e confirme a autorização.</p> : null}
-            {finalCover ? (
-              <div className="cover-result-actions">
-                <a href={finalCover} download={`${title || "capa"}.jpg`}>Baixar capa ↓</a>
-                {savedCoverUrl ? <a href="/biblioteca">Ver no repertório →</a> : null}
+          <section className="cover-review">
+            <div className="cover-review-heading">
+              <div>
+                <small>05 • CONFIRME E CRIE</small>
+                <h2>Veja a direção antes de gerar.</h2>
+                <p>Você pode voltar e mudar qualquer escolha. A criação só começa quando tocar no botão abaixo.</p>
               </div>
-            ) : null}
-          </aside>
+              <span>CAPA QUADRADA • ALTA RESOLUÇÃO</span>
+            </div>
+            <div className="cover-review-body">
+              <div
+                className={`cover-preview ${finalCover ? "has-result" : ""}`}
+                style={{ "--cover-a": family.palette[0], "--cover-b": family.palette[1], "--cover-c": family.palette[2] } as CSSProperties}
+              >
+                {finalCover ? (
+                  // A capa final é montada no canvas antes de ser salva.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={finalCover} alt={`Capa criada para ${title}`} />
+                ) : (
+                  <>
+                    {photo ? (
+                      // Prévia local da foto; não há URL que o otimizador possa buscar.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={photo} alt="" />
+                    ) : <i />}
+                    <div><small>{artist || "SEU NOME ARTÍSTICO"}</small><strong>{title || "TÍTULO DA MÚSICA"}</strong><span>{direction.name}</span></div>
+                  </>
+                )}
+              </div>
+              <div className="cover-review-action">
+                <div className="cover-choice-summary">
+                  <small>DIREÇÃO ESCOLHIDA</small>
+                  <b>{direction.name}</b>
+                  <p>{family.label} • {direction.treatment}</p>
+                </div>
+                <ul>
+                  <li><span>✓</span> Usa sua foto como referência</li>
+                  <li><span>✓</span> Respeita a linguagem do gênero</li>
+                  <li><span>✓</span> Salva automaticamente em Minhas músicas</li>
+                </ul>
+                {error ? <p className="cover-error" role="alert">{error}</p> : null}
+                <button className="cover-create-button" type="button" disabled={!canCreate} onClick={() => void createCover()}>
+                  {finalCover ? "Criar uma nova versão →" : "Criar minha capa →"}
+                </button>
+                {!canCreate && !creating ? <p className="cover-guidance">Para liberar: escolha a música, envie uma foto, escreva seu nome e confirme a autorização.</p> : null}
+                {finalCover ? (
+                  <div className="cover-result-actions">
+                    <a href={finalCover} download={`${title || "capa"}.jpg`}>Baixar capa ↓</a>
+                    {savedCoverUrl ? <a href="/biblioteca">Ver em Minhas músicas →</a> : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </section>
         </section>
+      ) : null}
+      {creating ? (
+        <CoverGenerationExperience
+          stage={creationStage}
+          progress={progress}
+          photo={photo}
+          title={title}
+          family={family}
+        />
       ) : null}
     </AcademyShell>
   );
