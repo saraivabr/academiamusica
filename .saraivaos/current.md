@@ -1,19 +1,19 @@
 # SaraivaOS — Estado atual
 
-Atualizado em: 2026-07-26T18:10:15.244Z
+Atualizado em: 2026-07-26T18:14:04.569Z
 
 ## Projeto
 
 - Nome: Academia Música IA
 - Objetivo: Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue
-- Etapa: aprendizado
-- Rota: Criador Express sem chat, navegação reduzida e carteira de créditos Pix como continuidade
-- Próximo artefato: Criador Express funcional com saldo e recarga contextual
-- Bloqueio: Preço dos pacotes de créditos ainda não definido
+- Etapa: validacao
+- Rota: Criador Express publicado; validar ativação e preparar carteira Pix
+- Próximo artefato: Especificação configurável dos pacotes de créditos e recarga Pix
+- Bloqueio: Preço, quantidade e margem dos pacotes ainda não definidos
 
 ## Evidências
 
-- Observadas: 7
+- Observadas: 9
 - Fornecidas: 2
 - Inferidas: 0
 - Hipóteses: 0

@@ -2,7 +2,7 @@
   "framework": "SaraivaOS",
   "version": "1.0.0",
   "createdAt": "2026-07-26T10:17:11.124Z",
-  "updatedAt": "2026-07-26T18:10:15.244Z",
+  "updatedAt": "2026-07-26T18:14:04.569Z",
   "project": {
     "id": "project-20260726101711-bd39b7b6",
     "name": "Academia Música IA",
@@ -10,13 +10,13 @@
     "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
   },
   "cycle": {
-    "currentStage": "aprendizado",
+    "currentStage": "validacao",
     "completedStages": []
   },
   "navigation": {
-    "currentRoute": "Criador Express sem chat, navegação reduzida e carteira de créditos Pix como continuidade",
-    "nextArtifact": "Criador Express funcional com saldo e recarga contextual",
-    "blocker": "Preço dos pacotes de créditos ainda não definido"
+    "currentRoute": "Criador Express publicado; validar ativação e preparar carteira Pix",
+    "nextArtifact": "Especificação configurável dos pacotes de créditos e recarga Pix",
+    "blocker": "Preço, quantidade e margem dos pacotes ainda não definidos"
   },
   "identity": {
     "business": "",
@@ -25,7 +25,7 @@
     "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
   },
   "evidenceSummary": {
-    "observed": 7,
+    "observed": 9,
     "provided": 2,
     "inferred": 0,
     "hypothesis": 0,
