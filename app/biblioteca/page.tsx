@@ -1,26 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AcademyShell } from "../components/Portal";
 import { memberApi } from "../lib/access";
-
-type LibraryTrack = {
-  id: string;
-  title: string;
-  tags: string;
-  duration: number | null;
-  audioUrl: string;
-  streamAudioUrl: string;
-  imageUrl: string;
-};
-
-type LibraryGeneration = {
-  taskId: string;
-  createdAt: string;
-  status: string;
-  tracks: LibraryTrack[];
-  error: string | null;
-};
+import {
+  playInAcademyPlayer,
+  playableTrackUrl,
+  type PlatformGeneration,
+} from "../lib/musicPlatform";
 
 const tools = [
   ["LETRA", "Roteiro de composição", "Aprofunde uma história e descubra como construir uma letra mais humana.", "/biblioteca/compositor"],
@@ -38,7 +26,7 @@ function formatDate(value: string) {
 }
 
 export default function Biblioteca() {
-  const [generations, setGenerations] = useState<LibraryGeneration[]>([]);
+  const [generations, setGenerations] = useState<PlatformGeneration[]>([]);
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -78,7 +66,7 @@ export default function Biblioteca() {
         <div className="music-balance-card">
           <strong>{remainingSongs ?? "—"}</strong>
           <span>músicas disponíveis</span>
-          <a href="/biblioteca/gerador">Criar nova música →</a>
+          <Link href="/biblioteca/gerador">Criar nova música →</Link>
         </div>
       </section>
 
@@ -106,7 +94,7 @@ export default function Biblioteca() {
             <small>AINDA ESTÁ VAZIA</small>
             <h3>Sua primeira dupla vai aparecer aqui.</h3>
             <p>Converse com o Produtor IA, confirme a direção e crie duas versões para comparar.</p>
-            <a href="/biblioteca/gerador">Criar minhas primeiras músicas →</a>
+            <Link href="/biblioteca/gerador">Criar minhas primeiras músicas →</Link>
           </div>
         ) : (
           <div className="music-generation-list">
@@ -121,7 +109,7 @@ export default function Biblioteca() {
                 </header>
                 <div className="saved-track-grid">
                   {generation.tracks.map((track, trackIndex) => {
-                    const playableUrl = track.audioUrl || track.streamAudioUrl;
+                    const playableUrl = playableTrackUrl(track);
                     return (
                       <article className="saved-track" key={track.id || `${generation.taskId}_${trackIndex}`}>
                         <div
@@ -138,9 +126,13 @@ export default function Biblioteca() {
                           </p>
                         </div>
                         {playableUrl ? (
-                          <audio controls preload="none" src={playableUrl}>
-                            Seu navegador não consegue tocar este áudio.
-                          </audio>
+                          <button
+                            type="button"
+                            className="saved-track-play"
+                            onClick={() => playInAcademyPlayer(track, `Rodada ${generations.length - generationIndex}`)}
+                          >
+                            <span aria-hidden="true">▶</span> Ouvir no player
+                          </button>
                         ) : <span className="track-processing">Finalizando áudio…</span>}
                         {track.audioUrl ? (
                           <a href={track.audioUrl} target="_blank" rel="noreferrer" download>
@@ -164,13 +156,13 @@ export default function Biblioteca() {
         </header>
         <div className="resource-grid live">
           {tools.map(([tag, title, text, href], index) => (
-            <a href={href} key={title}>
+            <Link href={href} key={title}>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <small>{tag}</small>
               <h2>{title}</h2>
               <p>{text}</p>
               <b>Abrir →</b>
-            </a>
+            </Link>
           ))}
         </div>
       </section>

@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { AcademyShell } from "../../components/Portal";
 import { memberApi } from "../../lib/access";
 import { musicStyles } from "../../lib/musicStyles";
+import { playInAcademyPlayer } from "../../lib/musicPlatform";
 
 type GeneratedTrack = {
   id: string;
@@ -743,7 +744,15 @@ export default function Gerador() {
                           <h3>{track.title}</h3>
                           <p>{track.duration ? `${Math.round(track.duration)} segundos` : "Música pronta"}</p>
                         </div>
-                        {playableUrl ? <audio controls preload="none" src={playableUrl} /> : <span>Finalizando áudio…</span>}
+                        {playableUrl ? (
+                          <button
+                            type="button"
+                            className="chat-track-play"
+                            onClick={() => playInAcademyPlayer(track, `Versão ${index + 1} desta criação`)}
+                          >
+                            <span aria-hidden="true">▶</span> Ouvir no player
+                          </button>
+                        ) : <span>Finalizando áudio…</span>}
                         {track.audioUrl ? <a href={track.audioUrl} target="_blank" rel="noreferrer" download>Baixar ↓</a> : null}
                       </article>
                     );

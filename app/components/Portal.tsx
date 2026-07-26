@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import MemberNav from "./MemberNav";
 
-export const Logo = () => (
-  <Link href="/" className="portal-logo">
+export const Logo = ({ href = "/" }: { href?: string }) => (
+  <Link href={href} className="portal-logo">
     <span className="brand-disc"><i /><i /><i /></span>
     <span>Academia <b>Música IA</b></span>
   </Link>
@@ -44,15 +44,30 @@ export function AcademyShell({
   return (
     <div className={`academy-shell ${className}`.trim()}>
       <aside className="academy-sidebar">
-        <Logo />
-        <div className="academy-sidebar-label">SUA JORNADA</div>
+        <Logo href="/academia" />
+        <Link href="/biblioteca/gerador" className="academy-new-session">
+          <span aria-hidden="true">＋</span>
+          Nova criação
+        </Link>
         <MemberNav />
         <div className="academy-help"><small>PRECISA DE AJUDA?</small><p>Fale com a gente e continue de onde parou.</p><Link href="/suporte">Abrir suporte ↗</Link></div>
       </aside>
       <main className="academy-main">
-        <header className="academy-top"><div><small>{eyebrow}</small><h1>{title}</h1></div><Link href="/" className="avatar" title="Voltar ao site">SB</Link></header>
+        <header className="academy-top">
+          <div><small>{eyebrow}</small><h1>{title}</h1></div>
+          <div className="academy-top-actions">
+            <Link href="/biblioteca">Meu repertório</Link>
+            <Link href="/academia" className="avatar" title="Início da Academia">SB</Link>
+          </div>
+        </header>
         {children}
       </main>
+      <nav className="academy-mobile-nav" aria-label="Navegação principal no celular">
+        <Link href="/academia"><span>INÍCIO</span></Link>
+        <Link href="/biblioteca/gerador"><span>CRIAR</span></Link>
+        <Link href="/biblioteca"><span>MÚSICAS</span></Link>
+        <Link href="/academia/musica"><span>CURSO</span></Link>
+      </nav>
     </div>
   );
 }

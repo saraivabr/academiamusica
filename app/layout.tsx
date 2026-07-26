@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import FunnelAnalytics from "./components/FunnelAnalytics";
 import MetaPixel from "./components/MetaPixel";
+import AcademyPlayer from "./components/AcademyPlayer";
 import "./globals.css";
 import "./experience-v2.css";
 
@@ -45,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<FunnelAnalytics /><MetaPixel /></body>
+      <body>{children}<AcademyPlayer /><FunnelAnalytics /><MetaPixel /></body>
     </html>
   );
 }
