@@ -13,17 +13,8 @@ import {
 
 const primaryNavigation = [
   { href: "/academia", label: "Início", marker: "⌂", exact: true },
-  { href: "/biblioteca/estilos-brasileiros", label: "Explorar estilos", marker: "⌕" },
-  { href: "/biblioteca/gerador", label: "Criar música", marker: "＋", featured: true },
-  { href: "/biblioteca", label: "Suas músicas", marker: "♫" },
-  { href: "/biblioteca/capa", label: "Criar capa", marker: "▣" },
-];
-
-const learningNavigation = [
-  { href: "/academia/comecar", label: "Comece aqui", marker: "01" },
-  { href: "/academia/musica", label: "Aprenda a criar", marker: "02" },
-  { href: "/academia/identidade", label: "Crie o visual", marker: "03" },
-  { href: "/academia/publicacao", label: "Prepare o lançamento", marker: "04" },
+  { href: "/biblioteca/gerador", label: "Criar", marker: "＋", featured: true },
+  { href: "/biblioteca", label: "Suas músicas", marker: "♫", exact: true },
 ];
 
 function NavigationLinks({
@@ -54,6 +45,7 @@ function NavigationLinks({
 export default function MemberNav() {
   const pathname = usePathname();
   const [recentTracks, setRecentTracks] = useState<PlatformTrack[]>([]);
+  const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -63,7 +55,8 @@ export default function MemberNav() {
         const generations = Array.isArray(data.generations)
           ? data.generations as PlatformGeneration[]
           : [];
-        setRecentTracks(flattenGenerations(generations).slice(0, 4));
+        setRecentTracks(flattenGenerations(generations).slice(0, 5));
+        setRemainingSongs(Number(data.remainingSongs));
       })
       .catch(() => {
         // The main navigation remains usable when recent tracks are unavailable.
@@ -77,11 +70,6 @@ export default function MemberNav() {
     <div className="member-navigation">
       <nav className="member-nav member-nav-primary" aria-label="Navegação principal">
         <NavigationLinks items={primaryNavigation} pathname={pathname} />
-      </nav>
-
-      <div className="academy-sidebar-label">SEU PROCESSO</div>
-      <nav className="member-nav member-nav-learning" aria-label="Jornada da Academia">
-        <NavigationLinks items={learningNavigation} pathname={pathname} />
       </nav>
 
       {recentTracks.length ? (
@@ -105,6 +93,20 @@ export default function MemberNav() {
           ))}
         </section>
       ) : null}
+
+      <section className="academy-wallet" aria-label="Saldo de criação">
+        <div>
+          <small>SEU SALDO</small>
+          <b>{remainingSongs ?? "—"} créditos</b>
+        </div>
+        <span title="A recarga Pix será ativada após a definição dos pacotes">PIX</span>
+      </section>
+
+      <Link className="academy-course-link" href="/academia/comecar">
+        <span>▤</span>
+        <div><small>INCLUÍDO NO ACESSO</small><b>Academia</b></div>
+        <em>›</em>
+      </Link>
     </div>
   );
 }

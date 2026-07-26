@@ -103,7 +103,7 @@ export default function Biblioteca() {
             ▶
           </button>
           <Link href="/biblioteca/gerador">＋ Nova música</Link>
-          <span>{remainingSongs ?? "—"} disponíveis</span>
+          <span>{remainingSongs ?? "—"} créditos disponíveis</span>
         </div>
 
         <header className="spotify-track-header">

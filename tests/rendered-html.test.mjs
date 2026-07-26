@@ -31,3 +31,32 @@ test("renders finished production metadata", async () => {
   assert.match(html, /<meta[^>]+property=["']og:image["'][^>]+musicacom\.ia\.br\/og\.png/i);
   assert.doesNotMatch(html, /codex-preview/i);
 });
+
+test("renders the express music creator without the conversational studio", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test", `express-${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+
+  const response = await worker.fetch(
+    new Request("http://localhost/biblioteca/gerador/", {
+      headers: { accept: "text/html" },
+    }),
+    {
+      ASSETS: {
+        fetch: async () => new Response("Not found", { status: 404 }),
+      },
+    },
+    {
+      waitUntil() {},
+      passThroughOnException() {},
+    },
+  );
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /CRIADOR EXPRESS/i);
+  assert.match(html, /Uma ideia\. Algumas escolhas\./i);
+  assert.match(html, /Criar duas músicas/i);
+  assert.doesNotMatch(html, /Crie sua música em uma conversa/i);
+  assert.doesNotMatch(html, /Produtor IA está pensando/i);
+});

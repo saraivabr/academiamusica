@@ -2,7 +2,7 @@
   "framework": "SaraivaOS",
   "version": "1.0.0",
   "createdAt": "2026-07-26T10:17:11.124Z",
-  "updatedAt": "2026-07-26T10:29:00.381Z",
+  "updatedAt": "2026-07-26T18:10:15.244Z",
   "project": {
     "id": "project-20260726101711-bd39b7b6",
     "name": "Academia Música IA",
@@ -10,13 +10,13 @@
     "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
   },
   "cycle": {
-    "currentStage": "validacao",
+    "currentStage": "aprendizado",
     "completedStages": []
   },
   "navigation": {
-    "currentRoute": "Coletar baseline real antes de alterar promessa, preço ou arquitetura",
-    "nextArtifact": "Decisão sobre o maior vazamento do funil com 100 sessões ou 14 dias",
-    "blocker": "Nenhum"
+    "currentRoute": "Criador Express sem chat, navegação reduzida e carteira de créditos Pix como continuidade",
+    "nextArtifact": "Criador Express funcional com saldo e recarga contextual",
+    "blocker": "Preço dos pacotes de créditos ainda não definido"
   },
   "identity": {
     "business": "",
@@ -25,16 +25,18 @@
     "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
   },
   "evidenceSummary": {
-    "observed": 5,
-    "provided": 0,
+    "observed": 7,
+    "provided": 2,
     "inferred": 0,
     "hypothesis": 0,
-    "unknown": 1
+    "unknown": 2
   },
   "methods": {
     "active": [
-      "First Principles",
-      "Jobs/minimalismo"
+      "Jobs/minimalismo",
+      "Sexy Canvas",
+      "Hormozi Money Model",
+      "First Principles"
     ],
     "considered": []
   },
@@ -47,6 +49,24 @@
       "metric": "visita para checkout, checkout para Pix e Pix para pagamento por origem",
       "status": "pending",
       "createdAt": "2026-07-26T10:28:43.864Z"
+    },
+    {
+      "id": "action-20260726180301-4d5356b3",
+      "title": "Substituir chat pelo Criador Express",
+      "owner": "Saraiva",
+      "deadline": "2026-07-27",
+      "metric": "tempo até confirmação da primeira geração",
+      "status": "pending",
+      "createdAt": "2026-07-26T18:03:01.720Z"
+    },
+    {
+      "id": "action-20260726180301-9af102e0",
+      "title": "Validar landing e checkout contra nova oferta por créditos",
+      "owner": "Saraiva",
+      "deadline": "2026-07-28",
+      "metric": "ausência de preço ou promessa divergente entre landing, checkout e backend",
+      "status": "pending",
+      "createdAt": "2026-07-26T18:03:01.757Z"
     }
   ],
   "experiments": [
@@ -59,6 +79,17 @@
       "target": "baseline confiável com pelo menos 100 sessões ou 14 dias",
       "status": "active",
       "createdAt": "2026-07-26T10:17:11.926Z",
+      "result": null
+    },
+    {
+      "id": "exp-20260726180301-922371d8",
+      "name": "Criador Express versus conversa",
+      "hypothesis": "Se o fluxo conversacional for substituído por escolhas visuais em uma tela, então mais usuários chegarão à confirmação da geração com menos interações porque o atrito cognitivo será reduzido",
+      "metric": "taxa de abertura do criador até music_generation_confirmed",
+      "baseline": "unknown",
+      "target": "+20% relativo após 100 sessões",
+      "status": "active",
+      "createdAt": "2026-07-26T18:03:01.822Z",
       "result": null
     }
   ],
@@ -83,15 +114,43 @@
       "type": "painel operacional",
       "proof": "npm run funnel executado contra DynamoDB e retornou baseline limpo",
       "createdAt": "2026-07-26T10:28:43.814Z"
+    },
+    {
+      "id": "artifact-20260726181015-637a5ac1",
+      "path": "app/biblioteca/gerador/page.tsx",
+      "type": "product",
+      "proof": "Criador Express renderizado; teste automatizado confirma ausência do estúdio conversacional",
+      "createdAt": "2026-07-26T18:10:15.164Z"
+    },
+    {
+      "id": "artifact-20260726181015-10074bf6",
+      "path": ".saraivaos/artifacts/platform-v2-blueprint.md",
+      "type": "blueprint",
+      "proof": "Sinais, rota, backlog, carteira e experimento documentados",
+      "createdAt": "2026-07-26T18:10:15.202Z"
     }
   ],
-  "sessions": [],
+  "sessions": [
+    {
+      "id": "session-20260726180254-7422f245",
+      "mode": "multimodal",
+      "objective": "Simplificar a criação musical, reduzir a navegação e preparar monetização recorrente por créditos Pix",
+      "status": "active",
+      "startedAt": "2026-07-26T18:02:54.391Z"
+    }
+  ],
   "learnings": [
     {
       "id": "learning-20260726102843-d2820abe",
       "statement": "A próxima melhoria comercial deve ser escolhida pelos dados do funil, não por preferência estética",
       "evidence": "exp-20260726101711-c93bfb9d e prova live do funil até Pix",
       "createdAt": "2026-07-26T10:28:43.960Z"
+    },
+    {
+      "id": "learning-20260726181015-68096aca",
+      "statement": "A direção musical estruturada pode ser enviada diretamente ao endpoint de geração; o chat é uma camada opcional de interface, não uma dependência do motor",
+      "evidence": "auditoria de app/biblioteca/gerador/page.tsx e build validado",
+      "createdAt": "2026-07-26T18:10:15.243Z"
     }
   ]
 }

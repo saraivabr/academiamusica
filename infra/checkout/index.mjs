@@ -87,6 +87,8 @@ const ALLOWED_CLIENT_EVENTS = new Set([
   "woovi_opened",
   "support_click",
   "login_view",
+  "music_creator_opened",
+  "music_creator_plan_ready",
 ]);
 
 let cachedSecrets;

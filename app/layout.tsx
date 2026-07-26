@@ -8,9 +8,9 @@ import "./spotify-experience.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://musicacom.ia.br"),
-  title: "Conte sua história. Crie com o Produtor IA | Academia Música IA",
+  title: "Crie músicas e lançamentos | Academia Música IA",
   description:
-    "Converse por texto ou voz com o Produtor IA e tenha 25 músicas incluídas para criar, ouvir e baixar.",
+    "Crie músicas, compare versões, desenvolva capas e organize seus lançamentos em uma única plataforma.",
   alternates: {
     canonical: "/",
   },

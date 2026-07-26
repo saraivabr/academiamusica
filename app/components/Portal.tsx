@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import MemberNav from "./MemberNav";
 import AcademyTopBar from "./AcademyTopBar";
-import ReleaseJourney from "./ReleaseJourney";
 
 export const Logo = ({ href = "/" }: { href?: string }) => (
   <Link href={href} className="portal-logo">
@@ -58,13 +57,11 @@ export function AcademyShell({
         <AcademyTopBar title={title} eyebrow={eyebrow} />
         {children}
       </main>
-      <ReleaseJourney />
       <nav className="academy-mobile-nav" aria-label="Navegação principal no celular">
         <Link href="/academia"><span>INÍCIO</span></Link>
         <Link href="/biblioteca/gerador"><span>CRIAR</span></Link>
-        <Link href="/biblioteca/capa"><span>CAPA</span></Link>
         <Link href="/biblioteca"><span>MÚSICAS</span></Link>
-        <Link href="/academia/musica"><span>CURSO</span></Link>
+        <Link href="/academia/comecar"><span>ACADEMIA</span></Link>
       </nav>
     </div>
   );

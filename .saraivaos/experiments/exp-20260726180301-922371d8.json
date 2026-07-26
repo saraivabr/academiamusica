@@ -1,0 +1,11 @@
+{
+  "id": "exp-20260726180301-922371d8",
+  "name": "Criador Express versus conversa",
+  "hypothesis": "Se o fluxo conversacional for substituído por escolhas visuais em uma tela, então mais usuários chegarão à confirmação da geração com menos interações porque o atrito cognitivo será reduzido",
+  "metric": "taxa de abertura do criador até music_generation_confirmed",
+  "baseline": "unknown",
+  "target": "+20% relativo após 100 sessões",
+  "status": "active",
+  "createdAt": "2026-07-26T18:03:01.822Z",
+  "result": null
+}

@@ -16,9 +16,9 @@ const journey = [
   {
     href: "/biblioteca/gerador",
     number: "01",
-    label: "CONVERSA",
-    title: "Sua história vira direção",
-    text: "O Produtor faz uma pergunta útil por vez e organiza suas escolhas.",
+    label: "DIREÇÃO",
+    title: "Você escolhe sem complicação",
+    text: "Conte o essencial, escolha emoção, estilo e voz. A parte técnica fica por nossa conta.",
   },
   {
     href: "/biblioteca",
@@ -95,7 +95,7 @@ export default function Academia() {
           <h2>Boa criação.</h2>
           <p>Continue de onde parou ou comece um novo lançamento.</p>
         </div>
-        <span><b>{remainingSongs ?? "—"}</b> músicas disponíveis</span>
+        <span><b>{remainingSongs ?? "—"}</b> créditos disponíveis</span>
       </section>
 
       <section className="spotify-quick-grid" aria-label="Acessos rápidos">
@@ -130,7 +130,7 @@ export default function Academia() {
         <div className="platform-feature-copy">
           <small>SEU PRÓXIMO LANÇAMENTO</small>
           <h2>Conte uma história.<br />Saia com uma música.</h2>
-          <p>Você conversa, o Produtor organiza. Depois recebe duas versões, cria a capa e prepara tudo para publicar.</p>
+          <p>Você escolhe o essencial. A plataforma cria duas versões, organiza a capa e ajuda a preparar tudo para publicar.</p>
           <div>
             <Link href="/biblioteca/gerador" className="platform-primary-action">
               <span aria-hidden="true">▶</span> Começar agora
@@ -169,7 +169,7 @@ export default function Academia() {
             <div>
               <small>SEU REPERTÓRIO</small>
               <h3>As músicas que você criar aparecerão aqui.</h3>
-              <p>Comece com uma história; o Produtor IA conduz o restante.</p>
+            <p>Comece com uma ideia e faça escolhas simples. A plataforma cuida do restante.</p>
             </div>
             <Link href="/biblioteca/gerador">Começar agora →</Link>
           </div>
