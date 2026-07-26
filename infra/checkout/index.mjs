@@ -4,6 +4,7 @@ import {
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
+  QueryCommand,
   UpdateItemCommand,
 } from "@aws-sdk/client-dynamodb";
 import {
@@ -138,9 +139,23 @@ function normalizeMusicPlan(value = {}) {
   };
 }
 
+const genericMusicThemes = new Set([
+  "uma homenagem",
+  "minha história",
+  "minha historia",
+  "um romance",
+  "uma superação",
+  "uma superacao",
+]);
+
+function isMeaningfulTheme(value) {
+  const theme = safeString(value, 400).trim().toLocaleLowerCase("pt-BR");
+  return Boolean(theme) && !genericMusicThemes.has(theme);
+}
+
 function missingMusicPlanFields(plan) {
   const missing = [];
-  if (!plan.theme) missing.push("theme");
+  if (!isMeaningfulTheme(plan.theme)) missing.push("theme");
   if (!plan.emotion) missing.push("emotion");
   if (!plan.style) missing.push("style");
   if (!plan.instrumental && !plan.voice) missing.push("voice");
@@ -148,27 +163,47 @@ function missingMusicPlanFields(plan) {
   return missing;
 }
 
-function planQuestion(field) {
+function userConversationText(messages) {
+  return messages
+    .filter((message) => message.role === "user")
+    .map((message) => message.content?.[0]?.text ?? "")
+    .join(" ")
+    .toLocaleLowerCase("pt-BR");
+}
+
+function planQuestion(field, messages = [], plan = {}) {
+  const conversation = userConversationText(messages);
+  const themePrompt = /\bhomenagem\b/i.test(conversation)
+    ? "Quem você quer homenagear e o que essa pessoa representa para você?"
+    : /\bminha hist[oó]ria\b/i.test(conversation)
+      ? "Qual momento da sua história você quer transformar em música?"
+      : /\bromance\b/i.test(conversation)
+        ? "Que momento desse romance a música precisa contar?"
+        : /\bsupera(?:ç[aã]o|cao)\b/i.test(conversation)
+          ? "Qual desafio você venceu ou ainda está enfrentando?"
+          : "Qual história, pessoa ou momento você quer transformar em música?";
   return {
     theme: {
-      reply: "Qual história, pessoa ou momento você quer transformar em música?",
-      quickReplies: ["Uma homenagem", "Minha história", "Um romance", "Uma superação"],
+      reply: themePrompt,
+      quickReplies: /\bminha hist[oó]ria\b/i.test(conversation)
+        ? ["Uma mudança na minha vida", "Um desafio que enfrentei", "Uma conquista importante"]
+        : ["Uma homenagem", "Minha história", "Um romance", "Uma superação"],
     },
     emotion: {
-      reply: "Que sentimento deve ficar em quem ouvir essa música?",
+      reply: `Agora escolha o sentimento: o que a pessoa deve sentir ao ouvir${plan.theme ? " essa história" : ""}?`,
       quickReplies: ["Saudade", "Alegria", "Esperança", "Paixão"],
     },
     style: {
-      reply: "Que estilo combina com essa história?",
+      reply: `${plan.emotion ? `Anotei “${safeString(plan.emotion, 60)}”. ` : ""}Que estilo combina com essa história?`,
       quickReplies: ["Sertanejo", "Pagode", "Forró", "Pop brasileiro"],
     },
     voice: {
-      reply: "Como você imagina a voz dessa música?",
-      quickReplies: ["Masculina e próxima", "Feminina e forte", "Dueto", "Quero instrumental"],
+      reply: `${plan.style ? `Vamos de ${safeString(plan.style, 50)}. ` : ""}Como você imagina a voz?`,
+      quickReplies: ["Masculina e próxima", "Feminina e forte", "Dueto", "Instrumental"],
     },
     hook: {
-      reply: "Qual frase precisa aparecer no refrão?",
-      quickReplies: ["Quero sugerir uma frase", "Pode nascer da história"],
+      reply: "Falta o refrão: qual frase ou ideia precisa ficar na cabeça?",
+      quickReplies: ["Pode criar a partir da história", "Vou escrever uma frase"],
     },
   }[field];
 }
@@ -213,7 +248,8 @@ function firstUsefulQuestion(value) {
     beforeQuestion.lastIndexOf(". "),
     beforeQuestion.lastIndexOf("! "),
   );
-  const question = text.slice(sentenceStart + 2, questionEnd + 1).trim();
+  const questionStart = sentenceStart < 0 ? 0 : sentenceStart + 2;
+  const question = text.slice(questionStart, questionEnd + 1).trim();
   return question.length >= 12 ? question : text.slice(0, questionEnd + 1).trim();
 }
 
@@ -221,7 +257,9 @@ function normalizeConversationOutput(input, currentPlan, userTurnCount, messages
   const current = normalizeMusicPlan(currentPlan);
   const incoming = normalizeMusicPlan(input);
   const plan = {
-    theme: incoming.theme || current.theme,
+    theme: isMeaningfulTheme(incoming.theme)
+      ? incoming.theme
+      : isMeaningfulTheme(current.theme) ? current.theme : "",
     emotion: incoming.emotion || current.emotion || inferEmotionFromMessages(messages),
     style: incoming.style || current.style,
     voice: incoming.voice || current.voice,
@@ -238,21 +276,14 @@ function normalizeConversationOutput(input, currentPlan, userTurnCount, messages
         reply: "Entendi sua direção. Confira o resumo e, se estiver certo, vamos criar duas músicas.",
         quickReplies: ["Quero mudar algo"],
       }
-    : planQuestion(missingFields[0]);
-  const quickReplies = stage === "ready"
-    ? fallback.quickReplies
-    : Array.isArray(input?.quickReplies)
-    ? input.quickReplies
-      .map((item) => safeString(item, 40).trim())
-      .filter(Boolean)
-      .slice(0, 4)
-    : fallback.quickReplies;
+    : planQuestion(missingFields[0], messages, readyPlan);
+  const quickReplies = fallback.quickReplies;
   const rawReply = firstUsefulQuestion(safeString(input?.reply, 360).trim()
     .replace(/^(oi[!.]?\s*)/i, "")
     .replace(/^(adorei|que legal|perfeito|maravilhoso)[^.!?]*[.!?]\s*/i, ""));
   const reply = stage === "ready"
     ? fallback.reply
-    : rawReply || fallback.reply;
+    : fallback.reply || rawReply;
   return {
     reply,
     stage,
@@ -601,6 +632,7 @@ function conversationSystemPrompt({ mode, currentPlan, availableStyles, userTurn
       .filter(Boolean)
       .slice(0, 40)
     : [];
+  const expectedField = missingMusicPlanFields(currentPlan)[0] ?? "review";
   return [
     "Você é o Produtor IA da Academia Música IA.",
     "Conduza uma conversa curta, humana e acolhedora em português do Brasil.",
@@ -610,6 +642,8 @@ function conversationSystemPrompt({ mode, currentPlan, availableStyles, userTurn
     "Se a pessoa pedir instrumental, voz e refrão deixam de ser obrigatórios.",
     "Se ela citar um artista, converta a referência em características musicais sem prometer imitação.",
     "Não elogie genericamente. Reaja de forma breve e avance a criação.",
+    `O próximo dado esperado é: ${expectedField}. Interprete a resposta mais recente primeiro como resposta a esse dado.`,
+    "Só preencha outros campos quando a pessoa os disser claramente. Não adivinhe vários campos de uma resposta vaga.",
     "Após seis respostas do aluno, escolha padrões plausíveis para o que faltar e entregue o plano pronto.",
     "Quando o plano estiver completo, confirme que entendeu e convide a revisar o resumo.",
     `Modo atual: ${mode}. Respostas do aluno: ${userTurnCount}.`,
@@ -796,10 +830,108 @@ async function rememberSunoTask(taskId, orderId) {
       orderId: { S: orderId },
       providerTaskId: { S: taskId },
       createdAt: { S: new Date().toISOString() },
-      ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 15) },
     },
     ConditionExpression: "attribute_not_exists(id)",
   }));
+}
+
+async function rememberSunoTaskSnapshot(taskId, orderId, status, tracks, error = "") {
+  const tracksJson = JSON.stringify((tracks ?? []).map(normalizeSunoTrack));
+  await dynamo.send(new UpdateItemCommand({
+    TableName: EVENTS_TABLE_NAME,
+    Key: { id: { S: `suno_task_${taskId}` } },
+    UpdateExpression: "SET #status = :status, tracksJson = :tracksJson, updatedAt = :updatedAt, errorMessage = :errorMessage REMOVE ttl",
+    ConditionExpression: "orderId = :orderId",
+    ExpressionAttributeNames: {
+      "#status": "status",
+    },
+    ExpressionAttributeValues: {
+      ":orderId": { S: orderId },
+      ":status": { S: safeString(status || "PENDING", 40) },
+      ":tracksJson": { S: safeString(tracksJson, 50_000) },
+      ":updatedAt": { S: new Date().toISOString() },
+      ":errorMessage": { S: safeString(error, 240) },
+    },
+  }));
+}
+
+function tracksFromTaskItem(item) {
+  try {
+    const parsed = JSON.parse(item?.tracksJson?.S ?? "[]");
+    return Array.isArray(parsed) ? parsed.map(normalizeSunoTrack) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function listSunoTasks(orderId) {
+  const tasks = [];
+  let cursor;
+  do {
+    const result = await dynamo.send(new QueryCommand({
+      TableName: EVENTS_TABLE_NAME,
+      IndexName: "order-created-at-index",
+      KeyConditionExpression: "orderId = :orderId",
+      FilterExpression: "attribute_exists(providerTaskId)",
+      ExpressionAttributeValues: {
+        ":orderId": { S: orderId },
+      },
+      ScanIndexForward: false,
+      Limit: 50,
+      ExclusiveStartKey: cursor,
+    }));
+    tasks.push(...(result.Items ?? []));
+    cursor = result.LastEvaluatedKey;
+  } while (cursor && tasks.length < MUSIC_GENERATION_LIMIT);
+  return tasks.slice(0, MUSIC_GENERATION_LIMIT);
+}
+
+async function getMusicLibrary(event) {
+  const order = await authorizeMember(event);
+  if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+
+  const tasks = await listSunoTasks(order.id);
+  const generations = await Promise.all(tasks.map(async (item) => {
+    const taskId = safeString(item.providerTaskId?.S, 100);
+    let status = safeString(item.status?.S || "PENDING", 40);
+    let tracks = tracksFromTaskItem(item);
+    let error = safeString(item.errorMessage?.S, 240);
+
+    if (!tracks.length && !SUNO_FAILED_STATUSES.has(status)) {
+      try {
+        const data = await sunoRequest(
+          `/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
+          { method: "GET" },
+        );
+        status = safeString(data?.status || status, 40);
+        tracks = (data?.response?.sunoData ?? []).map(normalizeSunoTrack);
+        error = SUNO_FAILED_STATUSES.has(status)
+          ? safeString(data?.errorMessage || "Essa criação não foi concluída.", 240)
+          : "";
+        await rememberSunoTaskSnapshot(taskId, order.id, status, tracks, error);
+      } catch (libraryError) {
+        console.error("Unable to refresh music library item", {
+          orderId: order.id,
+          taskId,
+          message: libraryError.message,
+        });
+      }
+    }
+
+    return {
+      taskId,
+      createdAt: item.createdAt?.S ?? "",
+      status,
+      tracks,
+      error: error || null,
+    };
+  }));
+
+  return response(200, {
+    generations,
+    remainingSongs: remainingMusicTracks(order.sunoGenerationCount),
+    includedSongs: MUSIC_TRACKS_INCLUDED,
+  });
 }
 
 async function ownsSunoTask(taskId, orderId) {
@@ -932,6 +1064,10 @@ async function getSunoGeneration(event, taskId) {
   const status = safeString(data?.status || "PENDING", 40);
   const tracks = (data?.response?.sunoData ?? []).map(normalizeSunoTrack);
   const failed = SUNO_FAILED_STATUSES.has(status);
+  const errorMessage = failed
+    ? safeString(data?.errorMessage || "A geração falhou. Ajuste a direção e tente novamente.", 240)
+    : "";
+  await rememberSunoTaskSnapshot(taskId, order.id, status, tracks, errorMessage);
   const refunded = failed
     ? await refundFailedSunoTask(taskId, order.id)
     : false;
@@ -947,9 +1083,7 @@ async function getSunoGeneration(event, taskId) {
     taskId,
     status,
     tracks,
-    error: failed
-      ? safeString(data?.errorMessage || "A geração falhou. Ajuste o briefing e tente novamente.", 240)
-      : null,
+    error: errorMessage || null,
     remainingSongs: refunded
       ? remainingMusicTracks(Math.max(0, order.sunoGenerationCount - 1))
       : undefined,
@@ -1303,6 +1437,9 @@ export const handler = async (event) => {
       method === "GET"
       && (path === "/v1/music/availability" || path === "/v1/suno/credits")
     ) return await getSunoCredits(event);
+    if (method === "GET" && path === "/v1/music/library") {
+      return await getMusicLibrary(event);
+    }
     if (method === "POST" && path === "/v1/music/conversation") {
       return await createMusicConversation(event);
     }

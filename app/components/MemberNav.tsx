@@ -10,8 +10,7 @@ const navigation = [
   { href: "/academia/identidade", label: "Crie o visual", marker: "03" },
   { href: "/academia/publicacao", label: "Prepare o lançamento", marker: "04" },
   { href: "/biblioteca/gerador", label: "Criar música", marker: "●", featured: true },
-  { href: "/biblioteca", label: "Biblioteca", marker: "✦" },
-  { href: "/comunidade", label: "Comunidade", marker: "↗" },
+  { href: "/biblioteca", label: "Minhas músicas", marker: "✦" },
 ];
 
 export default function MemberNav() {

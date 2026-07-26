@@ -30,9 +30,19 @@ export function PublicShell({ children, compact = false }: { children: ReactNode
   );
 }
 
-export function AcademyShell({ children, title, eyebrow = "ÁREA DE MEMBROS" }: { children: ReactNode; title: string; eyebrow?: string }) {
+export function AcademyShell({
+  children,
+  title,
+  eyebrow = "ÁREA DE MEMBROS",
+  className = "",
+}: {
+  children: ReactNode;
+  title: string;
+  eyebrow?: string;
+  className?: string;
+}) {
   return (
-    <div className="academy-shell">
+    <div className={`academy-shell ${className}`.trim()}>
       <aside className="academy-sidebar">
         <Logo />
         <div className="academy-sidebar-label">SUA JORNADA</div>

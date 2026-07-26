@@ -32,6 +32,7 @@ type ChatMessage = {
 
 type ConversationStage = "collecting" | "ready";
 type ConversationMode = "create" | "refine";
+type MusicPlanField = "theme" | "emotion" | "style" | "voice" | "hook";
 
 type SpeechRecognitionEventLike = {
   results: ArrayLike<{
@@ -67,6 +68,7 @@ type SavedStudio = {
   plan: MusicPlan;
   stage: ConversationStage;
   quickReplies: string[];
+  missingFields?: MusicPlanField[];
   mode: ConversationMode;
   taskId: string;
   generationStatus: string;
@@ -114,6 +116,51 @@ const emptyPlan: MusicPlan = {
   voice: "",
   hook: "",
   instrumental: false,
+};
+const initialMissingFields: MusicPlanField[] = ["theme", "emotion", "style", "voice", "hook"];
+
+const choiceDescriptions: Record<string, string> = {
+  "Uma homenagem": "para alguém especial",
+  "Minha história": "um momento que te marcou",
+  "Um romance": "amor, saudade ou reencontro",
+  "Uma superação": "um desafio e a virada",
+  Instrumental: "um clima, sem voz",
+  Saudade: "lembrança e distância",
+  Alegria: "leveza e celebração",
+  Esperança: "força para seguir",
+  Paixão: "intensidade e desejo",
+  Sertanejo: "história direta e refrão forte",
+  Pagode: "balanço, afeto e roda",
+  Forró: "energia, dança e sanfona",
+  "Pop brasileiro": "melodia clara e atual",
+  "Masculina e próxima": "interpretação íntima",
+  "Feminina e forte": "presença e intensidade",
+  Dueto: "duas vozes em diálogo",
+  "Pode criar a partir da história": "o Produtor propõe a frase",
+  "Vou escrever uma frase": "você define as palavras",
+};
+
+const fieldLessons: Record<MusicPlanField, { label: string; lesson: string }> = {
+  theme: {
+    label: "História",
+    lesson: "Comece por uma cena concreta: quem estava lá e o que aconteceu.",
+  },
+  emotion: {
+    label: "Emoção",
+    lesson: "A emoção orienta o ritmo, a interpretação e a intensidade.",
+  },
+  style: {
+    label: "Estilo",
+    lesson: "O estilo define o balanço, os instrumentos e a energia.",
+  },
+  voice: {
+    label: "Voz",
+    lesson: "A voz muda a personalidade e o ponto de vista da música.",
+  },
+  hook: {
+    label: "Refrão",
+    lesson: "O refrão é a ideia curta que a pessoa vai lembrar.",
+  },
 };
 
 function makeId(prefix: string) {
@@ -254,6 +301,7 @@ export default function Gerador() {
   const [messages, setMessages] = useState<ChatMessage[]>([initialMessage]);
   const [plan, setPlan] = useState<MusicPlan>(emptyPlan);
   const [stage, setStage] = useState<ConversationStage>("collecting");
+  const [missingFields, setMissingFields] = useState<MusicPlanField[]>(initialMissingFields);
   const [mode, setMode] = useState<ConversationMode>("create");
   const [quickReplies, setQuickReplies] = useState(initialReplies);
   const [input, setInput] = useState("");
@@ -300,6 +348,7 @@ export default function Gerador() {
             if (Array.isArray(data.messages) && data.messages.length) setMessages(data.messages);
             if (data.plan) setPlan(data.plan);
             if (data.stage) setStage(data.stage);
+            if (Array.isArray(data.missingFields)) setMissingFields(data.missingFields);
             if (Array.isArray(data.quickReplies)) setQuickReplies(data.quickReplies);
             if (data.mode) setMode(data.mode);
             if (data.taskId) setTaskId(data.taskId);
@@ -349,6 +398,7 @@ export default function Gerador() {
       plan,
       stage,
       quickReplies,
+      missingFields,
       mode,
       taskId,
       generationStatus,
@@ -360,6 +410,7 @@ export default function Gerador() {
     generationStatus,
     hydrated,
     messages,
+    missingFields,
     mode,
     plan,
     quickReplies,
@@ -475,6 +526,7 @@ export default function Gerador() {
       setConversationId(data.conversationId);
       setPlan(data.plan);
       setStage(data.stage);
+      setMissingFields(data.missingFields ?? []);
       setQuickReplies(data.quickReplies ?? []);
       setRemainingSongs(Number(data.remainingSongs));
       setMessages((current) => [...current, {
@@ -594,6 +646,7 @@ export default function Gerador() {
     setMessages([initialMessage]);
     setPlan(emptyPlan);
     setStage("collecting");
+    setMissingFields(initialMissingFields);
     setMode("create");
     setQuickReplies(initialReplies);
     setInput("");
@@ -605,13 +658,33 @@ export default function Gerador() {
     window.localStorage.removeItem(studioStorageKey);
   }
 
+  const activeField = missingFields[0];
+  const lesson = activeField ? fieldLessons[activeField] : null;
+  const planItems = [
+    { field: "theme" as const, value: plan.theme },
+    { field: "emotion" as const, value: plan.emotion },
+    { field: "style" as const, value: plan.style },
+    ...(!plan.instrumental ? [
+      { field: "voice" as const, value: plan.voice },
+      { field: "hook" as const, value: plan.hook },
+    ] : []),
+  ];
+  const completedPlanItems = planItems.filter((item) => (
+    Boolean(item.value) && !missingFields.includes(item.field)
+  )).length;
+  const planProgress = Math.round((completedPlanItems / Math.max(planItems.length, 1)) * 100);
+
   return (
-    <AcademyShell title="Criar música" eyebrow="PRODUTOR IA • ESTÚDIO CONVERSACIONAL">
+    <AcademyShell
+      title="Criar música"
+      eyebrow="PRODUTOR IA • ESTÚDIO CONVERSACIONAL"
+      className="producer-academy"
+    >
       <section className="studio-welcome producer-welcome">
         <div>
-          <small>SEM ESCREVER PROMPT</small>
-          <h2>Converse.<br />Confirme. Ouça.</h2>
-          <p>Conte sua história por texto ou voz. O Produtor IA organiza a direção e cria duas músicas por rodada.</p>
+          <small>VOCÊ CONTA • O PRODUTOR ORGANIZA</small>
+          <h2>Crie sua música em uma conversa.</h2>
+          <p>Uma escolha por vez. Você entende o que muda no resultado antes de criar.</p>
         </div>
         <ol aria-label="Etapas da criação">
           <li className={!isGenerating && !tracks.length ? "active" : ""}><span>1</span><b>Converse</b></li>
@@ -688,22 +761,35 @@ export default function Gerador() {
             </div>
 
             {quickReplies.length > 0 && !isThinking && !isGenerating ? (
-              <div className="quick-replies" aria-label="Sugestões de resposta">
-                {quickReplies.map((reply) => (
-                  <button
-                    type="button"
-                    key={reply}
-                    onClick={() => {
-                      if (reply === "Quero mudar algo") {
-                        requestChange();
-                        return;
-                      }
-                      void sendMessage(reply, "text");
-                    }}
-                  >
-                    {reply}
-                  </button>
-                ))}
+              <div className={`choice-area ${activeField === "theme" ? "starter-choices" : ""}`}>
+                {lesson ? (
+                  <div className="choice-guide" id="producer-choice-guide">
+                    <small>AGORA: {lesson.label.toLocaleUpperCase("pt-BR")}</small>
+                    <p>{lesson.lesson}</p>
+                  </div>
+                ) : null}
+                <div className="quick-replies" aria-label="Sugestões de resposta">
+                  {quickReplies.map((reply) => {
+                    const description = choiceDescriptions[reply];
+                    return (
+                      <button
+                        type="button"
+                        key={reply}
+                        aria-label={description ? `${reply}: ${description}` : reply}
+                        onClick={() => {
+                          if (reply === "Quero mudar algo") {
+                            requestChange();
+                            return;
+                          }
+                          void sendMessage(reply, "text");
+                        }}
+                      >
+                        <b>{reply}</b>
+                        {description ? <small>{description}</small> : null}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             ) : null}
 
@@ -721,15 +807,22 @@ export default function Gerador() {
                 maxLength={1_000}
                 placeholder={remainingSongs === 0
                   ? "Você ainda pode conversar e preparar uma nova direção…"
-                  : "Conte sua ideia ou diga o que quer mudar…"}
+                  : activeField
+                    ? `Responda sobre ${fieldLessons[activeField].label.toLocaleLowerCase("pt-BR")} ou escolha uma opção acima…`
+                    : "Diga o que você quer mudar…"}
                 aria-label="Mensagem para o Produtor IA"
+                aria-describedby={lesson ? "producer-choice-guide" : undefined}
                 disabled={isThinking || isGenerating}
                 onChange={(event) => {
                   setInput(event.target.value);
                   setInputMethod("text");
                 }}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
+                  if (
+                    event.key === "Enter"
+                    && !event.shiftKey
+                    && !event.nativeEvent.isComposing
+                  ) {
                     event.preventDefault();
                     void sendMessage();
                   }
@@ -759,18 +852,43 @@ export default function Gerador() {
 
           <aside className="producer-plan">
             <header>
-              <small>O QUE EU ENTENDI</small>
-              <h2>{ready ? "Direção pronta" : "Nossa música"}</h2>
-              <span className={ready ? "ready" : ""}>{ready ? "PRONTA PARA CRIAR" : "EM CONSTRUÇÃO"}</span>
+              <small>SUA DIREÇÃO MUSICAL</small>
+              <h2>{ready ? "Pronta para criar" : "Construindo com você"}</h2>
+              <p>{completedPlanItems} de {planItems.length} escolhas feitas</p>
+              <div
+                className="plan-progress"
+                role="progressbar"
+                aria-label="Progresso da direção musical"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={planProgress}
+              >
+                <i style={{ width: `${planProgress}%` }} />
+              </div>
             </header>
 
-            <dl>
-              <div><dt>História</dt><dd>{plan.theme || "Vamos descobrir na conversa"}</dd></div>
-              <div><dt>Emoção</dt><dd>{plan.emotion || "Ainda não definida"}</dd></div>
-              <div><dt>Estilo</dt><dd>{plan.style || "Ainda não definido"}</dd></div>
-              <div><dt>Voz</dt><dd>{plan.instrumental ? "Somente instrumentos" : plan.voice || "Ainda não definida"}</dd></div>
-              {!plan.instrumental ? <div><dt>Refrão</dt><dd>{plan.hook || "Ainda não definido"}</dd></div> : null}
-            </dl>
+            <ol className="plan-steps">
+              {planItems.map((item) => {
+                const current = activeField === item.field;
+                const completed = Boolean(item.value) && !missingFields.includes(item.field);
+                const status = completed ? "FEITO" : current ? "AGORA" : "DEPOIS";
+                return (
+                  <li className={completed ? "completed" : current ? "current" : "pending"} key={item.field}>
+                    <div>
+                      <small>{fieldLessons[item.field].label}</small>
+                      <span>{status}</span>
+                    </div>
+                    <p>{completed ? item.value : current ? "Escolha na conversa" : "Vem na próxima etapa"}</p>
+                  </li>
+                );
+              })}
+              {plan.instrumental ? (
+                <li className="completed">
+                  <div><small>Formato</small><span>FEITO</span></div>
+                  <p>Somente instrumentos, sem voz</p>
+                </li>
+              ) : null}
+            </ol>
 
             <div className={`studio-status ${providerReady ? "ready" : ""}`} aria-live="polite">
               <i aria-hidden="true" />

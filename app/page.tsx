@@ -21,7 +21,7 @@ const library = [
   ["Spotify Canvas", "Crie o vídeo curto que acompanha sua música durante a reprodução.", "MOVIMENTO"],
   ["Publicação", "Prepare e distribua sua música nas principais plataformas de streaming.", "DISTRIBUIÇÃO"],
   ["Biblioteca Viva", "Novos conteúdos e atualizações para você continuar evoluindo.", "ATUALIZAÇÕES"],
-  ["Comunidade", "Compartilhe sua primeira música com pessoas que também decidiram criar.", "ENCONTROS"],
+  ["Minhas músicas", "Reencontre, ouça e baixe todas as versões criadas no seu acesso.", "HISTÓRICO"],
 ];
 
 const faqs = [
@@ -34,7 +34,7 @@ const faqs = [
   ["Existem outros custos?", "As 25 músicas estão incluídas. Serviços opcionais de distribuição, publicação ou ferramentas externas podem ter custos próprios e são contratados separadamente."],
   ["A música fica perfeita de primeira?", "Provavelmente não. Por isso o método inclui geração de versões, comparação, seleção e refinamento. IA acelera a criação; direção continua sendo necessária."],
   ["Posso usar minha foto na capa?", "Sim. Você pode trabalhar com sua própria foto, uma ideia artística ou uma identidade criada especificamente para o lançamento."],
-  ["Terei comunidade?", "Sim. A comunidade existe para você mostrar músicas, acompanhar outros criadores, trocar experiências e evoluir nos próximos lançamentos."],
+  ["Onde ficam as músicas que eu criar?", "Na área Minhas músicas. Cada rodada fica organizada por data, com as duas versões, player e botão para baixar."],
 ];
 
 function Equalizer({ playing = false }: { playing?: boolean }) {
@@ -451,7 +451,7 @@ export default function Home() {
           <h2>Entre para a<br /><em>Academia Música IA</em></h2>
           <p>Você não recebe apenas aulas. Conversa com o Produtor IA, aprende enquanto cria e tem 25 músicas incluídas para testar estilos, comparar versões e escolher as favoritas.</p>
           <div className="included">
-            {["Produtor IA por texto ou voz", "25 músicas para criar e baixar", "Método Da Ideia ao Link", "Capa + Spotify Canvas", "Publicação + comunidade"].map(item => <span key={item}><Check /> {item}</span>)}
+            {["Produtor IA por texto ou voz", "25 músicas para criar e baixar", "Método Da Ideia ao Link", "Capa + Spotify Canvas", "Biblioteca com player e download"].map(item => <span key={item}><Check /> {item}</span>)}
           </div>
           <div className="price-row"><small>INVESTIMENTO</small><div><sup>R$</sup>197</div><span>pagamento único</span></div>
           <a href="/checkout" className="pill pill-green pill-full" data-track="checkout_cta">Quero meu Produtor IA + 25 músicas <Arrow /></a>

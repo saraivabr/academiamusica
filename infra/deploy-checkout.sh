@@ -5,6 +5,7 @@ AWS_REGION="${AWS_REGION:-us-east-1}"
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 TABLE_NAME="academia-musica-orders"
 EVENTS_TABLE_NAME="academia-musica-events"
+EVENTS_ORDER_INDEX="order-created-at-index"
 FUNCTION_NAME="academia-musica-checkout"
 ROLE_NAME="academia-musica-checkout-lambda"
 API_NAME="academia-musica-checkout"
@@ -50,6 +51,19 @@ if ! aws dynamodb describe-table --region "$AWS_REGION" --table-name "$EVENTS_TA
     --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true >/dev/null
 fi
 
+if [[ "$(aws dynamodb describe-table \
+  --region "$AWS_REGION" \
+  --table-name "$EVENTS_TABLE_NAME" \
+  --query "Table.GlobalSecondaryIndexes[?IndexName=='${EVENTS_ORDER_INDEX}'].IndexName | [0]" \
+  --output text)" == "None" ]]; then
+  aws dynamodb update-table \
+    --region "$AWS_REGION" \
+    --table-name "$EVENTS_TABLE_NAME" \
+    --attribute-definitions AttributeName=orderId,AttributeType=S AttributeName=createdAt,AttributeType=S \
+    --global-secondary-index-updates "[{\"Create\":{\"IndexName\":\"${EVENTS_ORDER_INDEX}\",\"KeySchema\":[{\"AttributeName\":\"orderId\",\"KeyType\":\"HASH\"},{\"AttributeName\":\"createdAt\",\"KeyType\":\"RANGE\"}],\"Projection\":{\"ProjectionType\":\"ALL\"}}}]" >/dev/null
+  aws dynamodb wait table-exists --region "$AWS_REGION" --table-name "$EVENTS_TABLE_NAME"
+fi
+
 TRUST_POLICY="$(mktemp)"
 PERMISSIONS_POLICY="$(mktemp)"
 PACKAGE_DIR="$(mktemp -d)"
@@ -81,10 +95,11 @@ cat >"$PERMISSIONS_POLICY" <<JSON
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"],
+      "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:UpdateItem"],
       "Resource": [
         "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${TABLE_NAME}",
-        "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${EVENTS_TABLE_NAME}"
+        "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${EVENTS_TABLE_NAME}",
+        "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${EVENTS_TABLE_NAME}/index/*"
       ]
     },
     {
