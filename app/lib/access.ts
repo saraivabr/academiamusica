@@ -38,6 +38,10 @@ export async function activateMemberAccess(orderId: string) {
   if (!response.ok || !data.access?.token) {
     throw new Error(data.error || "Não foi possível liberar o acesso.");
   }
-  document.cookie = `academia_access=${data.access.token}; Path=/; Max-Age=15552000; Secure; SameSite=Lax`;
+  const expiresAt = new Date(data.access.expiresAt).getTime();
+  const maxAge = Number.isFinite(expiresAt)
+    ? Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
+    : 60 * 60 * 24 * 180;
+  document.cookie = `academia_access=${encodeURIComponent(data.access.token)}; Path=/; Max-Age=${maxAge}; Secure; SameSite=Strict`;
   return data.access;
 }
