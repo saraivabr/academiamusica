@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { activateMemberAccess, CHECKOUT_API } from "../lib/access";
+import { hasMetaConsent, trackMetaEvent } from "../lib/metaPixel";
 
 export default function PurchaseConfirmation() {
   const [state, setState] = useState<"checking" | "paid" | "paid-access-error" | "pending" | "invalid">("checking");
@@ -22,6 +23,32 @@ export default function PurchaseConfirmation() {
           return;
         }
         setOrderId(orderId);
+        if (hasMetaConsent()) {
+          const purchaseKey = `academia-meta-purchase-${orderId}`;
+          let alreadyTracked = false;
+          try {
+            alreadyTracked = window.localStorage.getItem(purchaseKey) === "tracked";
+          } catch {
+            // The event can still be sent when storage is unavailable.
+          }
+          if (!alreadyTracked) {
+            trackMetaEvent(
+              "Purchase",
+              {
+                content_name: "Academia Música IA",
+                content_type: "product",
+                value: 197,
+                currency: "BRL",
+              },
+              `purchase_${orderId}`,
+            );
+            try {
+              window.localStorage.setItem(purchaseKey, "tracked");
+            } catch {
+              // Purchase confirmation must never depend on analytics storage.
+            }
+          }
+        }
         return activateMemberAccess(orderId)
           .then(() => setState("paid"))
           .catch(() => setState("paid-access-error"));

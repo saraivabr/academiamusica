@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { CHECKOUT_API } from "../lib/access";
 import { getAnalyticsContext, trackEvent } from "../lib/analytics";
+import { trackMetaEvent } from "../lib/metaPixel";
 
 type Order = {
   id: string;
@@ -83,6 +84,12 @@ export default function CheckoutClient() {
     setLoading(true);
     setError("");
     trackEvent("checkout_started");
+    trackMetaEvent("InitiateCheckout", {
+      content_name: "Academia Música IA",
+      content_type: "product",
+      value: 197,
+      currency: "BRL",
+    });
     try {
       const analytics = getAnalyticsContext();
       const response = await fetch(`${CHECKOUT_API}/v1/checkout`, {
@@ -102,6 +109,11 @@ export default function CheckoutClient() {
         throw new Error(data.error || "Não foi possível gerar o Pix.");
       }
       setOrder(data.order);
+      trackMetaEvent("AddPaymentInfo", {
+        content_name: "Academia Música IA",
+        value: 197,
+        currency: "BRL",
+      });
     } catch (requestError) {
       trackEvent("checkout_error");
       setError(requestError instanceof Error ? requestError.message : "Não foi possível gerar o Pix.");

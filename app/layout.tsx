@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import FunnelAnalytics from "./components/FunnelAnalytics";
+import MetaPixel from "./components/MetaPixel";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -43,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<FunnelAnalytics /></body>
+      <body>{children}<FunnelAnalytics /><MetaPixel /></body>
     </html>
   );
 }
