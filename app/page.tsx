@@ -119,7 +119,7 @@ export default function Home() {
           <div className="br-product-window">
             <header>
               <span className="br-window-brand"><i /> CRIADOR</span>
-              <span className="br-credit-pill">23 créditos</span>
+              <span className="br-credit-pill">20 créditos</span>
             </header>
             <div className="br-product-body">
               <small>O QUE VOCÊ QUER CRIAR?</small>
@@ -301,7 +301,7 @@ export default function Home() {
         <div className="br-access-copy">
           <div className="br-section-tag">SEU PRIMEIRO PLAY COMEÇA AQUI</div>
           <h2>Entre com uma ideia.<br /><em>Saia com música.</em></h2>
-          <p>O acesso reúne plataforma, créditos de criação e tutorial integrado. Confira a condição disponível hoje e comece pelo seu primeiro projeto.</p>
+          <p>Entre na plataforma, aprenda no próprio fluxo e comece com saldo para criar 20 músicas completas.</p>
           <div className="br-access-includes">
             <span><Check /> Criador visual sem prompt</span>
             <span><Check /> Duas versões por rodada</span>
@@ -309,8 +309,13 @@ export default function Home() {
             <span><Check /> Criação de capa</span>
             <span><Check /> Tutorial integrado à experiência</span>
           </div>
-          <a href="/checkout" className="br-button br-button-light" data-track="checkout_cta">Ver condição de acesso <Arrow /></a>
-          <small>Pagamento por Pix • acesso online • experiência para iniciantes</small>
+          <div className="br-access-price">
+            <small>ACESSO + 20 MÚSICAS</small>
+            <strong>R$49,97</strong>
+            <span>pagamento único via Pix</span>
+          </div>
+          <a href="/checkout" className="br-button br-button-light" data-track="checkout_cta">Começar com 20 músicas <Arrow /></a>
+          <small>Sem assinatura obrigatória • recargas opcionais dentro da plataforma</small>
         </div>
         <div className="br-access-art">
           <img src="/kit-lancamento.webp" alt="Música, capa e materiais de lançamento reunidos" />

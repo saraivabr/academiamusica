@@ -94,13 +94,13 @@ export default function MemberNav() {
         </section>
       ) : null}
 
-      <section className="academy-wallet" aria-label="Saldo de criação">
+      <Link className="academy-wallet" href="/biblioteca/creditos" aria-label="Saldo de criação e recarga">
         <div>
           <small>SEU SALDO</small>
           <b>{remainingSongs ?? "—"} créditos</b>
         </div>
-        <span title="A recarga Pix será ativada após a definição dos pacotes">PIX</span>
-      </section>
+        <span>＋ PIX</span>
+      </Link>
 
       <Link className="academy-course-link" href="/academia/comecar">
         <span>▤</span>

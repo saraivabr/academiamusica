@@ -6,6 +6,7 @@ import {
   META_PIXEL_ID,
   trackMetaEvent,
 } from "../lib/metaPixel";
+import { STARTER_PRODUCT } from "../lib/musicProducts";
 
 type Consent = "granted" | "denied" | null;
 
@@ -43,9 +44,9 @@ function initializePixel() {
   window.fbq("track", "PageView");
   if (window.location.pathname.startsWith("/checkout")) {
     trackMetaEvent("ViewContent", {
-      content_name: "Academia Música IA",
+      content_name: STARTER_PRODUCT.name,
       content_type: "product",
-      value: 197,
+      value: STARTER_PRODUCT.priceCents / 100,
       currency: "BRL",
     });
   }

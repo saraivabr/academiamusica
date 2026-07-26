@@ -21,7 +21,7 @@ export default function Checkout() {
             <span>✓ 7 dias de garantia</span>
             <span>✓ Criador visual</span>
             <span>✓ Tutorial integrado</span>
-            <span>✓ 25 músicas incluídas</span>
+            <span>✓ 20 músicas incluídas</span>
           </div>
           <div className="checkout-help">
             <small>FICOU COM ALGUMA DÚVIDA?</small>

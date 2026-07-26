@@ -1871,6 +1871,504 @@
   letter-spacing: .08em;
 }
 
+.academy-wallet:hover {
+  border-color: #3e5b48;
+  background: #191f1b;
+}
+
+/* SaraivaOS — escada de créditos */
+.credits-hero {
+  display: grid;
+  grid-template-columns: minmax(230px, .55fr) 1fr;
+  align-items: center;
+  min-height: 290px;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 16% 55%, rgba(30, 215, 96, .28), transparent 28%),
+    linear-gradient(125deg, #12311d 0%, #171717 48%, #101010 100%);
+}
+
+.credits-hero > div {
+  padding: 42px;
+}
+
+.credits-hero > div:first-child {
+  min-height: 290px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid rgba(255, 255, 255, .1);
+}
+
+.credits-hero small,
+.credit-section header small,
+.credit-checkout header small,
+.credit-success > small,
+.credit-payment > small {
+  color: var(--stream-green);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .16em;
+}
+
+.credits-hero strong {
+  margin-top: 8px;
+  color: #fff;
+  font-size: clamp(76px, 9vw, 128px);
+  line-height: .9;
+  letter-spacing: -.08em;
+}
+
+.credits-hero span {
+  margin-top: 12px;
+  color: #b3b3b3;
+  font-size: 13px;
+}
+
+.credits-hero h2 {
+  margin: 0 0 14px;
+  font-size: clamp(34px, 4vw, 58px);
+  line-height: 1;
+  letter-spacing: -.055em;
+}
+
+.credits-hero p {
+  max-width: 590px;
+  margin: 0;
+  color: #b3b3b3;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.credit-section {
+  padding: 58px 0 12px;
+}
+
+.credit-section > header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  margin-bottom: 22px;
+}
+
+.credit-section > header small {
+  grid-column: 1 / -1;
+}
+
+.credit-section > header h2 {
+  margin: 8px 0 0;
+  font-size: clamp(29px, 3vw, 42px);
+  letter-spacing: -.045em;
+}
+
+.credit-section > header p {
+  margin: 0 0 6px;
+  color: #8f8f8f;
+  font-size: 12px;
+}
+
+.credit-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.credit-product-grid > article,
+.credit-product-grid > aside {
+  position: relative;
+  min-height: 330px;
+  padding: 28px;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  background: #181818;
+  transition: border-color .18s ease, transform .18s ease, background .18s ease;
+}
+
+.credit-product-grid > article:hover,
+.credit-product-grid > article.selected {
+  border-color: var(--stream-green);
+  background: #1d221f;
+  transform: translateY(-3px);
+}
+
+.credit-product-grid article > em {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: rgba(30, 215, 96, .12);
+  color: var(--stream-green);
+  font-size: 7px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+.credit-product-grid article > small {
+  color: #9a9a9a;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.credit-product-grid h3 {
+  margin: 32px 0 10px;
+  font-size: 21px;
+  letter-spacing: -.025em;
+}
+
+.credit-product-grid h3 strong {
+  display: block;
+  color: #fff;
+  font-size: 54px;
+  line-height: .9;
+  letter-spacing: -.065em;
+}
+
+.credit-product-grid article > p {
+  min-height: 42px;
+  color: #969696;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.credit-product-grid article > b {
+  display: block;
+  margin-top: 24px;
+  color: #fff;
+  font-size: 27px;
+  letter-spacing: -.04em;
+}
+
+.credit-product-grid article > b i {
+  color: #999;
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+.credit-product-grid article > span {
+  display: block;
+  margin-top: 4px;
+  color: #777;
+  font-size: 9px;
+}
+
+.credit-product-grid article > button,
+.credit-confirm,
+.credit-payment > button,
+.credit-payment > a,
+.credit-success > a {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--stream-green);
+  color: #061008;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.credit-product-grid.subscription {
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+}
+
+.credit-product-grid.subscription > article {
+  background:
+    radial-gradient(circle at 90% 0, rgba(30, 215, 96, .16), transparent 37%),
+    #181818;
+}
+
+.credit-product-grid > aside {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.credit-product-grid > aside > b {
+  margin-bottom: 18px;
+  font-size: 18px;
+}
+
+.credit-product-grid > aside > p {
+  margin: 0;
+  padding: 12px 0;
+  border-top: 1px solid #303030;
+  color: #aaa;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.credit-checkout {
+  scroll-margin-top: 24px;
+  margin: 58px 0 28px;
+  border: 1px solid #343434;
+  border-radius: 14px;
+  background: #181818;
+}
+
+.credit-checkout > form,
+.credit-payment,
+.credit-success {
+  max-width: 780px;
+  margin: auto;
+  padding: 42px;
+}
+
+.credit-checkout form > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 22px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #303030;
+}
+
+.credit-checkout header h2 {
+  margin: 7px 0 0;
+  font-size: 25px;
+}
+
+.credit-checkout header > strong {
+  white-space: nowrap;
+  font-size: 31px;
+  letter-spacing: -.04em;
+}
+
+.credit-unit-price {
+  margin: 12px 0 22px;
+  color: #7e7e7e;
+  font-size: 10px;
+  text-align: right;
+}
+
+.subscription-explainer {
+  margin: 24px 0 18px;
+  padding: 15px;
+  border-left: 3px solid var(--stream-green);
+  background: rgba(30, 215, 96, .07);
+  color: #b9b9b9;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.subscription-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.subscription-fields label {
+  color: #aaa;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.subscription-fields label.wide {
+  grid-column: 1 / -1;
+}
+
+.subscription-fields label small {
+  color: #777;
+  font-weight: 500;
+}
+
+.subscription-fields input {
+  display: block;
+  width: 100%;
+  margin-top: 7px;
+  padding: 13px 14px;
+  border: 1px solid #393939;
+  border-radius: 7px;
+  outline: 0;
+  background: #101010;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+}
+
+.subscription-fields input:focus {
+  border-color: var(--stream-green);
+}
+
+.credit-terms {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 10px;
+  align-items: start;
+  margin-top: 24px;
+  color: #aaa;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.credit-terms input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--stream-green);
+}
+
+.credit-terms a {
+  color: var(--stream-green);
+  text-decoration: underline;
+}
+
+.credit-confirm:disabled {
+  background: #344139;
+  color: #8f9a92;
+  cursor: wait;
+}
+
+.credit-change {
+  display: block;
+  margin: 15px auto 0;
+  border: 0;
+  background: transparent;
+  color: #8c8c8c;
+  font: inherit;
+  font-size: 9px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.credit-payment,
+.credit-success {
+  text-align: center;
+}
+
+.credit-payment h2,
+.credit-success h2 {
+  margin: 10px 0 8px;
+  font-size: 34px;
+}
+
+.credit-payment > strong {
+  display: block;
+  margin: 18px 0;
+  font-size: 42px;
+  letter-spacing: -.05em;
+}
+
+.credit-payment > img {
+  display: block;
+  width: 210px;
+  height: 210px;
+  margin: 0 auto;
+  border-radius: 12px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.credit-payment > a {
+  color: #061008;
+}
+
+.credit-payment > p {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  align-items: center;
+  margin-top: 20px;
+  color: #aaa;
+  font-size: 10px;
+}
+
+.credit-payment > p i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--stream-green);
+  box-shadow: 0 0 0 5px rgba(30, 215, 96, .12);
+}
+
+.credit-payment > small:last-child {
+  color: #6f6f6f;
+  font-size: 8px;
+}
+
+.credit-success > span {
+  display: grid;
+  width: 70px;
+  height: 70px;
+  place-items: center;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  background: var(--stream-green);
+  color: #061008;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.credit-success > p {
+  color: #aaa;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.credit-success > a {
+  max-width: 320px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .credits-hero,
+  .credit-product-grid,
+  .credit-product-grid.subscription {
+    grid-template-columns: 1fr;
+  }
+
+  .credits-hero > div:first-child {
+    min-height: 210px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .1);
+  }
+
+  .credit-section > header {
+    display: block;
+  }
+
+  .credit-section > header p {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 600px) {
+  .credits-hero > div,
+  .credit-checkout > form,
+  .credit-payment,
+  .credit-success {
+    padding: 28px 20px;
+  }
+
+  .subscription-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .subscription-fields label.wide {
+    grid-column: auto;
+  }
+
+  .credit-checkout form > header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .credit-unit-price {
+    text-align: left;
+  }
+}
+
 .academy-course-link {
   display: grid;
   grid-template-columns: 30px 1fr auto;

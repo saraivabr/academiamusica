@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { activateMemberAccess, CHECKOUT_API } from "../lib/access";
 import { hasMetaConsent, trackMetaEvent } from "../lib/metaPixel";
+import { STARTER_PRODUCT } from "../lib/musicProducts";
 
 export default function PurchaseConfirmation() {
   const [state, setState] = useState<"checking" | "paid" | "paid-access-error" | "pending" | "invalid">("checking");
@@ -35,9 +36,9 @@ export default function PurchaseConfirmation() {
             trackMetaEvent(
               "Purchase",
               {
-                content_name: "Academia Música IA",
+                content_name: STARTER_PRODUCT.name,
                 content_type: "product",
-                value: 197,
+                value: STARTER_PRODUCT.priceCents / 100,
                 currency: "BRL",
               },
               `purchase_${orderId}`,
@@ -72,5 +73,5 @@ export default function PurchaseConfirmation() {
     return <main className="status-page narrow"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO</div><h1>Sua compra está segura.</h1><p>Confirmamos o pedido <strong>{orderId}</strong>, mas não conseguimos autorizar este dispositivo automaticamente. Use esse código na página de entrada ou fale com o suporte.</p><div className="status-actions"><a className="portal-button" href={`/login/?pedido=${encodeURIComponent(orderId)}`}>Liberar meu acesso</a><a className="portal-button ghost" href="/suporte/">Falar com suporte</a></div></main>;
   }
 
-  return <main className="status-page"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO • PLATAFORMA LIBERADA</div><h1>Sua primeira música começa com uma ideia.</h1><p>Seu dispositivo está autorizado e seus 25 créditos foram liberados. Guarde o código <strong>{orderId}</strong> para entrar novamente em outro aparelho.</p><div className="next-steps"><article><span>01</span><h2>Crie sua música</h2><p>Escolha história, emoção, ritmo e voz. A plataforma entrega duas versões para comparar.</p><a href="/biblioteca/gerador/">Abrir o criador →</a></article><article><span>02</span><h2>Siga o tutorial</h2><p>Aprenda dentro da plataforma enquanto transforma a favorita em lançamento.</p><a href="/academia/comecar/">Abrir tutorial →</a></article><article><span>03</span><h2>Precisa de ajuda?</h2><p>Nosso atendimento pode orientar seus primeiros passos.</p><a href="/suporte/">Falar com o suporte →</a></article></div></main>;
+  return <main className="status-page"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO • PLATAFORMA LIBERADA</div><h1>Sua primeira música começa com uma ideia.</h1><p>Seu dispositivo está autorizado e seus 20 créditos foram liberados. Guarde o código <strong>{orderId}</strong> para entrar novamente em outro aparelho.</p><div className="next-steps"><article><span>01</span><h2>Crie sua música</h2><p>Escolha história, emoção, ritmo e voz. A plataforma entrega duas versões para comparar.</p><a href="/biblioteca/gerador/">Abrir o criador →</a></article><article><span>02</span><h2>Siga o tutorial</h2><p>Aprenda dentro da plataforma enquanto transforma a favorita em lançamento.</p><a href="/academia/comecar/">Abrir tutorial →</a></article><article><span>03</span><h2>Precisa de ajuda?</h2><p>Nosso atendimento pode orientar seus primeiros passos.</p><a href="/suporte/">Falar com o suporte →</a></article></div></main>;
 }

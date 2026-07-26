@@ -224,6 +224,7 @@
 .br-access{display:grid;grid-template-columns:.9fr 1.1fr;gap:80px;align-items:center;background:var(--blue)}
 .br-access .br-section-tag{color:var(--lime)}.br-access-copy>p{max-width:540px;color:#d2daff;font-size:13px;line-height:1.75}
 .br-access-includes{margin:28px 0;display:grid;gap:11px}.br-access-includes span{font-size:11px}.br-access-includes span>span{color:var(--lime);margin-right:8px}
+.br-access-price{position:relative;display:flex;align-items:end;gap:14px;margin:44px 0 24px}.br-access-price small,.br-access-price span{font-size:8px;color:#c7d2ff}.br-access-price small{position:absolute;transform:translateY(-45px);letter-spacing:.13em;font-weight:900;color:var(--lime)}.br-access-price strong{font-size:45px;line-height:1;letter-spacing:-.06em}.br-access-price span{padding-bottom:5px}
 .br-access-copy>small{display:block;margin-top:13px;color:#b9c4ff;font-size:8px}.br-access-art{position:relative;min-height:600px}
 .br-access-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 35px 70px rgba(0,0,0,.28))}
 .br-access-art>span{position:absolute;left:50%;bottom:15px;padding:13px 19px;border:1px solid rgba(255,255,255,.25);border-radius:999px;background:rgba(16,33,80,.65);backdrop-filter:blur(12px);transform:translateX(-50%);white-space:nowrap;font-size:8px;font-weight:900;letter-spacing:.12em}

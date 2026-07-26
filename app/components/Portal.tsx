@@ -61,6 +61,7 @@ export function AcademyShell({
         <Link href="/academia"><span>INÍCIO</span></Link>
         <Link href="/biblioteca/gerador"><span>CRIAR</span></Link>
         <Link href="/biblioteca"><span>MÚSICAS</span></Link>
+        <Link href="/biblioteca/creditos"><span>CRÉDITOS</span></Link>
         <Link href="/academia/comecar"><span>TUTORIAL</span></Link>
       </nav>
     </div>

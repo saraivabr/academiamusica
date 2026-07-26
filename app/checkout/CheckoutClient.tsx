@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { CHECKOUT_API } from "../lib/access";
 import { getAnalyticsContext, trackEvent } from "../lib/analytics";
 import { trackMetaEvent } from "../lib/metaPixel";
+import { formatProductPrice, STARTER_PRODUCT } from "../lib/musicProducts";
 
 type Order = {
   id: string;
@@ -15,15 +16,8 @@ type Order = {
   expiresAt?: string;
 };
 
-function formatPrice(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value / 100);
-}
-
 function getIdempotencyKey() {
-  const storageKey = "academia-musica-checkout-key";
+  const storageKey = `academia-musica-checkout-key-${STARTER_PRODUCT.id}`;
   const stored = window.sessionStorage.getItem(storageKey);
   if (stored) return stored;
   const key = crypto.randomUUID().replaceAll("-", "");
@@ -82,7 +76,9 @@ export default function CheckoutClient() {
         setOrder(data.order);
 
         if (data.order.status === "PAID") {
-          window.sessionStorage.removeItem("academia-musica-checkout-key");
+          window.sessionStorage.removeItem(
+            `academia-musica-checkout-key-${STARTER_PRODUCT.id}`,
+          );
           window.location.assign(`/obrigado?pedido=${encodeURIComponent(data.order.id)}`);
           return;
         }
@@ -123,9 +119,9 @@ export default function CheckoutClient() {
     setError("");
     trackEvent("checkout_started");
     trackMetaEvent("InitiateCheckout", {
-      content_name: "Academia Música IA",
+      content_name: STARTER_PRODUCT.name,
       content_type: "product",
-      value: 197,
+      value: STARTER_PRODUCT.priceCents / 100,
       currency: "BRL",
     });
     try {
@@ -138,6 +134,7 @@ export default function CheckoutClient() {
           email,
           phone,
           acceptedTerms,
+          productId: STARTER_PRODUCT.id,
           idempotencyKey: getIdempotencyKey(),
           ...analytics,
         }),
@@ -148,8 +145,8 @@ export default function CheckoutClient() {
       }
       setOrder(data.order);
       trackMetaEvent("AddPaymentInfo", {
-        content_name: "Academia Música IA",
-        value: 197,
+        content_name: STARTER_PRODUCT.name,
+        value: STARTER_PRODUCT.priceCents / 100,
         currency: "BRL",
       });
     } catch (requestError) {
@@ -179,7 +176,7 @@ export default function CheckoutClient() {
         {order.qrCodeImage ? (
           <img className="pix-qr" src={order.qrCodeImage} alt="QR Code Pix da inscrição" />
         ) : null}
-        <div className="pix-price">{formatPrice(order.value)}</div>
+        <div className="pix-price">{formatProductPrice(order.value)}</div>
         {order.brCode ? (
           <>
             <label className="pix-code">
@@ -238,13 +235,13 @@ export default function CheckoutClient() {
       <div className="order-includes">
         <p><b>✓</b> Acesso permanente à plataforma</p>
         <p><b>✓</b> Criador visual sem prompt</p>
-        <p><b>✓</b> 25 músicas incluídas para criar e baixar</p>
+        <p><b>✓</b> 20 músicas incluídas para criar e baixar</p>
         <p><b>✓</b> Capa e tutorial de lançamento integrados</p>
         <p><b>✓</b> Biblioteca pessoal com player e download</p>
       </div>
       <div className="order-price">
         <span>Pagamento único</span>
-        <strong><small>R$</small>197</strong>
+        <strong><small>R$</small>49,97</strong>
         <em>via Pix • sem renovação automática</em>
       </div>
       <form className="checkout-form" onSubmit={createOrder}>
@@ -300,7 +297,7 @@ export default function CheckoutClient() {
         </label>
         {error ? <p className="checkout-error">{error}</p> : null}
         <button className="checkout-primary" disabled={loading}>
-          {loading ? "Gerando seu Pix…" : "Entrar na plataforma + 25 músicas • R$197"}
+          {loading ? "Gerando seu Pix…" : "Entrar na plataforma + 20 músicas • R$49,97"}
         </button>
       </form>
       <small className="payment-note">

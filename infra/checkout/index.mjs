@@ -5,6 +5,8 @@ import {
   GetItemCommand,
   PutItemCommand,
   QueryCommand,
+  TransactionCanceledException,
+  TransactWriteItemsCommand,
   UpdateItemCommand,
 } from "@aws-sdk/client-dynamodb";
 import {
@@ -29,16 +31,12 @@ const ssm = new SSMClient({});
 const TABLE_NAME = process.env.TABLE_NAME;
 const EVENTS_TABLE_NAME = process.env.EVENTS_TABLE_NAME;
 const SITE_ORIGIN = process.env.SITE_ORIGIN ?? "https://musicacom.ia.br";
-const PRICE_CENTS = Number(process.env.PRICE_CENTS ?? "19700");
-const PRODUCT_NAME = "Academia Música IA";
 const WOOVI_BASE_URL = "https://api.woovi.com/api/v1";
 const SUNO_BASE_URL = "https://api.sunoapi.org/api/v1";
 const PUBLIC_API_URL = process.env.PUBLIC_API_URL;
 const MUSIC_TRACKS_INCLUDED = Number(process.env.MUSIC_TRACKS_INCLUDED ?? "25");
 const MUSIC_TRACKS_PER_GENERATION = 2;
-const MUSIC_GENERATION_LIMIT = Math.ceil(
-  MUSIC_TRACKS_INCLUDED / MUSIC_TRACKS_PER_GENERATION,
-);
+const MAX_LIBRARY_GENERATIONS = 100;
 const MUSIC_CONVERSATION_ENABLED = process.env.MUSIC_CONVERSATION_ENABLED !== "false";
 const MUSIC_CONVERSATION_MODEL = process.env.MUSIC_CONVERSATION_MODEL
   ?? "us.amazon.nova-2-lite-v1:0";
@@ -52,6 +50,44 @@ const MUSIC_COVER_DAILY_LIMIT = 10;
 const MUSIC_CONVERSATION_TOOL = "deliver_music_plan";
 const SUNO_GENERATION_COST_ESTIMATE = 12;
 const MUSIC_MODEL = "V5";
+const MUSIC_PRODUCTS = Object.freeze({
+  starter_20: Object.freeze({
+    id: "starter_20",
+    name: "Acesso Academia Música IA + 20 músicas",
+    type: "starter",
+    value: 4_997,
+    credits: 20,
+  }),
+  recharge_20: Object.freeze({
+    id: "recharge_20",
+    name: "Recarga Essencial — 20 músicas",
+    type: "recharge",
+    value: 4_997,
+    credits: 20,
+  }),
+  recharge_50: Object.freeze({
+    id: "recharge_50",
+    name: "Recarga Criador — 50 músicas",
+    type: "recharge",
+    value: 10_997,
+    credits: 50,
+  }),
+  recharge_100: Object.freeze({
+    id: "recharge_100",
+    name: "Recarga Estúdio — 100 músicas",
+    type: "recharge",
+    value: 19_997,
+    credits: 100,
+  }),
+  club_60: Object.freeze({
+    id: "club_60",
+    name: "Clube Criador — 60 músicas por mês",
+    type: "subscription",
+    value: 9_997,
+    credits: 60,
+  }),
+});
+const STARTER_PRODUCT = MUSIC_PRODUCTS.starter_20;
 const COVER_GENRE_VISUALS = {
   sertanejo: "Brazilian sertanejo visual language, warm sunset, open horizon, wood and amber stage light, emotional and contemporary",
   forro: "Brazilian forro visual language, Northeastern warmth, handcrafted paper textures, festive color and rhythmic geometric shapes",
@@ -144,6 +180,45 @@ function normalizeName(value) {
 function normalizePhone(value) {
   const phone = String(value ?? "").replace(/\D/g, "");
   return phone.length >= 10 && phone.length <= 15 ? phone : null;
+}
+
+function normalizeTaxId(value) {
+  const taxId = String(value ?? "").replace(/\D/g, "");
+  if (taxId.length !== 11) return null;
+  if (/^(\d)\1{10}$/.test(taxId)) return null;
+  let sum = 0;
+  for (let index = 0; index < 9; index += 1) sum += Number(taxId[index]) * (10 - index);
+  let digit = (sum * 10) % 11;
+  if (digit === 10) digit = 0;
+  if (digit !== Number(taxId[9])) return null;
+  sum = 0;
+  for (let index = 0; index < 10; index += 1) sum += Number(taxId[index]) * (11 - index);
+  digit = (sum * 10) % 11;
+  if (digit === 10) digit = 0;
+  return digit === Number(taxId[10]) ? taxId : null;
+}
+
+function normalizeSubscriptionAddress(body) {
+  const zipcode = String(body.zipcode ?? "").replace(/\D/g, "");
+  const state = safeString(body.state, 2).trim().toUpperCase();
+  const address = {
+    zipcode,
+    street: safeString(body.street, 120).trim(),
+    number: safeString(body.number, 20).trim(),
+    neighborhood: safeString(body.neighborhood, 80).trim(),
+    city: safeString(body.city, 80).trim(),
+    state,
+    complement: safeString(body.complement, 80).trim(),
+  };
+  if (
+    zipcode.length !== 8
+    || !address.street
+    || !address.number
+    || !address.neighborhood
+    || !address.city
+    || !/^[A-Z]{2}$/.test(state)
+  ) return null;
+  return address;
 }
 
 function safeString(value, maxLength = 500) {
@@ -366,11 +441,29 @@ function itemToOrder(item) {
   return {
     id: item.id?.S,
     status: item.status?.S,
+    productId: item.productId?.S,
+    productName: item.product?.S,
+    purchaseType: item.purchaseType?.S,
+    providerType: item.providerType?.S,
+    accountOrderId: item.accountOrderId?.S,
+    value: Number(item.value?.N ?? "0"),
+    credits: Number(item.credits?.N ?? "0"),
+    musicCreditsGranted: item.musicCreditsGranted?.N === undefined
+      ? null
+      : Number(item.musicCreditsGranted.N),
+    musicCreditsBalance: item.musicCreditsBalance?.N === undefined
+      ? null
+      : Number(item.musicCreditsBalance.N),
+    name: item.name?.S,
+    email: item.email?.S,
+    phone: item.phone?.S,
     brCode: item.brCode?.S,
     qrCodeImage: item.qrCodeImage?.S,
     paymentLinkUrl: item.paymentLinkUrl?.S,
     expiresAt: item.expiresAt?.S,
     paidAt: item.paidAt?.S,
+    subscriptionGlobalId: item.subscriptionGlobalId?.S,
+    subscriptionStatus: item.subscriptionStatus?.S,
     sessionId: item.sessionId?.S,
     source: item.source?.S,
     medium: item.medium?.S,
@@ -383,13 +476,30 @@ function publicOrder(order) {
   return {
     id: order.id,
     status: order.status,
-    value: PRICE_CENTS,
+    value: order.value || STARTER_PRODUCT.value,
+    productId: order.productId || STARTER_PRODUCT.id,
+    productName: order.productName || STARTER_PRODUCT.name,
+    purchaseType: order.purchaseType || "starter",
+    credits: order.credits || STARTER_PRODUCT.credits,
     brCode: order.brCode,
     qrCodeImage: order.qrCodeImage,
     paymentLinkUrl: order.paymentLinkUrl,
     expiresAt: order.expiresAt,
     paidAt: order.paidAt,
   };
+}
+
+function accountCreditsGranted(order) {
+  if (Number.isFinite(order.musicCreditsGranted)) return order.musicCreditsGranted;
+  return MUSIC_TRACKS_INCLUDED;
+}
+
+function accountCreditsBalance(order) {
+  if (Number.isFinite(order.musicCreditsBalance)) return order.musicCreditsBalance;
+  return Math.max(
+    0,
+    accountCreditsGranted(order) - order.sunoGenerationCount * MUSIC_TRACKS_PER_GENERATION,
+  );
 }
 
 function normalizedSessionId(value) {
@@ -709,34 +819,59 @@ async function sunoRequest(path, options = {}) {
   return data.data;
 }
 
-async function reserveSunoGeneration(orderId, accessStatus) {
+async function ensureMusicCreditBalance(order) {
+  if (Number.isFinite(order.musicCreditsBalance)) return order;
+  const initialGranted = accountCreditsGranted(order);
+  const initialBalance = accountCreditsBalance(order);
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE_NAME,
+      Key: { id: { S: order.id } },
+      UpdateExpression: "SET musicCreditsGranted = if_not_exists(musicCreditsGranted, :granted), musicCreditsBalance = if_not_exists(musicCreditsBalance, :balance)",
+      ConditionExpression: "attribute_exists(id) AND #status = :accessStatus",
+      ExpressionAttributeNames: { "#status": "status" },
+      ExpressionAttributeValues: {
+        ":granted": { N: String(initialGranted) },
+        ":balance": { N: String(initialBalance) },
+        ":accessStatus": { S: order.status },
+      },
+    }));
+  } catch (error) {
+    if (!(error instanceof ConditionalCheckFailedException)) throw error;
+  }
+  return {
+    ...order,
+    musicCreditsGranted: initialGranted,
+    musicCreditsBalance: initialBalance,
+  };
+}
+
+async function reserveSunoGeneration(inputOrder) {
+  const order = await ensureMusicCreditBalance(inputOrder);
   try {
     const result = await dynamo.send(new UpdateItemCommand({
       TableName: TABLE_NAME,
-      Key: { id: { S: orderId } },
-      UpdateExpression: "SET sunoGenerationCount = if_not_exists(sunoGenerationCount, :zero) + :one",
-      ConditionExpression: "attribute_exists(id) AND #status = :accessStatus AND (attribute_not_exists(sunoGenerationCount) OR sunoGenerationCount < :limit)",
+      Key: { id: { S: order.id } },
+      UpdateExpression: "SET sunoGenerationCount = if_not_exists(sunoGenerationCount, :zero) + :one, musicCreditsBalance = musicCreditsBalance - :tracks",
+      ConditionExpression: "attribute_exists(id) AND #status = :accessStatus AND musicCreditsBalance >= :tracks",
       ExpressionAttributeNames: { "#status": "status" },
       ExpressionAttributeValues: {
         ":zero": { N: "0" },
         ":one": { N: "1" },
-        ":limit": { N: String(MUSIC_GENERATION_LIMIT) },
-        ":accessStatus": { S: accessStatus },
+        ":tracks": { N: String(MUSIC_TRACKS_PER_GENERATION) },
+        ":accessStatus": { S: order.status },
       },
       ReturnValues: "UPDATED_NEW",
     }));
-    return Number(result.Attributes?.sunoGenerationCount?.N ?? "0");
+    return Number(result.Attributes?.musicCreditsBalance?.N ?? "0");
   } catch (error) {
     if (error instanceof ConditionalCheckFailedException) return null;
     throw error;
   }
 }
 
-function remainingMusicTracks(generationCount) {
-  return Math.max(
-    0,
-    MUSIC_TRACKS_INCLUDED - generationCount * MUSIC_TRACKS_PER_GENERATION,
-  );
+function remainingMusicTracks(order) {
+  return accountCreditsBalance(order);
 }
 
 function conversationSystemPrompt({ mode, currentPlan, availableStyles, userTurnCount }) {
@@ -829,7 +964,7 @@ async function createMusicConversation(event) {
   const mode = body.mode === "refine" ? "refine" : "create";
   const currentPlan = normalizeMusicPlan(body.plan);
   const userTurnCount = messages.filter((item) => item.role === "user").length;
-  const remainingSongs = remainingMusicTracks(order.sunoGenerationCount);
+  const remainingSongs = remainingMusicTracks(order);
   if (!(await reserveConversationTurn(order.id))) {
     return response(429, {
       error: "Você chegou ao limite de conversas de hoje. Suas músicas e seu saldo continuam seguros.",
@@ -920,10 +1055,11 @@ async function releaseSunoGeneration(orderId) {
     await dynamo.send(new UpdateItemCommand({
       TableName: TABLE_NAME,
       Key: { id: { S: orderId } },
-      UpdateExpression: "ADD sunoGenerationCount :minusOne",
+      UpdateExpression: "ADD sunoGenerationCount :minusOne, musicCreditsBalance :tracks",
       ConditionExpression: "sunoGenerationCount > :zero",
       ExpressionAttributeValues: {
         ":minusOne": { N: "-1" },
+        ":tracks": { N: String(MUSIC_TRACKS_PER_GENERATION) },
         ":zero": { N: "0" },
       },
     }));
@@ -997,8 +1133,8 @@ async function listSunoTasks(orderId) {
     }));
     tasks.push(...(result.Items ?? []));
     cursor = result.LastEvaluatedKey;
-  } while (cursor && tasks.length < MUSIC_GENERATION_LIMIT);
-  return tasks.slice(0, MUSIC_GENERATION_LIMIT);
+  } while (cursor && tasks.length < MAX_LIBRARY_GENERATIONS);
+  return tasks.slice(0, MAX_LIBRARY_GENERATIONS);
 }
 
 function musicCoverId(orderId, trackId) {
@@ -1631,8 +1767,8 @@ async function getMusicLibrary(event) {
 
   return response(200, {
     generations: generationsWithCovers,
-    remainingSongs: remainingMusicTracks(order.sunoGenerationCount),
-    includedSongs: MUSIC_TRACKS_INCLUDED,
+    remainingSongs: remainingMusicTracks(order),
+    includedSongs: accountCreditsGranted(order),
   });
 }
 
@@ -1672,8 +1808,8 @@ async function getSunoCredits(event) {
   return response(200, {
     available: Number(credits) >= SUNO_GENERATION_COST_ESTIMATE,
     conversationAvailable: MUSIC_CONVERSATION_ENABLED,
-    remainingSongs: remainingMusicTracks(order.sunoGenerationCount),
-    includedSongs: MUSIC_TRACKS_INCLUDED,
+    remainingSongs: remainingMusicTracks(order),
+    includedSongs: accountCreditsGranted(order),
     songsPerGeneration: MUSIC_TRACKS_PER_GENERATION,
   });
 }
@@ -1699,10 +1835,10 @@ async function createSunoGeneration(event) {
     throw new Error("Music callback URL is unavailable");
   }
 
-  const generationCount = await reserveSunoGeneration(order.id, order.status);
-  if (generationCount === null) {
+  const remainingSongs = await reserveSunoGeneration(order);
+  if (remainingSongs === null) {
     return response(429, {
-      error: `Este acesso já utilizou as ${MUSIC_TRACKS_INCLUDED} músicas incluídas.`,
+      error: "Seu saldo acabou. Faça uma recarga para continuar criando.",
     });
   }
 
@@ -1744,8 +1880,8 @@ async function createSunoGeneration(event) {
     status: "PENDING",
     conversationId,
     mode,
-    remainingSongs: remainingMusicTracks(generationCount),
-    includedSongs: MUSIC_TRACKS_INCLUDED,
+    remainingSongs,
+    includedSongs: accountCreditsGranted(order),
   });
 }
 
@@ -1787,7 +1923,7 @@ async function getSunoGeneration(event, taskId) {
     tracks,
     error: errorMessage || null,
     remainingSongs: refunded
-      ? remainingMusicTracks(Math.max(0, order.sunoGenerationCount - 1))
+      ? accountCreditsBalance(order) + MUSIC_TRACKS_PER_GENERATION
       : undefined,
   });
 }
@@ -1829,10 +1965,15 @@ async function findOrder(id) {
   return itemToOrder(result.Item);
 }
 
-function chargeToOrder(id, charge) {
+function chargeToOrder(id, charge, product, purchaseType = product.type) {
   return {
     id,
     status: charge.status === "COMPLETED" ? "PAID" : "AWAITING_PAYMENT",
+    value: product.value,
+    productId: product.id,
+    productName: product.name,
+    purchaseType,
+    credits: product.credits,
     brCode: charge.brCode || charge.paymentMethods?.pix?.brCode,
     qrCodeImage: charge.qrCodeImage || charge.paymentMethods?.pix?.qrCodeImage,
     paymentLinkUrl: charge.paymentLinkUrl,
@@ -1841,7 +1982,24 @@ function chargeToOrder(id, charge) {
   };
 }
 
-async function saveCharge(order) {
+function subscriptionToOrder(id, subscription, product) {
+  const approved = subscription.pixRecurring?.status === "APPROVED";
+  return {
+    id,
+    status: approved ? "AWAITING_FIRST_PAYMENT" : "AWAITING_APPROVAL",
+    value: product.value,
+    productId: product.id,
+    productName: product.name,
+    purchaseType: product.type,
+    credits: product.credits,
+    brCode: subscription.pixRecurring?.emv,
+    paymentLinkUrl: subscription.paymentLinkUrl,
+    subscriptionGlobalId: subscription.globalID,
+    subscriptionStatus: subscription.pixRecurring?.status,
+  };
+}
+
+async function saveProviderCheckout(order) {
   await dynamo.send(new UpdateItemCommand({
     TableName: TABLE_NAME,
     Key: { id: { S: order.id } },
@@ -1851,6 +2009,8 @@ async function saveCharge(order) {
       "qrCodeImage = :qrCodeImage",
       "paymentLinkUrl = :paymentLinkUrl",
       "expiresAt = :expiresAt",
+      "subscriptionGlobalId = :subscriptionGlobalId",
+      "subscriptionStatus = :subscriptionStatus",
       "updatedAt = :updatedAt",
     ].join(", "),
     ExpressionAttributeNames: { "#status": "status" },
@@ -1860,7 +2020,121 @@ async function saveCharge(order) {
       ":qrCodeImage": { S: order.qrCodeImage ?? "" },
       ":paymentLinkUrl": { S: order.paymentLinkUrl ?? "" },
       ":expiresAt": { S: order.expiresAt ?? "" },
+      ":subscriptionGlobalId": { S: order.subscriptionGlobalId ?? "" },
+      ":subscriptionStatus": { S: order.subscriptionStatus ?? "" },
       ":updatedAt": { S: new Date().toISOString() },
+    },
+  }));
+}
+
+function productForId(productId, allowedTypes) {
+  const product = MUSIC_PRODUCTS[safeString(productId, 60)];
+  return product && allowedTypes.includes(product.type) ? product : null;
+}
+
+function checkoutDigest(accountOrderId, productId, idempotencyKey) {
+  return crypto
+    .createHash("sha256")
+    .update(`${accountOrderId}:${productId}:${idempotencyKey}`)
+    .digest("hex")
+    .slice(0, 28);
+}
+
+async function putCheckoutOrder({
+  orderId,
+  product,
+  accountOrderId,
+  name,
+  email,
+  phone,
+  sessionId,
+  source,
+  medium,
+  campaign,
+}) {
+  const now = new Date().toISOString();
+  try {
+    await dynamo.send(new PutItemCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        id: { S: orderId },
+        status: { S: "CREATING" },
+        productId: { S: product.id },
+        product: { S: product.name },
+        purchaseType: { S: product.type },
+        providerType: { S: product.type === "subscription" ? "SUBSCRIPTION" : "CHARGE" },
+        value: { N: String(product.value) },
+        credits: { N: String(product.credits) },
+        ...(accountOrderId ? { accountOrderId: { S: accountOrderId } } : {}),
+        name: { S: name },
+        email: { S: email },
+        ...(phone ? { phone: { S: phone } } : {}),
+        sessionId: { S: sessionId },
+        ...(source ? { source: { S: source } } : {}),
+        ...(medium ? { medium: { S: medium } } : {}),
+        ...(campaign ? { campaign: { S: campaign } } : {}),
+        ...(product.type === "starter"
+          ? {
+              musicCreditsGranted: { N: String(product.credits) },
+              musicCreditsBalance: { N: String(product.credits) },
+            }
+          : {}),
+        createdAt: { S: now },
+        updatedAt: { S: now },
+        ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 2) },
+      },
+      ConditionExpression: "attribute_not_exists(id)",
+    }));
+  } catch (error) {
+    if (!(error instanceof ConditionalCheckFailedException)) throw error;
+  }
+}
+
+async function createWooviCharge({ orderId, digest, product, name, email, phone }) {
+  let providerData;
+  try {
+    providerData = await wooviRequest("/charge", {
+      method: "POST",
+      body: JSON.stringify({
+        correlationID: orderId,
+        value: product.value,
+        comment: product.name,
+        expiresIn: 3600,
+        customer: {
+          name,
+          email,
+          ...(phone ? { phone } : {}),
+          correlationID: `customer_${digest}`,
+        },
+        additionalInfo: [
+          { key: "product", value: product.id },
+          { key: "source", value: "musicacom.ia.br" },
+        ],
+      }),
+    });
+  } catch (error) {
+    if (error.statusCode === 400) {
+      try {
+        providerData = await wooviRequest(`/charge/${encodeURIComponent(orderId)}`);
+      } catch {
+        // The original provider error is more useful below.
+      }
+    }
+    if (!providerData) throw error;
+  }
+  return providerData.charge ?? providerData;
+}
+
+async function markCheckoutCreateFailed(orderId, error) {
+  await dynamo.send(new UpdateItemCommand({
+    TableName: TABLE_NAME,
+    Key: { id: { S: orderId } },
+    UpdateExpression: "SET #status = :status, updatedAt = :updatedAt, failureReason = :reason",
+    ExpressionAttributeNames: { "#status": "status" },
+    ExpressionAttributeValues: {
+      ":status": { S: "CREATE_FAILED" },
+      ":updatedAt": { S: new Date().toISOString() },
+      ":reason": { S: safeString(error.message, 240) },
     },
   }));
 }
@@ -1876,104 +2150,49 @@ async function createCheckout(event) {
   const name = normalizeName(body.name);
   const email = normalizeEmail(body.email);
   const phone = normalizePhone(body.phone);
+  const product = productForId(body.productId || STARTER_PRODUCT.id, ["starter"]);
   const idempotencyKey = safeString(body.idempotencyKey, 100);
   const sessionId = normalizedSessionId(body.sessionId);
   const source = safeString(body.source, 100);
   const medium = safeString(body.medium, 100);
   const campaign = safeString(body.campaign, 140);
 
-  if (!name || !email || !/^[a-zA-Z0-9_-]{16,100}$/.test(idempotencyKey)) {
+  if (!product || !name || !email || !/^[a-zA-Z0-9_-]{16,100}$/.test(idempotencyKey)) {
     return response(400, { error: "Informe nome e e-mail válidos." });
   }
   if (body.acceptedTerms !== true) {
     return response(400, { error: "É necessário aceitar os termos da compra." });
   }
 
-  const digest = crypto
-    .createHash("sha256")
-    .update(idempotencyKey)
-    .digest("hex")
-    .slice(0, 28);
+  const digest = checkoutDigest("public", product.id, idempotencyKey);
   const orderId = `ami_${digest}`;
   const existing = await findOrder(orderId);
   if (existing?.paymentLinkUrl) {
     return response(200, { order: publicOrder(existing) });
   }
 
-  const now = new Date().toISOString();
+  await putCheckoutOrder({
+    orderId,
+    product,
+    name,
+    email,
+    phone,
+    sessionId,
+    source,
+    medium,
+    campaign,
+  });
+
+  let charge;
   try {
-    await dynamo.send(new PutItemCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        id: { S: orderId },
-        status: { S: "CREATING" },
-        product: { S: PRODUCT_NAME },
-        value: { N: String(PRICE_CENTS) },
-        name: { S: name },
-        email: { S: email },
-        ...(phone ? { phone: { S: phone } } : {}),
-        sessionId: { S: sessionId },
-        ...(source ? { source: { S: source } } : {}),
-        ...(medium ? { medium: { S: medium } } : {}),
-        ...(campaign ? { campaign: { S: campaign } } : {}),
-        createdAt: { S: now },
-        updatedAt: { S: now },
-        ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 2) },
-      },
-      ConditionExpression: "attribute_not_exists(id)",
-    }));
+    charge = await createWooviCharge({ orderId, digest, product, name, email, phone });
   } catch (error) {
-    if (!(error instanceof ConditionalCheckFailedException)) throw error;
+    await markCheckoutCreateFailed(orderId, error);
+    return response(502, { error: "Não foi possível gerar o Pix agora. Tente novamente." });
   }
 
-  let providerData;
-  try {
-    providerData = await wooviRequest("/charge", {
-      method: "POST",
-      body: JSON.stringify({
-        correlationID: orderId,
-        value: PRICE_CENTS,
-        comment: PRODUCT_NAME,
-        expiresIn: 3600,
-        customer: {
-          name,
-          email,
-          ...(phone ? { phone } : {}),
-          correlationID: `customer_${digest}`,
-        },
-        additionalInfo: [
-          { key: "product", value: "academia-musica-ia" },
-          { key: "source", value: "musicacom.ia.br" },
-        ],
-      }),
-    });
-  } catch (error) {
-    if (error.statusCode === 400) {
-      try {
-        providerData = await wooviRequest(`/charge/${encodeURIComponent(orderId)}`);
-      } catch {
-        // The original provider error is more useful below.
-      }
-    }
-    if (!providerData) {
-      await dynamo.send(new UpdateItemCommand({
-        TableName: TABLE_NAME,
-        Key: { id: { S: orderId } },
-        UpdateExpression: "SET #status = :status, updatedAt = :updatedAt, failureReason = :reason",
-        ExpressionAttributeNames: { "#status": "status" },
-        ExpressionAttributeValues: {
-          ":status": { S: "CREATE_FAILED" },
-          ":updatedAt": { S: new Date().toISOString() },
-          ":reason": { S: safeString(error.message, 240) },
-        },
-      }));
-      return response(502, { error: "Não foi possível gerar o Pix agora. Tente novamente." });
-    }
-  }
-
-  const charge = providerData.charge ?? providerData;
-  const order = chargeToOrder(orderId, charge);
-  await saveCharge(order);
+  const order = chargeToOrder(orderId, charge, product);
+  await saveProviderCheckout(order);
   await recordFunnelEvent({
     id: `pix_created_${orderId}`,
     name: "pix_created",
@@ -1983,13 +2202,178 @@ async function createCheckout(event) {
     medium,
     campaign,
     orderId,
-    value: PRICE_CENTS,
+    value: product.value,
+  });
+  return response(201, { order: publicOrder(order) });
+}
+
+function subscriptionMarkerId(globalId) {
+  const digest = crypto.createHash("sha256").update(globalId).digest("hex");
+  return `music_subscription_${digest}`;
+}
+
+async function rememberSubscription(subscriptionGlobalId, orderId, accountOrderId) {
+  if (!subscriptionGlobalId) return;
+  try {
+    await dynamo.send(new PutItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Item: {
+        id: { S: subscriptionMarkerId(subscriptionGlobalId) },
+        name: { S: "music_subscription_created" },
+        orderId: { S: orderId },
+        accountOrderId: { S: accountOrderId },
+        createdAt: { S: new Date().toISOString() },
+      },
+      ConditionExpression: "attribute_not_exists(id)",
+    }));
+  } catch (error) {
+    if (!(error instanceof ConditionalCheckFailedException)) throw error;
+  }
+}
+
+async function createCreditCheckout(event) {
+  const account = await authorizeMember(event);
+  if (!account) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+
+  let body;
+  try {
+    body = readBody(event);
+  } catch {
+    return response(400, { error: "Dados inválidos." });
+  }
+  const product = productForId(body.productId, ["recharge", "subscription"]);
+  const idempotencyKey = safeString(body.idempotencyKey, 100);
+  if (!product || !/^[a-zA-Z0-9_-]{16,100}$/.test(idempotencyKey)) {
+    return response(400, { error: "Escolha um pacote válido." });
+  }
+  if (body.acceptedTerms !== true) {
+    return response(400, { error: "É necessário aceitar as condições da compra." });
+  }
+
+  const phone = product.type === "subscription"
+    ? normalizePhone(body.phone)
+    : account.phone;
+  const taxId = product.type === "subscription" ? normalizeTaxId(body.taxId) : null;
+  const address = product.type === "subscription" ? normalizeSubscriptionAddress(body) : null;
+  if (product.type === "subscription" && (!phone || !taxId || !address)) {
+    return response(400, {
+      error: "Confira CPF, WhatsApp, CEP e endereço para autorizar o Pix Automático.",
+    });
+  }
+
+  const digest = checkoutDigest(account.id, product.id, idempotencyKey);
+  const orderId = `${product.type === "subscription" ? "ams" : "amr"}_${digest}`;
+  const existing = await findOrder(orderId);
+  if (existing?.paymentLinkUrl) {
+    return response(200, { order: publicOrder(existing) });
+  }
+
+  await putCheckoutOrder({
+    orderId,
+    product,
+    accountOrderId: account.id,
+    name: account.name,
+    email: account.email,
+    phone,
+    sessionId: account.sessionId,
+    source: account.source,
+    medium: account.medium,
+    campaign: account.campaign,
+  });
+
+  let order;
+  try {
+    if (product.type === "subscription") {
+      const dayGenerateCharge = Number(new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/Sao_Paulo",
+        day: "numeric",
+      }).format(new Date()));
+      const subscriptionPayload = {
+          name: product.name,
+          value: product.value,
+          customer: {
+            name: account.name,
+            email: account.email,
+            phone,
+            taxID: taxId,
+            address,
+            correlationID: `customer_${digest}`,
+          },
+          correlationID: orderId,
+          comment: "Academia Musica IA",
+          frequency: "MONTHLY",
+          type: "PIX_RECURRING",
+          pixRecurringOptions: {
+            journey: "PAYMENT_ON_APPROVAL",
+            retryPolicy: "THREE_RETRIES_7_DAYS",
+          },
+          dayGenerateCharge,
+          dayDue: 7,
+          additionalInfo: [
+            { key: "product", value: product.id },
+            { key: "credits", value: String(product.credits) },
+          ],
+      };
+      let providerData;
+      try {
+        providerData = await wooviRequest("/subscriptions", {
+          method: "POST",
+          body: JSON.stringify(subscriptionPayload),
+        });
+      } catch (error) {
+        if (error.statusCode === 400) {
+          try {
+            providerData = await wooviRequest(
+              `/subscriptions/${encodeURIComponent(orderId)}`,
+            );
+          } catch {
+            // The original provider error is more useful below.
+          }
+        }
+        if (!providerData) throw error;
+      }
+      const subscription = providerData.subscription ?? providerData;
+      order = subscriptionToOrder(orderId, subscription, product);
+      await rememberSubscription(subscription.globalID, orderId, account.id);
+    } else {
+      const charge = await createWooviCharge({
+        orderId,
+        digest,
+        product,
+        name: account.name,
+        email: account.email,
+        phone,
+      });
+      order = chargeToOrder(orderId, charge, product);
+    }
+  } catch (error) {
+    await markCheckoutCreateFailed(orderId, error);
+    return response(502, {
+      error: product.type === "subscription"
+        ? "Não foi possível preparar o Pix Automático. Revise os dados e tente novamente."
+        : "Não foi possível gerar o Pix agora. Tente novamente.",
+    });
+  }
+
+  await saveProviderCheckout(order);
+  await recordFunnelEvent({
+    id: `credit_checkout_created_${orderId}`,
+    name: product.type === "subscription"
+      ? "music_subscription_created"
+      : "music_recharge_created",
+    sessionId: account.sessionId,
+    path: "/biblioteca/creditos/",
+    source: account.source,
+    medium: account.medium,
+    campaign: account.campaign,
+    orderId,
+    value: product.value,
   });
   return response(201, { order: publicOrder(order) });
 }
 
 async function getCheckout(orderId) {
-  if (!/^ami_[a-f0-9]{28}$/.test(orderId)) {
+  if (!/^am[irs]_[a-f0-9]{28}$/.test(orderId)) {
     return response(404, { error: "Pedido não encontrado." });
   }
   const stored = await findOrder(orderId);
@@ -1999,9 +2383,35 @@ async function getCheckout(orderId) {
   }
 
   try {
+    if (stored.providerType === "SUBSCRIPTION") {
+      const providerData = await wooviRequest(`/subscriptions/${encodeURIComponent(orderId)}`);
+      const subscription = providerData.subscription ?? providerData;
+      if (Number(subscription.value) !== stored.value) {
+        return response(409, { error: "O valor da assinatura não confere." });
+      }
+      const installmentsData = await wooviRequest(
+        `/subscriptions/${encodeURIComponent(orderId)}/installments`,
+      );
+      const completed = (installmentsData.installments ?? [])
+        .filter((item) => item.status === "COMPLETED")
+        .sort((a, b) => Number(b.installmentNumber) - Number(a.installmentNumber))[0];
+      if (completed) {
+        await applySubscriptionInstallment(stored, completed);
+        const refreshed = await findOrder(orderId);
+        return response(200, { order: publicOrder(refreshed) });
+      }
+      const pendingOrder = subscriptionToOrder(
+        orderId,
+        subscription,
+        MUSIC_PRODUCTS[stored.productId],
+      );
+      await saveProviderCheckout(pendingOrder);
+      return response(200, { order: publicOrder({ ...stored, ...pendingOrder }) });
+    }
+
     const providerData = await wooviRequest(`/charge/${encodeURIComponent(orderId)}`);
     const charge = providerData.charge ?? providerData;
-    if (charge.status === "COMPLETED" && Number(charge.value) === PRICE_CENTS) {
+    if (charge.status === "COMPLETED" && Number(charge.value) === stored.value) {
       await markPaid(orderId, charge);
       return response(200, {
         order: publicOrder({ ...stored, status: "PAID", paidAt: charge.paidAt ?? new Date().toISOString() }),
@@ -2016,34 +2426,168 @@ async function getCheckout(orderId) {
 
 async function markPaid(orderId, charge) {
   const order = await findOrder(orderId);
+  if (!order) return false;
+  const paidAt = charge.paidAt ?? new Date().toISOString();
+  const transactionId = safeString(charge.transactionID || charge.identifier, 200);
   try {
-    await dynamo.send(new UpdateItemCommand({
-      TableName: TABLE_NAME,
-      Key: { id: { S: orderId } },
-      UpdateExpression: "SET #status = :paid, paidAt = :paidAt, transactionId = :transactionId, updatedAt = :updatedAt",
-      ConditionExpression: "attribute_exists(id) AND #status <> :paid",
-      ExpressionAttributeNames: { "#status": "status" },
-      ExpressionAttributeValues: {
-        ":paid": { S: "PAID" },
-        ":paidAt": { S: charge.paidAt ?? new Date().toISOString() },
-        ":transactionId": { S: safeString(charge.transactionID || charge.identifier, 200) },
-        ":updatedAt": { S: new Date().toISOString() },
-      },
-    }));
+    if (order.accountOrderId) {
+      const account = await findOrder(order.accountOrderId);
+      if (!account) throw new Error("Conta vinculada à recarga não encontrada");
+      await ensureMusicCreditBalance(account);
+      await dynamo.send(new TransactWriteItemsCommand({
+        TransactItems: [
+          {
+            Update: {
+              TableName: TABLE_NAME,
+              Key: { id: { S: orderId } },
+              UpdateExpression: "SET #status = :paid, paidAt = :paidAt, transactionId = :transactionId, creditsAppliedAt = :paidAt, updatedAt = :updatedAt",
+              ConditionExpression: "attribute_exists(id) AND #status <> :paid AND attribute_not_exists(creditsAppliedAt)",
+              ExpressionAttributeNames: { "#status": "status" },
+              ExpressionAttributeValues: {
+                ":paid": { S: "PAID" },
+                ":paidAt": { S: paidAt },
+                ":transactionId": { S: transactionId },
+                ":updatedAt": { S: new Date().toISOString() },
+              },
+            },
+          },
+          {
+            Update: {
+              TableName: TABLE_NAME,
+              Key: { id: { S: order.accountOrderId } },
+              UpdateExpression: "ADD musicCreditsGranted :credits, musicCreditsBalance :credits",
+              ConditionExpression: "attribute_exists(id) AND (#status = :paid OR #status = :owner)",
+              ExpressionAttributeNames: { "#status": "status" },
+              ExpressionAttributeValues: {
+                ":credits": { N: String(order.credits) },
+                ":paid": { S: "PAID" },
+                ":owner": { S: "OWNER" },
+              },
+            },
+          },
+        ],
+      }));
+    } else {
+      await dynamo.send(new UpdateItemCommand({
+        TableName: TABLE_NAME,
+        Key: { id: { S: orderId } },
+        UpdateExpression: "SET #status = :paid, paidAt = :paidAt, transactionId = :transactionId, updatedAt = :updatedAt",
+        ConditionExpression: "attribute_exists(id) AND #status <> :paid",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":paid": { S: "PAID" },
+          ":paidAt": { S: paidAt },
+          ":transactionId": { S: transactionId },
+          ":updatedAt": { S: new Date().toISOString() },
+        },
+      }));
+    }
   } catch (error) {
-    if (error instanceof ConditionalCheckFailedException) return false;
+    if (
+      error instanceof ConditionalCheckFailedException
+      || error instanceof TransactionCanceledException
+      || error.name === "TransactionCanceledException"
+    ) return false;
     throw error;
   }
   await recordFunnelEvent({
     id: `purchase_confirmed_${orderId}`,
     name: "purchase_confirmed",
     sessionId: order?.sessionId,
-    path: "/checkout/",
+    path: order.accountOrderId ? "/biblioteca/creditos/" : "/checkout/",
     source: order?.source,
     medium: order?.medium,
     campaign: order?.campaign,
     orderId,
-    value: PRICE_CENTS,
+    value: order.value,
+  });
+  return true;
+}
+
+async function applySubscriptionInstallment(order, installment) {
+  if (
+    !order?.accountOrderId
+    || order.purchaseType !== "subscription"
+    || Number(installment.value) !== order.value
+  ) return false;
+  const installmentId = safeString(
+    installment.globalID || installment.cobr?.identifierId,
+    240,
+  );
+  if (!installmentId) return false;
+  const account = await findOrder(order.accountOrderId);
+  if (!account) throw new Error("Conta vinculada à assinatura não encontrada");
+  await ensureMusicCreditBalance(account);
+  const eventId = `music_subscription_payment_${crypto
+    .createHash("sha256")
+    .update(installmentId)
+    .digest("hex")}`;
+  const paidAt = new Date().toISOString();
+  try {
+    await dynamo.send(new TransactWriteItemsCommand({
+      TransactItems: [
+        {
+          Put: {
+            TableName: EVENTS_TABLE_NAME,
+            Item: {
+              id: { S: eventId },
+              name: { S: "music_subscription_payment" },
+              orderId: { S: order.id },
+              accountOrderId: { S: order.accountOrderId },
+              installmentId: { S: installmentId },
+              credits: { N: String(order.credits) },
+              createdAt: { S: paidAt },
+            },
+            ConditionExpression: "attribute_not_exists(id)",
+          },
+        },
+        {
+          Update: {
+            TableName: TABLE_NAME,
+            Key: { id: { S: order.accountOrderId } },
+            UpdateExpression: "ADD musicCreditsGranted :credits, musicCreditsBalance :credits",
+            ConditionExpression: "attribute_exists(id) AND (#status = :paid OR #status = :owner)",
+            ExpressionAttributeNames: { "#status": "status" },
+            ExpressionAttributeValues: {
+              ":credits": { N: String(order.credits) },
+              ":paid": { S: "PAID" },
+              ":owner": { S: "OWNER" },
+            },
+          },
+        },
+        {
+          Update: {
+            TableName: TABLE_NAME,
+            Key: { id: { S: order.id } },
+            UpdateExpression: "SET #status = :paid, subscriptionStatus = :active, paidAt = if_not_exists(paidAt, :paidAt), lastInstallmentPaidAt = :paidAt, lastInstallmentId = :installmentId, updatedAt = :paidAt",
+            ConditionExpression: "attribute_exists(id)",
+            ExpressionAttributeNames: { "#status": "status" },
+            ExpressionAttributeValues: {
+              ":paid": { S: "PAID" },
+              ":active": { S: "ACTIVE" },
+              ":paidAt": { S: paidAt },
+              ":installmentId": { S: installmentId },
+            },
+          },
+        },
+      ],
+    }));
+  } catch (error) {
+    if (error instanceof TransactionCanceledException || error.name === "TransactionCanceledException") {
+      return false;
+    }
+    throw error;
+  }
+  await recordFunnelEvent({
+    id: `subscription_credited_${eventId.slice(-40)}`,
+    name: "music_subscription_credited",
+    sessionId: order.sessionId,
+    path: "/biblioteca/creditos/",
+    source: order.source,
+    medium: order.medium,
+    campaign: order.campaign,
+    orderId: order.id,
+    value: order.value,
   });
   return true;
 }
@@ -2064,14 +2608,39 @@ async function handleWebhook(event) {
     return response(400, { error: "Payload inválido." });
   }
 
-  const orderId = body.charge?.correlationID;
-  if (body.event !== "OPENPIX:CHARGE_COMPLETED" || !/^ami_[a-f0-9]{28}$/.test(orderId ?? "")) {
+  if (body.event === "PIX_AUTOMATIC_COBR_COMPLETED") {
+    const subscriptionGlobalId = safeString(body.paymentSubscriptionGlobalID, 240);
+    if (!subscriptionGlobalId) return response(200, { received: true });
+    const marker = await dynamo.send(new GetItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: subscriptionMarkerId(subscriptionGlobalId) } },
+      ConsistentRead: true,
+    }));
+    const subscriptionOrderId = marker.Item?.orderId?.S;
+    if (!/^ams_[a-f0-9]{28}$/.test(subscriptionOrderId ?? "")) {
+      return response(200, { received: true });
+    }
+    const order = await findOrder(subscriptionOrderId);
+    if (!order || Number(body.value) !== order.value || body.status !== "COMPLETED") {
+      return response(409, { error: "Mensalidade ainda não confirmada." });
+    }
+    await applySubscriptionInstallment(order, body);
     return response(200, { received: true });
   }
 
+  const orderId = body.charge?.correlationID;
+  if (
+    body.event !== "OPENPIX:CHARGE_COMPLETED"
+    || !/^am[ir]_[a-f0-9]{28}$/.test(orderId ?? "")
+  ) {
+    return response(200, { received: true });
+  }
+
+  const order = await findOrder(orderId);
+  if (!order) return response(200, { received: true });
   const providerData = await wooviRequest(`/charge/${encodeURIComponent(orderId)}`);
   const charge = providerData.charge ?? providerData;
-  if (charge.status !== "COMPLETED" || Number(charge.value) !== PRICE_CENTS) {
+  if (charge.status !== "COMPLETED" || Number(charge.value) !== order.value) {
     return response(409, { error: "Cobrança ainda não confirmada." });
   }
   await markPaid(orderId, charge);
@@ -2108,7 +2677,7 @@ async function claimAccess(event) {
       medium: order.medium,
       campaign: order.campaign,
       orderId,
-      value: PRICE_CENTS,
+      value: order.value || STARTER_PRODUCT.value,
     });
   }
   return response(200, {
@@ -2134,6 +2703,9 @@ export const handler = async (event) => {
     }
     if (method === "POST" && path === "/v1/events") return await ingestClientEvent(event);
     if (method === "POST" && path === "/v1/checkout") return await createCheckout(event);
+    if (method === "POST" && path === "/v1/credits/checkout") {
+      return await createCreditCheckout(event);
+    }
     if (method === "GET" && path.startsWith("/v1/checkout/")) {
       return await getCheckout(decodeURIComponent(path.slice("/v1/checkout/".length)));
     }
