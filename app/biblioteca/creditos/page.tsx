@@ -60,6 +60,8 @@ export default function CreditosPage() {
   const [selected, setSelected] = useState<MusicProduct | null>(null);
   const [order, setOrder] = useState<CreditOrder | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [billingName, setBillingName] = useState("");
+  const [billingEmail, setBillingEmail] = useState("");
   const [subscriptionForm, setSubscriptionForm] = useState(emptySubscriptionForm);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -141,6 +143,8 @@ export default function CreditosPage() {
         body: JSON.stringify({
           productId: selected.id,
           acceptedTerms,
+          name: billingName,
+          email: billingEmail,
           idempotencyKey: idempotencyKey(selected.id),
           ...(selected.type === "subscription" ? subscriptionForm : {}),
         }),
@@ -282,6 +286,11 @@ export default function CreditosPage() {
                 <strong>{formatProductPrice(selected.priceCents)}</strong>
               </header>
               <p className="credit-unit-price">{pricePerSong} por música</p>
+
+              <div className="credit-buyer-fields">
+                <label>Nome para o comprovante<input required autoComplete="name" value={billingName} onChange={(event) => setBillingName(event.target.value)} /></label>
+                <label>E-mail<input required type="email" autoComplete="email" value={billingEmail} onChange={(event) => setBillingEmail(event.target.value)} /></label>
+              </div>
 
               {selected.type === "subscription" ? (
                 <>

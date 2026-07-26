@@ -2161,13 +2161,19 @@
   line-height: 1.6;
 }
 
-.subscription-fields {
+.subscription-fields,
+.credit-buyer-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.subscription-fields label {
+.credit-buyer-fields {
+  margin: 20px 0;
+}
+
+.subscription-fields label,
+.credit-buyer-fields label {
   color: #aaa;
   font-size: 9px;
   font-weight: 800;
@@ -2182,7 +2188,8 @@
   font-weight: 500;
 }
 
-.subscription-fields input {
+.subscription-fields input,
+.credit-buyer-fields input {
   display: block;
   width: 100%;
   margin-top: 7px;
@@ -2196,7 +2203,8 @@
   font-size: 11px;
 }
 
-.subscription-fields input:focus {
+.subscription-fields input:focus,
+.credit-buyer-fields input:focus {
   border-color: var(--stream-green);
 }
 
@@ -2351,7 +2359,8 @@
     padding: 28px 20px;
   }
 
-  .subscription-fields {
+  .subscription-fields,
+  .credit-buyer-fields {
     grid-template-columns: 1fr;
   }
 

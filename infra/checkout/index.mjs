@@ -2069,7 +2069,7 @@ async function putCheckoutOrder({
         name: { S: name },
         email: { S: email },
         ...(phone ? { phone: { S: phone } } : {}),
-        sessionId: { S: sessionId },
+        sessionId: { S: normalizedSessionId(sessionId) },
         ...(source ? { source: { S: source } } : {}),
         ...(medium ? { medium: { S: medium } } : {}),
         ...(campaign ? { campaign: { S: campaign } } : {}),
@@ -2098,7 +2098,7 @@ async function createWooviCharge({ orderId, digest, product, name, email, phone 
       body: JSON.stringify({
         correlationID: orderId,
         value: product.value,
-        comment: product.name,
+        comment: `${product.credits} musicas - Academia Musica IA`,
         expiresIn: 3600,
         customer: {
           name,
@@ -2243,8 +2243,13 @@ async function createCreditCheckout(event) {
   }
   const product = productForId(body.productId, ["recharge", "subscription"]);
   const idempotencyKey = safeString(body.idempotencyKey, 100);
+  const name = normalizeName(body.name) || normalizeName(account.name);
+  const email = normalizeEmail(body.email) || normalizeEmail(account.email);
   if (!product || !/^[a-zA-Z0-9_-]{16,100}$/.test(idempotencyKey)) {
     return response(400, { error: "Escolha um pacote válido." });
+  }
+  if (!name || !email) {
+    return response(400, { error: "Informe nome e e-mail válidos para o comprovante." });
   }
   if (body.acceptedTerms !== true) {
     return response(400, { error: "É necessário aceitar as condições da compra." });
@@ -2252,7 +2257,7 @@ async function createCreditCheckout(event) {
 
   const phone = product.type === "subscription"
     ? normalizePhone(body.phone)
-    : account.phone;
+    : normalizePhone(body.phone) || account.phone;
   const taxId = product.type === "subscription" ? normalizeTaxId(body.taxId) : null;
   const address = product.type === "subscription" ? normalizeSubscriptionAddress(body) : null;
   if (product.type === "subscription" && (!phone || !taxId || !address)) {
@@ -2272,8 +2277,8 @@ async function createCreditCheckout(event) {
     orderId,
     product,
     accountOrderId: account.id,
-    name: account.name,
-    email: account.email,
+    name,
+    email,
     phone,
     sessionId: account.sessionId,
     source: account.source,
@@ -2289,11 +2294,11 @@ async function createCreditCheckout(event) {
         day: "numeric",
       }).format(new Date()));
       const subscriptionPayload = {
-          name: product.name,
+          name: `Clube Criador - ${product.credits} musicas`,
           value: product.value,
           customer: {
-            name: account.name,
-            email: account.email,
+            name,
+            email,
             phone,
             taxID: taxId,
             address,
@@ -2340,8 +2345,8 @@ async function createCreditCheckout(event) {
         orderId,
         digest,
         product,
-        name: account.name,
-        email: account.email,
+        name,
+        email,
         phone,
       });
       order = chargeToOrder(orderId, charge, product);
