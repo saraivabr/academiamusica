@@ -1,0 +1,11 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "academiamusica-image-proxy",
+  "main": "image-proxy/worker.mjs",
+  "compatibility_date": "2026-07-26",
+  "account_id": "4430ec0c20f9737f4801992dff0abbe9",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  }
+}

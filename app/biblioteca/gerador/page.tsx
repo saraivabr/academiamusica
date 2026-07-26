@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { AcademyShell } from "../../components/Portal";
 import { memberApi } from "../../lib/access";
 import { musicStyles } from "../../lib/musicStyles";
@@ -674,6 +675,14 @@ export default function Gerador() {
     Boolean(item.value) && !missingFields.includes(item.field)
   )).length;
   const planProgress = Math.round((completedPlanItems / Math.max(planItems.length, 1)) * 100);
+  const generationFailed = failedStatuses.has(generationStatus);
+  const currentStep = tracks.length ? 4 : isGenerating ? 3 : ready ? 2 : 1;
+
+  function stepClass(step: number) {
+    if (step === currentStep) return "active";
+    if (step < currentStep) return "done";
+    return "";
+  }
 
   return (
     <AcademyShell
@@ -686,12 +695,16 @@ export default function Gerador() {
           <small>VOCÊ CONTA • O PRODUTOR ORGANIZA</small>
           <h2>Crie sua música em uma conversa.</h2>
           <p>Uma escolha por vez. Você entende o que muda no resultado antes de criar.</p>
+          <div className="producer-welcome-signal">
+            <i aria-hidden="true" />
+            <span>{ready ? "Direção pronta para ganhar som" : "Sessão criativa salva neste dispositivo"}</span>
+          </div>
         </div>
         <ol aria-label="Etapas da criação">
-          <li className={!isGenerating && !tracks.length ? "active" : ""}><span>1</span><b>Converse</b></li>
-          <li className={ready && !isGenerating ? "active" : ""}><span>2</span><b>Confirme</b></li>
-          <li className={isGenerating ? "active" : ""}><span>3</span><b>Crie</b></li>
-          <li className={tracks.length ? "active" : ""}><span>4</span><b>Ouça</b></li>
+          <li className={stepClass(1)}><span>1</span><b>Converse</b></li>
+          <li className={stepClass(2)}><span>2</span><b>Confirme</b></li>
+          <li className={stepClass(3)}><span>3</span><b>Crie</b></li>
+          <li className={stepClass(4)}><span>4</span><b>Ouça</b></li>
         </ol>
       </section>
 
@@ -707,6 +720,7 @@ export default function Gerador() {
                 <h2>Produtor IA</h2>
                 <p><i /> {conversationAvailable === null ? "Abrindo o estúdio…" : "Pronto para conversar"}</p>
               </div>
+              <span className="producer-session-badge">SESSÃO SALVA</span>
               <button type="button" onClick={clearConversation} disabled={isGenerating}>
                 Nova música
               </button>
@@ -754,6 +768,9 @@ export default function Gerador() {
                           </button>
                         ) : <span>Finalizando áudio…</span>}
                         {track.audioUrl ? <a href={track.audioUrl} target="_blank" rel="noreferrer" download>Baixar ↓</a> : null}
+                        <Link className="chat-track-cover-action" href={`/biblioteca/capa?track=${encodeURIComponent(track.id)}`}>
+                          Criar capa ◇
+                        </Link>
                       </article>
                     );
                   })}
@@ -861,9 +878,14 @@ export default function Gerador() {
 
           <aside className="producer-plan">
             <header>
-              <small>SUA DIREÇÃO MUSICAL</small>
-              <h2>{ready ? "Pronta para criar" : "Construindo com você"}</h2>
-              <p>{completedPlanItems} de {planItems.length} escolhas feitas</p>
+              <div className="plan-header-copy">
+                <div>
+                  <small>SUA DIREÇÃO MUSICAL</small>
+                  <h2>{ready ? "Pronta para criar" : "Construindo com você"}</h2>
+                  <p>{completedPlanItems} de {planItems.length} escolhas feitas</p>
+                </div>
+                <strong className="plan-progress-number">{planProgress}<sup>%</sup></strong>
+              </div>
               <div
                 className="plan-progress"
                 role="progressbar"
@@ -907,7 +929,18 @@ export default function Gerador() {
               </div>
             </div>
 
-            {error ? <p className="generation-error" role="alert">{error}</p> : null}
+            {error ? (
+              <div className={`generation-error ${generationFailed ? "generation-error-recoverable" : ""}`} role="alert">
+                <div>
+                  <small>{generationFailed ? "A CRIAÇÃO PAUSOU" : "PRECISAMOS RETOMAR"}</small>
+                  <b>{generationFailed ? "Sua direção continua salva." : "O estúdio não concluiu esta ação."}</b>
+                  <p>{generationFailed
+                    ? "Nada se perdeu. Tente novamente quando quiser."
+                    : error}</p>
+                </div>
+                <button type="button" onClick={() => setError("")} aria-label="Fechar aviso">×</button>
+              </div>
+            ) : null}
 
             {ready ? (
               <>
@@ -921,7 +954,9 @@ export default function Gerador() {
                     ? statusLabel
                     : remainingSongs === 0
                       ? "Saldo concluído"
-                      : "Criar duas músicas →"}
+                      : generationFailed
+                        ? "Tentar criar novamente →"
+                        : "Criar duas músicas →"}
                 </button>
                 <button className="change-plan-button" type="button" onClick={requestChange} disabled={isGenerating}>
                   Quero mudar algo

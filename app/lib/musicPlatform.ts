@@ -8,6 +8,8 @@ export type PlatformTrack = {
   audioUrl: string;
   streamAudioUrl: string;
   imageUrl: string;
+  coverToken?: string;
+  hasCustomCover?: boolean;
 };
 
 export type PlatformGeneration = {

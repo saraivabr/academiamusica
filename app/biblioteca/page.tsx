@@ -139,6 +139,9 @@ export default function Biblioteca() {
                             Baixar música
                           </a>
                         ) : null}
+                        <Link className="saved-track-cover-action" href={`/biblioteca/capa?track=${encodeURIComponent(track.id)}`}>
+                          {track.hasCustomCover ? "Trocar capa ↻" : "Criar capa ◇"}
+                        </Link>
                       </article>
                     );
                   })}

@@ -65,6 +65,7 @@ export function AcademyShell({
       <nav className="academy-mobile-nav" aria-label="Navegação principal no celular">
         <Link href="/academia"><span>INÍCIO</span></Link>
         <Link href="/biblioteca/gerador"><span>CRIAR</span></Link>
+        <Link href="/biblioteca/capa"><span>CAPA</span></Link>
         <Link href="/biblioteca"><span>MÚSICAS</span></Link>
         <Link href="/academia/musica"><span>CURSO</span></Link>
       </nav>

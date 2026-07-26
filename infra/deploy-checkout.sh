@@ -13,6 +13,8 @@ WOOVI_PARAMETER="/academia-musica/prod/woovi/app-id"
 WEBHOOK_PARAMETER="/academia-musica/prod/woovi/webhook-secret"
 ACCESS_PARAMETER="/academia-musica/prod/access-secret"
 SUNO_API_KEY_PARAMETER="/academia-musica/prod/suno/api-key"
+IMAGE_PROXY_KEY_PARAMETER="/academia-musica/prod/image-proxy-key"
+COVERS_BUCKET="academia-musica-covers-${ACCOUNT_ID}-${AWS_REGION}"
 SITE_ORIGIN="https://musicacom.ia.br"
 
 if ! aws dynamodb describe-table --region "$AWS_REGION" --table-name "$TABLE_NAME" >/dev/null 2>&1; then
@@ -64,6 +66,27 @@ if [[ "$(aws dynamodb describe-table \
   aws dynamodb wait table-exists --region "$AWS_REGION" --table-name "$EVENTS_TABLE_NAME"
 fi
 
+if ! aws s3api head-bucket --bucket "$COVERS_BUCKET" >/dev/null 2>&1; then
+  aws s3api create-bucket \
+    --region "$AWS_REGION" \
+    --bucket "$COVERS_BUCKET" >/dev/null
+fi
+aws s3api put-public-access-block \
+  --region "$AWS_REGION" \
+  --bucket "$COVERS_BUCKET" \
+  --public-access-block-configuration \
+    BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+aws s3api put-bucket-encryption \
+  --region "$AWS_REGION" \
+  --bucket "$COVERS_BUCKET" \
+  --server-side-encryption-configuration \
+    '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+aws s3api put-bucket-lifecycle-configuration \
+  --region "$AWS_REGION" \
+  --bucket "$COVERS_BUCKET" \
+  --lifecycle-configuration \
+    '{"Rules":[{"ID":"expire-cover-jobs","Status":"Enabled","Filter":{"Prefix":"jobs/"},"Expiration":{"Days":1},"AbortIncompleteMultipartUpload":{"DaysAfterInitiation":1}}]}'
+
 TRUST_POLICY="$(mktemp)"
 PERMISSIONS_POLICY="$(mktemp)"
 PACKAGE_DIR="$(mktemp -d)"
@@ -109,7 +132,8 @@ cat >"$PERMISSIONS_POLICY" <<JSON
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${WOOVI_PARAMETER}",
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${WEBHOOK_PARAMETER}",
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${ACCESS_PARAMETER}",
-        "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${SUNO_API_KEY_PARAMETER}"
+        "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${SUNO_API_KEY_PARAMETER}",
+        "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${IMAGE_PROXY_KEY_PARAMETER}"
       ]
     },
     {
@@ -119,8 +143,22 @@ cat >"$PERMISSIONS_POLICY" <<JSON
         "arn:aws:bedrock:us-east-1:${ACCOUNT_ID}:inference-profile/us.amazon.nova-2-lite-v1:0",
         "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-2-lite-v1:0",
         "arn:aws:bedrock:us-east-2::foundation-model/amazon.nova-2-lite-v1:0",
+        "arn:aws:bedrock:us-west-2::foundation-model/amazon.nova-2-lite-v1:0",
         "arn:aws:bedrock:us-west-2::foundation-model/amazon.nova-2-lite-v1:0"
       ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Resource": [
+        "arn:aws:s3:::${COVERS_BUCKET}/covers/*",
+        "arn:aws:s3:::${COVERS_BUCKET}/jobs/*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": "arn:aws:lambda:${AWS_REGION}:${ACCOUNT_ID}:function:${FUNCTION_NAME}"
     }
   ]
 }
@@ -135,7 +173,7 @@ cp infra/checkout/index.mjs "$PACKAGE_DIR/index.mjs"
 (cd "$PACKAGE_DIR" && zip -q function.zip index.mjs)
 
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
-ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,PRICE_CENTS=19700,WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},MUSIC_TRACKS_INCLUDED=25,MUSIC_CONVERSATION_ENABLED=true,MUSIC_CONVERSATION_MODEL=us.amazon.nova-2-lite-v1:0}"
+ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},COVERS_BUCKET=${COVERS_BUCKET},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,PRICE_CENTS=19700,WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},IMAGE_PROXY_KEY_PARAMETER=${IMAGE_PROXY_KEY_PARAMETER},IMAGE_API_URL=https://academiamusica-image-proxy.fellipesaraivabarbosa.workers.dev,IMAGE_MODEL=cx/gpt-5.5,MUSIC_TRACKS_INCLUDED=25,MUSIC_CONVERSATION_ENABLED=true,MUSIC_CONVERSATION_MODEL=us.amazon.nova-2-lite-v1:0}"
 
 if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAME" >/dev/null 2>&1; then
   aws lambda wait function-active-v2 --region "$AWS_REGION" --function-name "$FUNCTION_NAME"
@@ -149,8 +187,8 @@ if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAM
     --function-name "$FUNCTION_NAME" \
     --runtime nodejs22.x \
     --handler index.handler \
-    --timeout 30 \
-    --memory-size 256 \
+    --timeout 180 \
+    --memory-size 1024 \
     --environment "$ENVIRONMENT" >/dev/null
 else
   sleep 8
@@ -159,8 +197,8 @@ else
     --function-name "$FUNCTION_NAME" \
     --runtime nodejs22.x \
     --handler index.handler \
-    --timeout 30 \
-    --memory-size 256 \
+    --timeout 180 \
+    --memory-size 1024 \
     --role "$ROLE_ARN" \
     --environment "$ENVIRONMENT" \
     --zip-file "fileb://$PACKAGE_DIR/function.zip" >/dev/null

@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { memberApi } from "../lib/access";
 import {
   academyPlayerEvent,
   academyPlayerStorageKey,
+  flattenGenerations,
   playableTrackUrl,
+  type PlatformGeneration,
   type PlayerSelection,
 } from "../lib/musicPlatform";
 
@@ -75,6 +78,33 @@ export default function AcademyPlayer() {
 
   const playableUrl = selection ? playableTrackUrl(selection.track) : "";
   const visible = pathname.startsWith("/academia") || pathname.startsWith("/biblioteca");
+
+  useEffect(() => {
+    if (!visible || selection) return;
+    let active = true;
+    memberApi("/v1/music/library")
+      .then((data) => {
+        if (!active) return;
+        const generations = Array.isArray(data.generations)
+          ? data.generations as PlatformGeneration[]
+          : [];
+        const latestTrack = flattenGenerations(generations).find((track) => playableTrackUrl(track));
+        if (!latestTrack) return;
+        const next = { track: latestTrack, context: "Sua música mais recente" };
+        setSelection(next);
+        try {
+          window.localStorage.setItem(academyPlayerStorageKey, JSON.stringify(next));
+        } catch {
+          // The latest song still appears when storage is unavailable.
+        }
+      })
+      .catch(() => {
+        // Keep the empty player available when the library cannot be loaded.
+      });
+    return () => {
+      active = false;
+    };
+  }, [selection, visible]);
 
   function togglePlayback() {
     const audio = audioRef.current;

@@ -14,6 +14,7 @@ import {
 const primaryNavigation = [
   { href: "/academia", label: "Início", marker: "⌂", exact: true },
   { href: "/biblioteca/gerador", label: "Criar música", marker: "●", featured: true },
+  { href: "/biblioteca/capa", label: "Criar capa", marker: "◇" },
   { href: "/biblioteca", label: "Minhas músicas", marker: "♪" },
 ];
 
