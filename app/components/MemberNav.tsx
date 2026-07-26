@@ -13,9 +13,10 @@ import {
 
 const primaryNavigation = [
   { href: "/academia", label: "Início", marker: "⌂", exact: true },
-  { href: "/biblioteca/gerador", label: "Criar música", marker: "●", featured: true },
-  { href: "/biblioteca/capa", label: "Criar capa", marker: "◇" },
-  { href: "/biblioteca", label: "Minhas músicas", marker: "♪" },
+  { href: "/biblioteca/estilos-brasileiros", label: "Explorar estilos", marker: "⌕" },
+  { href: "/biblioteca/gerador", label: "Criar música", marker: "＋", featured: true },
+  { href: "/biblioteca", label: "Suas músicas", marker: "♫" },
+  { href: "/biblioteca/capa", label: "Criar capa", marker: "▣" },
 ];
 
 const learningNavigation = [
@@ -78,7 +79,7 @@ export default function MemberNav() {
         <NavigationLinks items={primaryNavigation} pathname={pathname} />
       </nav>
 
-      <div className="academy-sidebar-label">APRENDER</div>
+      <div className="academy-sidebar-label">SEU PROCESSO</div>
       <nav className="member-nav member-nav-learning" aria-label="Jornada da Academia">
         <NavigationLinks items={learningNavigation} pathname={pathname} />
       </nav>
@@ -86,7 +87,7 @@ export default function MemberNav() {
       {recentTracks.length ? (
         <section className="academy-recents" aria-label="Tocadas recentemente">
           <header>
-            <small>SEU REPERTÓRIO</small>
+            <small>SUA BIBLIOTECA</small>
             <Link href="/biblioteca">Ver tudo</Link>
           </header>
           {recentTracks.map((track) => (

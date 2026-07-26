@@ -4,6 +4,7 @@ import MetaPixel from "./components/MetaPixel";
 import AcademyPlayer from "./components/AcademyPlayer";
 import "./globals.css";
 import "./experience-v2.css";
+import "./spotify-experience.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://musicacom.ia.br"),
@@ -14,24 +15,21 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   openGraph: {
-    title: "Academia Música IA — Produtor IA + 25 músicas",
+    title: "Academia Música IA — Da ideia ao play",
     description:
-      "Conte sua história por texto ou voz, confirme a direção e receba duas músicas por rodada.",
+      "Conte sua história, receba duas versões, crie a capa e prepare seu lançamento em uma única plataforma.",
     url: "https://musicacom.ia.br",
     siteName: "Academia Música IA",
     locale: "pt_BR",
     type: "website",
-    images: [{ url: "/hero-premium.webp", width: 1536, height: 1024 }],
+    images: [{ url: "https://musicacom.ia.br/og.png", width: 1730, height: 909 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Academia Música IA — Produtor IA + 25 músicas",
+    title: "Academia Música IA — Da ideia ao play",
     description:
-      "Converse, confirme e crie com 25 músicas incluídas dentro da plataforma.",
-    images: ["/hero-premium.webp"],
-  },
-  other: {
-    "codex-preview": "development",
+      "Crie música, capa e lançamento em uma jornada guiada.",
+    images: ["https://musicacom.ia.br/og.png"],
   },
   icons: {
     icon: "/favicon.svg",

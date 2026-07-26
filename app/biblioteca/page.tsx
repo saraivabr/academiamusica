@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { AcademyShell } from "../components/Portal";
 import { memberApi } from "../lib/access";
@@ -23,6 +23,13 @@ function formatDate(value: string) {
     month: "short",
     year: "numeric",
   }).format(new Date(value));
+}
+
+function formatDuration(value: number | null) {
+  if (!value) return "—";
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
 }
 
 export default function Biblioteca() {
@@ -54,29 +61,57 @@ export default function Biblioteca() {
   }, []);
 
   const trackCount = generations.reduce((total, generation) => total + generation.tracks.length, 0);
+  const rows = generations.flatMap((generation, generationIndex) => (
+    generation.tracks.map((track, trackIndex) => ({
+      generation,
+      generationIndex,
+      track,
+      trackIndex,
+    }))
+  ));
+  const featuredTrack = rows[0]?.track;
 
   return (
-    <AcademyShell title="Minhas músicas" eyebrow="OUÇA • COMPARE • BAIXE">
-      <section className="my-music-head">
-        <div>
-          <small>SUA BIBLIOTECA PESSOAL</small>
-          <h2>Tudo o que você criou,<br /><em>guardado aqui.</em></h2>
-          <p>Ouça as versões, compare com calma e baixe suas favoritas. Cada nova rodada aparece automaticamente nesta página.</p>
+    <AcademyShell title="Suas músicas" eyebrow="SUA BIBLIOTECA">
+      <section
+        className="spotify-library-hero"
+        style={featuredTrack?.imageUrl
+          ? { "--library-cover": `url("${featuredTrack.imageUrl}")` } as CSSProperties
+          : undefined}
+      >
+        <div className="spotify-library-cover">
+          {featuredTrack?.imageUrl ? null : <span>AMI</span>}
         </div>
-        <div className="music-balance-card">
-          <strong>{remainingSongs ?? "—"}</strong>
-          <span>músicas disponíveis</span>
-          <Link href="/biblioteca/gerador">Criar nova música →</Link>
+        <div>
+          <small>REPERTÓRIO</small>
+          <h2>Suas músicas</h2>
+          <p>Do primeiro rascunho ao áudio final: tudo o que você criou fica organizado aqui.</p>
+          <strong>Academia Música IA • {trackCount} músicas • {generations.length} rodadas</strong>
         </div>
       </section>
 
       <section className="music-library" aria-live="polite" aria-busy={loading}>
-        <header>
-          <div>
-            <small>SUAS CRIAÇÕES</small>
-            <h2>{loading ? "Buscando suas músicas…" : `${trackCount} ${trackCount === 1 ? "música" : "músicas"}`}</h2>
-          </div>
-          {!loading && trackCount > 0 ? <span>Mais recentes primeiro</span> : null}
+        <div className="spotify-library-actions">
+          <button
+            type="button"
+            aria-label="Tocar música mais recente"
+            disabled={!featuredTrack || !playableTrackUrl(featuredTrack)}
+            onClick={() => {
+              if (featuredTrack) playInAcademyPlayer(featuredTrack, "Seu repertório");
+            }}
+          >
+            ▶
+          </button>
+          <Link href="/biblioteca/gerador">＋ Nova música</Link>
+          <span>{remainingSongs ?? "—"} disponíveis</span>
+        </div>
+
+        <header className="spotify-track-header">
+          <span>#</span>
+          <span>TÍTULO</span>
+          <span>PROCESSO</span>
+          <span>DURAÇÃO</span>
+          <span>AÇÕES</span>
         </header>
 
         {error ? (
@@ -97,65 +132,49 @@ export default function Biblioteca() {
             <Link href="/biblioteca/gerador">Criar minhas primeiras músicas →</Link>
           </div>
         ) : (
-          <div className="music-generation-list">
-            {generations.map((generation, generationIndex) => (
-              <article className="music-generation" key={generation.taskId}>
-                <header>
-                  <div>
-                    <small>RODADA {String(generations.length - generationIndex).padStart(2, "0")}</small>
-                    <h3>{formatDate(generation.createdAt)}</h3>
+          <div className="spotify-track-list">
+            {rows.map(({ generation, generationIndex, track, trackIndex }, index) => {
+              const playableUrl = playableTrackUrl(track);
+              return (
+                <article className="spotify-track-row" key={track.id || `${generation.taskId}_${trackIndex}`}>
+                  <button
+                    type="button"
+                    className="spotify-row-play"
+                    disabled={!playableUrl}
+                    aria-label={`Ouvir ${track.title}`}
+                    onClick={() => playInAcademyPlayer(track, `Rodada ${generations.length - generationIndex}`)}
+                  >
+                    <span>{index + 1}</span><b>▶</b>
+                  </button>
+                  <div className="spotify-row-title">
+                    <i style={track.imageUrl ? { backgroundImage: `url("${track.imageUrl}")` } : {}} />
+                    <span>
+                      <b>{track.title}</b>
+                      <small>Versão {trackIndex + 1} • sua criação</small>
+                    </span>
                   </div>
-                  <span>{generation.tracks.length} versões</span>
-                </header>
-                <div className="saved-track-grid">
-                  {generation.tracks.map((track, trackIndex) => {
-                    const playableUrl = playableTrackUrl(track);
-                    return (
-                      <article className="saved-track" key={track.id || `${generation.taskId}_${trackIndex}`}>
-                        <div
-                          className="saved-track-cover"
-                          style={track.imageUrl ? { backgroundImage: `url("${track.imageUrl}")` } : {}}
-                        >
-                          <span>VERSÃO {trackIndex + 1}</span>
-                        </div>
-                        <div className="saved-track-copy">
-                          <h3>{track.title}</h3>
-                          <p>
-                            Versão {trackIndex + 1} da sua direção
-                            {track.duration ? ` • ${Math.round(track.duration)} segundos` : ""}
-                          </p>
-                        </div>
-                        {playableUrl ? (
-                          <button
-                            type="button"
-                            className="saved-track-play"
-                            onClick={() => playInAcademyPlayer(track, `Rodada ${generations.length - generationIndex}`)}
-                          >
-                            <span aria-hidden="true">▶</span> Ouvir no player
-                          </button>
-                        ) : <span className="track-processing">Finalizando áudio…</span>}
-                        {track.audioUrl ? (
-                          <a href={track.audioUrl} target="_blank" rel="noreferrer" download>
-                            Baixar música
-                          </a>
-                        ) : null}
-                        <Link className="saved-track-cover-action" href={`/biblioteca/capa?track=${encodeURIComponent(track.id)}`}>
-                          {track.hasCustomCover ? "Trocar capa ↻" : "Criar capa ◇"}
-                        </Link>
-                      </article>
-                    );
-                  })}
-                </div>
-              </article>
-            ))}
+                  <span className="spotify-row-round">
+                    Rodada {String(generations.length - generationIndex).padStart(2, "0")}
+                    <small>{formatDate(generation.createdAt)}</small>
+                  </span>
+                  <span className="spotify-row-duration">{formatDuration(track.duration)}</span>
+                  <div className="spotify-row-actions">
+                    <Link href={`/biblioteca/capa?track=${encodeURIComponent(track.id)}`}>
+                      {track.hasCustomCover ? "Trocar capa" : "Criar capa"}
+                    </Link>
+                    {track.audioUrl ? <a href={track.audioUrl} target="_blank" rel="noreferrer" download>Baixar</a> : null}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
 
       <section className="library-learning">
         <header>
-          <small>APRENDA COM O QUE VOCÊ OUVIU</small>
-          <h2>Quer melhorar a próxima?</h2>
+          <small>CONTINUE O PROCESSO</small>
+          <h2>Leve sua música além do play</h2>
         </header>
         <div className="resource-grid live">
           {tools.map(([tag, title, text, href], index) => (

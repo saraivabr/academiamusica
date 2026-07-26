@@ -14,25 +14,32 @@ import {
 
 const journey = [
   {
-    href: "/academia/musica",
+    href: "/biblioteca/gerador",
     number: "01",
-    label: "DIREÇÃO",
-    title: "Faça boas escolhas",
-    text: "Aprenda a comparar versões, emoção, refrão e arranjo.",
+    label: "CONVERSA",
+    title: "Sua história vira direção",
+    text: "O Produtor faz uma pergunta útil por vez e organiza suas escolhas.",
   },
   {
-    href: "/academia/identidade",
+    href: "/biblioteca",
     number: "02",
+    label: "COMPARAÇÃO",
+    title: "Duas versões para decidir",
+    text: "Você escuta no mesmo player e entende qual versão funciona melhor.",
+  },
+  {
+    href: "/biblioteca/capa",
+    number: "03",
     label: "IDENTIDADE",
-    title: "Dê um rosto à música",
-    text: "Transforme sua favorita em capa e presença visual.",
+    title: "Uma capa com a sua presença",
+    text: "Sua foto ganha a linguagem visual certa para o gênero da música.",
   },
   {
     href: "/academia/publicacao",
-    number: "03",
+    number: "04",
     label: "LANÇAMENTO",
-    title: "Prepare para o mundo",
-    text: "Organize arquivos, dados, distribuição e o link final.",
+    title: "Tudo pronto para publicar",
+    text: "Organize capa, áudio e informações para levar sua música ao mundo.",
   },
 ];
 
@@ -81,7 +88,39 @@ export default function Academia() {
   const featuredTrack = tracks[0];
 
   return (
-    <AcademyShell title="Boa criação." eyebrow="SUA ACADEMIA">
+    <AcademyShell title="Início" eyebrow="SEU ESTÚDIO">
+      <section className="spotify-greeting">
+        <div>
+          <small>ACADEMIA MÚSICA IA</small>
+          <h2>Boa criação.</h2>
+          <p>Continue de onde parou ou comece um novo lançamento.</p>
+        </div>
+        <span><b>{remainingSongs ?? "—"}</b> músicas disponíveis</span>
+      </section>
+
+      <section className="spotify-quick-grid" aria-label="Acessos rápidos">
+        <Link href="/biblioteca/gerador">
+          <i className="quick-create">＋</i>
+          <b>Criar nova música</b>
+          <span>▶</span>
+        </Link>
+        <Link href="/biblioteca">
+          <i className="quick-library">♫</i>
+          <b>Seu repertório</b>
+          <span>▶</span>
+        </Link>
+        <Link href="/biblioteca/capa">
+          <i className="quick-cover">▣</i>
+          <b>Criar uma capa</b>
+          <span>▶</span>
+        </Link>
+        <Link href="/academia/comecar">
+          <i className="quick-method">01</i>
+          <b>Aprender o processo</b>
+          <span>▶</span>
+        </Link>
+      </section>
+
       <section
         className="platform-feature"
         style={featuredTrack?.imageUrl
@@ -89,12 +128,12 @@ export default function Academia() {
           : undefined}
       >
         <div className="platform-feature-copy">
-          <small>SEU ESTÚDIO ESTÁ ABERTO</small>
-          <h2>Uma história.<br />Duas versões.<br /><em>Sua música.</em></h2>
-          <p>Converse naturalmente, entenda cada escolha e escute o resultado sem sair da plataforma.</p>
+          <small>SEU PRÓXIMO LANÇAMENTO</small>
+          <h2>Conte uma história.<br />Saia com uma música.</h2>
+          <p>Você conversa, o Produtor organiza. Depois recebe duas versões, cria a capa e prepara tudo para publicar.</p>
           <div>
             <Link href="/biblioteca/gerador" className="platform-primary-action">
-              <span aria-hidden="true">＋</span> Criar nova música
+              <span aria-hidden="true">▶</span> Começar agora
             </Link>
             {featuredTrack ? (
               <button
@@ -107,15 +146,15 @@ export default function Academia() {
             ) : <Link href="/academia/comecar" className="platform-secondary-action">Como funciona</Link>}
           </div>
         </div>
-        <aside>
-          <span>{remainingSongs ?? "—"}</span>
-          <small>MÚSICAS<br />DISPONÍVEIS</small>
+        <aside className="platform-feature-art">
+          <span className="feature-vinyl"><i>AMI</i></span>
+          <small>IDEIA → SOM → CAPA → LANÇAMENTO</small>
         </aside>
       </section>
 
       <section className="platform-section">
         <header className="platform-section-head">
-          <div><small>SEU SOM</small><h2>Ouça novamente</h2></div>
+          <div><small>SUA BIBLIOTECA</small><h2>Feito por você</h2></div>
           <Link href="/biblioteca">Ver todas</Link>
         </header>
         {tracks.length ? (
@@ -139,7 +178,7 @@ export default function Academia() {
 
       <section className="platform-section">
         <header className="platform-section-head">
-          <div><small>DA IDEIA AO LINK</small><h2>Continue sua jornada</h2></div>
+          <div><small>O VALOR DO PROCESSO</small><h2>Você não recebe só um arquivo</h2></div>
           <Link href="/academia/comecar">Ver o método</Link>
         </header>
         <div className="platform-journey-grid">
