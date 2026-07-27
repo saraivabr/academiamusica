@@ -1,4 +1,4 @@
-/* Academia Música IA — experiência de streaming com processo de lançamento */
+/* musicacom.ia — experiência de streaming com processo de lançamento */
 .academy-shell {
   --stream-black: #000;
   --stream-base: #121212;
@@ -1552,14 +1552,14 @@
 
 @media (max-width: 840px) {
   body:has(.academy-shell) {
-    padding-bottom: 132px;
+    padding-bottom: calc(144px + env(safe-area-inset-bottom));
     background: #000;
   }
 
   .academy-shell {
     display: block;
     min-height: 100vh;
-    padding: 0 0 130px;
+    padding: 0 0 calc(144px + env(safe-area-inset-bottom));
   }
 
   .academy-sidebar {
@@ -1656,9 +1656,9 @@
   .academy-mobile-nav {
     position: fixed;
     right: 0;
-    bottom: 124px;
+    bottom: 0;
     left: 0;
-    z-index: 95;
+    z-index: 101;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     min-height: 56px;
@@ -1678,8 +1678,9 @@
 
   .academy-player {
     right: 7px;
-    bottom: 56px;
+    bottom: calc(56px + env(safe-area-inset-bottom));
     left: 7px;
+    z-index: 100;
     grid-template-columns: 1fr auto;
     width: auto;
     height: 68px;

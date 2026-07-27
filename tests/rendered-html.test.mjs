@@ -28,9 +28,9 @@ test("renders finished production metadata", async () => {
     /^text\/html\b/i,
   );
   const html = await response.text();
-  assert.match(html, /<title>Gerador de Música com IA Grátis \| Academia Música IA<\/title>/i);
+  assert.match(html, /<title>Gerador de Música com IA Grátis \| musicacom\.ia<\/title>/i);
   assert.match(html, /<meta[^>]+property=["']og:title["'][^>]+Gerador de Música com IA Grátis/i);
-  assert.match(html, /<meta[^>]+property=["']og:image["'][^>]+musicacom\.ia\.br\/og-academia-musica-ia\.jpg/i);
+  assert.match(html, /<meta[^>]+property=["']og:image["'][^>]+musicacom\.ia\.br\/og-musicacom-ia\.jpg/i);
   assert.match(html, /A plataforma de geração de música com IA/i);
   assert.match(html, /FEITA NO BRASIL\. PARA O SOM DO BRASIL\./i);
   assert.match(html, /O aprendizado acontece dentro da própria plataforma/i);
