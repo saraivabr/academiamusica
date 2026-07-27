@@ -30,6 +30,33 @@ Há quatro motivos:
 4. a margem e a recompra ainda não têm volume suficiente para definir um CAC
    de compra confiável.
 
+## Revisão multiagente
+
+O estudo foi revisado em paralelo por três agentes especializados:
+
+| Frente | Pergunta | Conclusão |
+| --- | --- | --- |
+| Experiência comercial | Qual intenção possui desejo, prova e continuidade suficientes? | Homenagem deve abrir o funil; Jingle e Compositor devem validar monetização e recorrência. |
+| Oferta e economia | Quanto podemos pagar para adquirir um usuário? | Ainda não existe CAC ou payback observável; o teto prudente de mídia permanece R$ 0 até medir margem e contribuição por coorte. |
+| Mensuração e segurança | Conseguimos ligar anúncio, conta, música e Pix confirmado? | Ainda não. A atribuição não chega à conta gratuita, faltam eventos de cadastro e primeira música, e não existe CAPI server-side. |
+
+### Consenso operacional
+
+1. **Não publicar mídia ainda.**
+2. Corrigir a ligação
+   `criativo → cadastro confirmado → primeira música → compra`.
+3. Produzir prova real para Homenagem, Jingle e Compositor.
+4. Testar essas três intenções organicamente em condições comparáveis.
+5. Liberar mídia somente quando ativação, qualidade da entrega, custo variável e
+   margem estiverem observáveis.
+
+### Promessa consolidada
+
+> **Conte sua história. Escute uma música feita a partir dela. Uma grátis por dia.**
+
+“100% brasileirada” permanece como mecanismo de diferenciação — português,
+ritmos, linguagem e contexto — mas não substitui a transformação principal.
+
 ## S.A.R.A.I.V.A.
 
 ### S — Sinais
@@ -54,18 +81,33 @@ Os anúncios não devem explicar a mecânica interna de geração ou de saldo. A
 promessa pública deve permanecer simples: a quantidade de músicas disponível
 em cada oferta.
 
+A função de cada degrau deve ser diferente:
+
+1. **Grátis:** provar que a ideia consegue virar música.
+2. **Essencial:** permitir continuar criando hoje, sem esperar o benefício do
+   dia seguinte.
+3. **Clube:** atender quem já demonstrou frequência e quer melhor custo mensal.
+
+O Clube não deve ser a promessa para público frio. Além de exigir mais confiança
+e dados de cobrança, ele possui preço unitário inferior ao pacote Criador e pode
+dominar a escolha antes de a recorrência estar comprovada. O selo “MAIS
+ESCOLHIDO” do pacote Criador também não representa prova observada enquanto não
+existirem compras.
+
 #### Funil observado nos últimos 30 dias
 
 Leitura feita no banco de eventos da produção em 27/07/2026:
 
-| Etapa | Sessões | Conversão para a etapa anterior |
-| --- | ---: | ---: |
-| Visitas à landing | 26 | — |
-| Cliques no CTA | 4 | 15,4% |
-| Aberturas do checkout antigo | 3 | 75,0% |
-| Checkout iniciado | 1 | 33,3% |
-| Pix criado | 1 | 100% |
-| Compra confirmada | 0 | 0% |
+| Sinal | Sessões únicas | Leitura |
+| --- | ---: | --- |
+| Visitas à landing | 26 | topo do funil ainda pequeno |
+| Cliques no CTA | 4 | 15,4% das sessões da landing |
+| Aberturas do login | 13 | inclui entradas diretas e outras origens |
+| Criador aberto | 2 | ativação ainda não atribuída |
+| Música concluída | 1 | três conclusões, todas da mesma sessão proprietária |
+| Recarga criada | 1 | intenção, não receita |
+| Pix criado | 1 | cobrança pendente |
+| Compra confirmada | 0 | R$ 0 de receita confirmada |
 
 Também foram registradas 10 visitas com referência de Facebook, sem compra
 confirmada. Isso **não prova campanha paga nem desempenho de anúncio**; prova
@@ -73,20 +115,32 @@ somente a origem referenciadora informada pelo navegador.
 
 O volume ainda é insuficiente para benchmark. A própria rotina atual considera
 um baseline mínimo de 100 sessões ou 14 dias, e a jornada registrada mistura o
-checkout antigo com o novo fluxo gratuito.
+checkout antigo com o novo fluxo gratuito. Passar 14 dias, sozinho, não resolve
+a ausência de eventos canônicos em cada etapa.
 
 #### Mensuração observada
 
-- UTM de origem, mídia e campanha é preservada no dispositivo e chega ao funil
-  próprio.
+- `utm_source`, `utm_medium` e `utm_campaign` são preservados apenas no
+  dispositivo e chegam aos eventos anônimos do funil.
+- `utm_content`, `utm_term`, `fbclid`, `_fbp` e `_fbc` não são preservados.
+- Uma atribuição antiga armazenada prevalece sobre uma visita posterior; não
+  existe separação entre first-touch e last-non-direct.
+- A troca autenticada do Cognito envia somente token e identificador de
+  dispositivo. A conta gratuita nasce sem sessão, campanha, origem ou
+  consentimento Meta.
 - O backend registra criação musical concluída e compra confirmada.
-- O Pixel da Meta respeita consentimento e registra `PageView`.
+- Existe código para inicializar o Pixel e chamar `PageView` após consentimento,
+  mas isso ainda precisa ser confirmado ao vivo no Events Manager.
 - O caminho gratuito atual não envia `CompleteRegistration` à Meta.
-- A primeira música concluída não é enviada à Meta como evento de ativação.
+- Não existem eventos próprios de cadastro iniciado ou confirmado.
+- `music_generation_completed` mede qualquer música; não existe marcador
+  idempotente de primeira música por conta.
 - Recargas e assinaturas confirmadas pelo backend não estão ligadas à
   Conversions API da Meta.
 - O `Purchase` no navegador pertence ao caminho antigo de confirmação e não é
   a fonte mais confiável para as compras atuais dentro da plataforma.
+- O identificador chamado de sessão não expira; na prática, representa um
+  navegador persistente.
 
 Conclusão: a plataforma consegue auditar a jornada internamente, mas ainda não
 deve otimizar mídia por compra até que o caminho gratuito e o Pix confirmado
@@ -197,12 +251,13 @@ Impressão
 | Momento | Evento Meta | Evento próprio | Origem confiável |
 | --- | --- | --- | --- |
 | Landing aberta | `PageView` | `landing_view` | navegador com consentimento |
-| CTA principal | evento diagnóstico | `checkout_cta` | navegador |
+| CTA gratuito | evento diagnóstico | `free_signup_cta` | navegador |
 | Cadastro enviado | `Lead` opcional | `registration_started` | navegador/backend |
-| E-mail confirmado | `CompleteRegistration` | `registration_confirmed` | backend |
+| Conta realmente criada | `CompleteRegistration` | `registration_confirmed` | backend, idempotente |
 | Criador aberto | evento diagnóstico | `music_creator_opened` | navegador |
-| Primeira música entregue | conversão personalizada sobre `FirstMusicCreated` | `music_generation_completed` | backend |
-| Pix criado | `InitiateCheckout` | `pix_created` | backend |
+| Primeira música entregue | conversão personalizada sobre `FirstMusicCreated` | `first_music_created` | backend, marcador por conta |
+| Checkout de créditos iniciado | `InitiateCheckout` | `credit_checkout_started` | navegador/backend |
+| Pix criado | evento diagnóstico | `pix_created` | backend |
 | Pix confirmado | `Purchase` | `purchase_confirmed` | backend/provedor |
 | Assinatura paga | `Subscribe` ou `Purchase`, conforme taxonomia validada | `music_subscription_payment` | backend/provedor |
 
@@ -215,6 +270,25 @@ Regras:
 - Consentimento, política de privacidade e minimização de dados continuam
   valendo no servidor.
 - A origem da campanha deve acompanhar a conta, não apenas o navegador.
+
+#### Desenho mínimo da Conversions API
+
+- Token guardado em SSM `SecureString`, com a Lambda autorizada somente para o
+  parâmetro exato.
+- Outbox assíncrona com `PENDING`, `SENT`, `FAILED`, tentativas e resposta
+  sanitizada; a operação principal nunca depende da Meta responder.
+- IDs determinísticos:
+  - `registration_confirmed_<accountId>`;
+  - `first_music_<accountId>`;
+  - `purchase_<orderId>`;
+  - `purchase_<hash(installmentId)>` para cada mensalidade efetivamente paga.
+- Retry sempre reutiliza o mesmo `event_id`.
+- E-mail normalizado com SHA-256; `_fbp` e `_fbc` somente quando houver
+  consentimento.
+- Nunca enviar CPF, endereço, história, prompt, letra, título ou conteúdo da
+  música.
+- Compra fica server-only na primeira versão. Se existir Pixel + CAPI para o
+  mesmo evento, ambos precisam compartilhar exatamente o mesmo `event_id`.
 
 #### Estrutura enxuta da campanha
 
@@ -403,8 +477,10 @@ comprar alcance.
 
 Duração: 7 a 14 dias.
 
-1. Produzir os cinco conceitos acima, começando por Homenagem, Da frase ao play
-   e Brasil em estilos.
+1. Produzir três conceitos comparáveis:
+   - Homenagem;
+   - Jingle para pequeno negócio;
+   - Composição que estava no bloco de notas.
 2. Publicar organicamente em Reels, Facebook e Stories.
 3. Usar UTMs por peça, mesmo no orgânico.
 4. Medir:
@@ -417,8 +493,19 @@ Duração: 7 a 14 dias.
 5. Perguntar no cadastro ou após a primeira música: “O que você quer criar?”
    com opções curtas para confirmar o trabalho a realizar.
 
-Critério de escolha: o vencedor não é o vídeo com mais visualizações; é o que
-gera mais **primeiras músicas concluídas por mil visualizações**.
+Usar dois placares:
+
+```text
+ativação = primeiras músicas / visitas atribuídas
+```
+
+```text
+monetização = contribuição confirmada / usuários ativados
+```
+
+O vencedor não é o vídeo com mais visualizações. Homenagem pode ganhar em
+ativação e perder em monetização; por isso os dois placares não podem ser
+fundidos.
 
 #### Fase 1 — mídia paga controlada
 
@@ -427,8 +514,10 @@ Pré-condições:
 - `CompleteRegistration` validado no Events Manager;
 - primeira música concluída identificável por origem;
 - `Purchase` vindo do backend para recargas e Clube;
+- mediana, p95 e taxa de sucesso da geração conhecidos;
 - faixas e vídeos autorizados;
 - custo variável por criação conhecido;
+- margem de contribuição do Essencial conhecida;
 - verba máxima do teste explicitamente aprovada.
 
 Estrutura:
@@ -509,6 +598,33 @@ Sem histórico de recompra, não antecipar LTV futuro para justificar prejuízo.
 A campanha escala quando o CAC observado cabe na contribuição realizada, ou
 quando existe uma coorte de recompra suficiente para sustentar a diferença.
 
+Para o modelo atual, internamente:
+
+```text
+CMproduto =
+preço
+- (quantidade comunicada / 2 × custo real por geração paga)
+- taxa Pix
+- impostos
+- reembolso
+- suporte
+- outros custos variáveis
+```
+
+Para aquisição gratuita:
+
+```text
+CPA máximo por ativado em W =
+percentual de reinvestimento
+× (
+  contribuição paga realizada pela coorte em W / usuários ativados
+  - custo das utilizações gratuitas da coorte em W
+)
+```
+
+Essas fórmulas são operacionais, não copy pública. Até haver compra atribuída e
+custo real, o CAC e o payback permanecem não observados.
+
 #### Matriz de decisão
 
 | Situação | Decisão |
@@ -545,6 +661,8 @@ quando existe uma coorte de recompra suficiente para sustentar a diferença.
 - conta de anúncios, página, Instagram, dataset e domínio verificado no Business
   Manager;
 - verba máxima de teste.
+- mediana, p95 e taxa de sucesso de geração;
+- custo das músicas gratuitas, falhas e retries;
 
 Não preencher essas lacunas com benchmark genérico. O primeiro ciclo existe
 para criar o baseline da Academia.
@@ -555,9 +673,13 @@ para criar o baseline da Academia.
 
 - [ ] Criar eventos próprios `registration_started` e
   `registration_confirmed`.
-- [ ] Preservar UTMs da visita na conta confirmada.
+- [ ] Capturar `utm_content`, `utm_term`, `fbclid`, `_fbp` e `_fbc`.
+- [ ] Preservar first-touch e last-non-direct na conta confirmada, junto da
+  versão/data do consentimento.
+- [ ] Renomear o CTA gratuito de `checkout_cta` para `free_signup_cta`.
 - [ ] Enviar `CompleteRegistration` pelo caminho consentido e validar no Events
   Manager.
+- [ ] Criar marcador idempotente `first_music_<accountId>`.
 - [ ] Enviar `Purchase` de recarga e assinatura somente após confirmação do
   provedor.
 - [ ] Implementar Conversions API com deduplicação entre navegador e servidor.
@@ -567,6 +689,15 @@ para criar o baseline da Academia.
   Manager.
 - [ ] Confirmar os direitos de uso que podem aparecer no anúncio e na landing.
 - [ ] Medir custo variável e margem de cada pacote.
+- [ ] Corrigir no celular a colisão entre consentimento, CTA fixo e botão de
+  cadastro.
+- [ ] Criar landing de Homenagem que repita a promessa do anúncio.
+- [ ] Publicar uma prova musical autorizada para Homenagem, Jingle e Compositor.
+- [ ] Remover ou comprovar o selo “MAIS ESCOLHIDO”; zero compras não sustentam
+  essa alegação.
+- [ ] Tornar visível, sem pressão, que criar mais custa a partir de R$ 49,97 e
+  que a recarga é opcional.
+- [ ] Disponibilizar controle persistente para alterar ou revogar consentimento.
 
 ### P1 — aumenta qualidade
 
@@ -584,6 +715,7 @@ para criar o baseline da Academia.
 - [ ] Destino abre rápido no celular e mantém as UTMs.
 - [ ] Cadastro, confirmação de e-mail e primeira música foram testados do
   anúncio simulado ao resultado.
+- [ ] Consentimento não cobre CTA nem botão de cadastro em 390×844.
 - [ ] Pixel Helper e Test Events mostram os eventos esperados.
 - [ ] Compra de teste é deduplicada e o valor chega em reais.
 - [ ] Política de privacidade descreve a mensuração usada.
