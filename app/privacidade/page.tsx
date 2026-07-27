@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { LegalPage } from "../components/Portal";
+
+export const metadata: Metadata = {
+  title: "Política de privacidade",
+  description: "Saiba como a Academia Música IA trata e protege seus dados.",
+  alternates: { canonical: "/privacidade/" },
+};
 
 export default function Privacidade() {
   return (

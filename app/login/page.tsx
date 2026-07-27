@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { PublicShell } from "../components/Portal";
 import AccessLogin from "./AccessLogin";
 import styles from "./login.module.css";
 
-export const metadata = {
-  title: "Entrar | Academia Música IA",
+export const metadata: Metadata = {
+  title: "Entrar",
+  description: "Entre ou crie sua conta grátis na Academia Música IA.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function Login() {

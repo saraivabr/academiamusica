@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { LegalPage } from "../components/Portal";
+
+export const metadata: Metadata = {
+  title: "Termos de uso",
+  description: "Condições para usar a plataforma Academia Música IA.",
+  alternates: { canonical: "/termos/" },
+};
 
 export default function Termos() {
   return (
@@ -13,7 +20,7 @@ export default function Termos() {
       <p>O usuário informa sua ideia e escolhe direção, emoção, estilo e voz por meio da interface visual. Antes da criação, a plataforma apresenta o resumo e o consumo de créditos para confirmação. Resultados automatizados podem exigir revisão e uma nova tentativa.</p>
 
       <h2>4. Música diária e créditos</h2>
-      <p>A primeira criação elegível de cada dia entrega uma música e não reduz créditos. Depois dela, cada rodada extra normalmente entrega duas versões e reduz dois créditos. O benefício diário não acumula, renova pelo horário de Brasília e pode ser suspenso em caso de fraude, automação ou criação abusiva de contas. Tentativas que falharem antes da entrega liberam novamente o benefício ou saldo reservado.</p>
+      <p>A primeira criação elegível de cada dia entrega uma música e não reduz créditos. Depois dela, cada criação extra normalmente entrega duas versões e utiliza o saldo apresentado na confirmação. O benefício diário não acumula, renova pelo horário de Brasília e pode ser suspenso em caso de fraude, automação ou criação abusiva de contas. Tentativas que falharem antes da entrega liberam novamente o benefício ou saldo reservado.</p>
 
       <h2>5. Histórico das músicas</h2>
       <p>As versões concluídas ficam disponíveis no repertório pessoal do usuário, com player e link de download, enquanto a plataforma permanecer disponível. Recargas são opcionais, pagas separadamente e não expiram enquanto o acesso estiver disponível.</p>

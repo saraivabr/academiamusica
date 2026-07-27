@@ -28,11 +28,14 @@ test("renders finished production metadata", async () => {
     /^text\/html\b/i,
   );
   const html = await response.text();
-  assert.match(html, /<meta[^>]+property=["']og:title["'][^>]+100% brasileirada/i);
-  assert.match(html, /<meta[^>]+property=["']og:image["'][^>]+musicacom\.ia\.br\/og\.png/i);
-  assert.match(html, /A plataforma de geração de música/i);
+  assert.match(html, /<title>Gerador de Música com IA Grátis \| Academia Música IA<\/title>/i);
+  assert.match(html, /<meta[^>]+property=["']og:title["'][^>]+Gerador de Música com IA Grátis/i);
+  assert.match(html, /<meta[^>]+property=["']og:image["'][^>]+musicacom\.ia\.br\/og-academia-musica-ia\.jpg/i);
+  assert.match(html, /A plataforma de geração de música com IA/i);
   assert.match(html, /FEITA NO BRASIL\. PARA O SOM DO BRASIL\./i);
   assert.match(html, /O aprendizado acontece dentro da própria plataforma/i);
+  assert.match(html, /"@type":"SoftwareApplication"/i);
+  assert.match(html, /"price":"0"/i);
   assert.match(
     html,
     /<audio[^>]+academia-musica-ia-trap-jingle\.mp3[^>]+preload=["']none["']/i,
@@ -41,6 +44,22 @@ test("renders finished production metadata", async () => {
   assert.doesNotMatch(html, /Quero conversar e criar/i);
   assert.doesNotMatch(html, /Produtor IA/i);
   assert.doesNotMatch(html, /codex-preview/i);
+});
+
+test("publishes crawl instructions and only important public URLs", async () => {
+  const [robots, sitemap, manifestSource] = await Promise.all([
+    readFile(new URL("../public/robots.txt", import.meta.url), "utf8"),
+    readFile(new URL("../public/sitemap.xml", import.meta.url), "utf8"),
+    readFile(new URL("../public/manifest.webmanifest", import.meta.url), "utf8"),
+  ]);
+  const manifest = JSON.parse(manifestSource);
+
+  assert.match(robots, /Sitemap: https:\/\/musicacom\.ia\.br\/sitemap\.xml/i);
+  assert.match(sitemap, /https:\/\/musicacom\.ia\.br\/<\/loc>/i);
+  assert.match(sitemap, /https:\/\/musicacom\.ia\.br\/suporte\/<\/loc>/i);
+  assert.doesNotMatch(sitemap, /\/login\/|\/checkout\/|\/biblioteca\//i);
+  assert.equal(manifest.lang, "pt-BR");
+  assert.equal(manifest.theme_color, "#35e66a");
 });
 
 test("renders the express music creator without the conversational studio", async () => {

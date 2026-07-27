@@ -6,32 +6,21 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://musicacom.ia.br"),
-  title: "A plataforma de geração de música 100% brasileirada",
+  title: {
+    default: "Academia Música IA",
+    template: "%s | Academia Música IA",
+  },
   description:
-    "Crie uma música grátis por dia, explore ritmos brasileiros e organize seu repertório em uma plataforma feita para o Brasil.",
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    title: "A plataforma de geração de música 100% brasileirada",
-    description:
-      "Uma música grátis por dia, sem cartão: criação, repertório, capa e tutorial em uma experiência feita para o Brasil.",
-    url: "https://musicacom.ia.br",
-    siteName: "Academia Música IA",
-    locale: "pt_BR",
-    type: "website",
-    images: [{ url: "https://musicacom.ia.br/og.png", width: 1730, height: 909 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "A plataforma de geração de música 100% brasileirada",
-    description:
-      "Crie uma música grátis por dia, organize seu repertório e dê identidade ao seu lançamento.",
-    images: ["https://musicacom.ia.br/og.png"],
-  },
+    "Plataforma brasileira para criar música com inteligência artificial, organizar seu repertório e desenvolver a identidade do lançamento.",
+  applicationName: "Academia Música IA",
+  category: "Música e criatividade",
+  creator: "Academia Música IA",
+  publisher: "Academia Música IA",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
+    apple: "/icon-192.png",
   },
 };
 

@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import { PublicShell } from "../components/Portal";
 
-export const metadata = {
-  title: "Comece grátis | Academia Música IA",
+export const metadata: Metadata = {
+  title: "Comece grátis",
   description: "Crie sua conta grátis e faça uma música por dia sem cartão.",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function Checkout() {

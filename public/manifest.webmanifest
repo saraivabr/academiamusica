@@ -1,0 +1,23 @@
+{
+  "name": "Academia Música IA",
+  "short_name": "Música IA",
+  "description": "Plataforma brasileira para criar música com IA, organizar seu repertório e preparar o lançamento.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07110b",
+  "theme_color": "#35e66a",
+  "lang": "pt-BR",
+  "categories": ["music", "entertainment", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
