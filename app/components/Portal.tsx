@@ -18,7 +18,7 @@ export function PublicShell({ children, compact = false }: { children: ReactNode
         <nav>
           <Link href="/#como-funciona">Como funciona</Link>
           <Link href="/#duvidas">Dúvidas</Link>
-          <Link href="/login">Entrar</Link>
+          <Link href="/login?mode=login">Entrar</Link>
         </nav>
       </header>
       {children}

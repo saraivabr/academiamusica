@@ -10,9 +10,43 @@ import {
   requestFreePasswordReset,
   resendFreeAccountCode,
 } from "../lib/access";
+import styles from "./login.module.css";
 
 type Mode = "login" | "register" | "confirm" | "forgot" | "reset" | "legacy";
 const defaultNextPath = "/biblioteca/gerador/";
+
+const modeContent: Record<Mode, { eyebrow: string; title: string; description: string }> = {
+  register: {
+    eyebrow: "COMECE SEM PAGAR",
+    title: "Abra seu estúdio.",
+    description: "Sua primeira criação está a poucos passos. Não precisa de cartão.",
+  },
+  login: {
+    eyebrow: "BEM-VINDO DE VOLTA",
+    title: "Continue seu som.",
+    description: "Entre para criar, ouvir e organizar suas músicas.",
+  },
+  confirm: {
+    eyebrow: "ÚLTIMO PASSO",
+    title: "Confirme seu e-mail.",
+    description: "Digite o código de 6 números que acabamos de enviar.",
+  },
+  forgot: {
+    eyebrow: "RECUPERAR ACESSO",
+    title: "Vamos encontrar sua conta.",
+    description: "Informe seu e-mail para receber um código de recuperação.",
+  },
+  reset: {
+    eyebrow: "NOVA SENHA",
+    title: "Proteja seu estúdio.",
+    description: "Use o código recebido e escolha uma nova senha.",
+  },
+  legacy: {
+    eyebrow: "ACESSO DE CLIENTE",
+    title: "Já comprou antes?",
+    description: "Use o código do seu pedido para recuperar seu acesso.",
+  },
+};
 
 function safeNextPath(value: string | null) {
   if (!value) return defaultNextPath;
@@ -41,6 +75,7 @@ export default function AccessLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -55,9 +90,43 @@ export default function AccessLogin() {
 
   function changeMode(nextMode: Mode) {
     setMode(nextMode);
+    setPassword("");
+    setCode("");
+    setShowPassword(false);
     setError("");
     setNotice("");
   }
+
+  async function resendCode() {
+    setError("");
+    setNotice("");
+    try {
+      await resendFreeAccountCode(email);
+      setNotice("Novo código enviado. Confira também a caixa de spam.");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Não foi possível reenviar o código.");
+    }
+  }
+
+  const content = modeContent[mode];
+  const isPrimaryMode = mode === "register" || mode === "login";
+  const passwordChecks = [
+    { label: "8 caracteres", valid: password.length >= 8 },
+    { label: "letra maiúscula", valid: /[A-Z]/.test(password) },
+    { label: "letra minúscula", valid: /[a-z]/.test(password) },
+    { label: "um número", valid: /\d/.test(password) },
+  ];
+  const submitLabel = mode === "register"
+    ? "Criar minha conta grátis"
+    : mode === "confirm"
+      ? "Confirmar e começar"
+      : mode === "forgot"
+        ? "Enviar código"
+        : mode === "reset"
+          ? "Salvar nova senha"
+          : mode === "legacy"
+            ? "Recuperar meu acesso"
+            : "Entrar na plataforma";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -67,6 +136,7 @@ export default function AccessLogin() {
     try {
       if (mode === "register") {
         await registerFreeAccount(name, email, password);
+        setShowPassword(false);
         setMode("confirm");
         setNotice("Enviamos um código de 6 números para o seu e-mail.");
         return;
@@ -85,6 +155,9 @@ export default function AccessLogin() {
       }
       if (mode === "reset") {
         await confirmFreePasswordReset(email, code, password);
+        setPassword("");
+        setCode("");
+        setShowPassword(false);
         setMode("login");
         setNotice("Senha atualizada. Agora você já pode entrar.");
         return;
@@ -109,109 +182,149 @@ export default function AccessLogin() {
   }
 
   return (
-    <section className="login-card access-login">
-      <div className="login-mode-tabs" role="tablist" aria-label="Escolha como acessar">
-        <button type="button" className={mode === "register" || mode === "confirm" ? "active" : ""} onClick={() => changeMode("register")}>
-          Criar conta grátis
-        </button>
-        <button type="button" className={mode === "login" ? "active" : ""} onClick={() => changeMode("login")}>
-          Entrar
-        </button>
-      </div>
-
-      <form onSubmit={submit}>
-        <div className="order-title">
-          <span className="cover-mini">AMI</span>
-          <div>
-            <small>{mode === "register" || mode === "confirm" ? "COMECE SEM PAGAR" : "BEM-VINDO DE VOLTA"}</small>
-            <h2>{mode === "confirm"
-              ? "Confirme seu e-mail"
-              : mode === "forgot" || mode === "reset"
-                ? "Recupere sua senha"
-                : "Academia Música IA"}</h2>
-            <p>Uma música grátis todos os dias</p>
-          </div>
+    <div className={styles.accessCard}>
+      {isPrimaryMode ? (
+        <div className={styles.modeTabs} role="group" aria-label="Escolha como acessar">
+          <button
+            type="button"
+            aria-pressed={mode === "register"}
+            className={mode === "register" ? styles.activeTab : ""}
+            onClick={() => changeMode("register")}
+          >
+            Criar conta
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === "login"}
+            className={mode === "login" ? styles.activeTab : ""}
+            onClick={() => changeMode("login")}
+          >
+            Já tenho conta
+          </button>
         </div>
+      ) : (
+        <button type="button" className={styles.backButton} onClick={() => changeMode("login")}>
+          <span aria-hidden="true">←</span> Voltar para entrar
+        </button>
+      )}
+
+      <header className={styles.cardHeader}>
+        <span className={styles.cardEyebrow}>{content.eyebrow}</span>
+        <h2>{content.title}</h2>
+        <p>{content.description}</p>
+        {mode === "confirm" || mode === "reset" ? (
+          <span className={styles.emailBadge}>{email}</span>
+        ) : null}
+      </header>
+
+      <form className={styles.accessForm} onSubmit={submit}>
 
         {mode === "register" ? (
-          <label>
-            Seu nome
-            <input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Como podemos chamar você?" />
+          <label className={styles.field}>
+            <span>Como podemos chamar você?</span>
+            <input required minLength={2} maxLength={100} autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" />
           </label>
         ) : null}
 
         {mode !== "legacy" ? (
-          <label>
-            Seu e-mail
+          <label className={styles.field}>
+            <span>Seu melhor e-mail</span>
             <input required type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="voce@email.com" disabled={mode === "confirm" || mode === "reset"} />
           </label>
         ) : null}
 
         {mode !== "legacy" && mode !== "forgot" ? (
-          <label>
-            Sua senha
-            <input required type="password" minLength={8} autoComplete={mode === "register" || mode === "reset" ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="8+ caracteres, maiúscula e número" disabled={mode === "confirm"} />
-          </label>
+          <div className={styles.passwordField}>
+            <label className={styles.field}>
+              <span>{mode === "reset" ? "Crie uma nova senha" : "Sua senha"}</span>
+              <span className={styles.passwordInput}>
+                <input
+                  required
+                  type={showPassword ? "text" : "password"}
+                  minLength={8}
+                  autoComplete={mode === "register" || mode === "reset" ? "new-password" : "current-password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Digite sua senha"
+                  disabled={mode === "confirm"}
+                />
+                <button
+                  type="button"
+                  className={styles.passwordToggle}
+                  aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                  onClick={() => setShowPassword((visible) => !visible)}
+                  disabled={mode === "confirm"}
+                >
+                  {showPassword ? "Ocultar" : "Mostrar"}
+                </button>
+              </span>
+            </label>
+            {mode === "register" || mode === "reset" ? (
+              <div className={styles.passwordChecks} aria-label="Requisitos da senha">
+                {passwordChecks.map((check) => (
+                  <span key={check.label} className={check.valid ? styles.validCheck : ""}>
+                    <i aria-hidden="true">{check.valid ? "✓" : "○"}</i> {check.label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {mode === "confirm" || mode === "reset" ? (
-          <label>
-            Código recebido
+          <label className={`${styles.field} ${styles.codeField}`}>
+            <span>Código recebido</span>
             <input required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))} placeholder="000000" />
           </label>
         ) : null}
 
         {mode === "legacy" ? (
-          <label>
+          <label className={styles.field}>
             Código do pedido antigo
             <input required autoComplete="off" pattern="ami_[a-f0-9]{28}" value={orderId} onChange={(event) => setOrderId(event.target.value)} placeholder="ami_..." />
           </label>
         ) : null}
 
-        {notice ? <p className="login-notice">{notice}</p> : null}
-        {error ? <p className="checkout-error">{error}</p> : null}
+        {notice ? <p className={styles.notice} role="status"><span aria-hidden="true">✓</span>{notice}</p> : null}
+        {error ? <p className={styles.error} role="alert"><span aria-hidden="true">!</span>{error}</p> : null}
 
-        <button className="checkout-primary" disabled={loading}>
-          {loading
-            ? "Só um instante…"
-            : mode === "register"
-              ? "Criar minha conta grátis"
-              : mode === "confirm"
-                ? "Confirmar e criar minha música"
-                : mode === "forgot"
-                  ? "Enviar código de recuperação"
-                  : mode === "reset"
-                    ? "Salvar nova senha"
-                : mode === "legacy"
-                  ? "Entrar com código"
-                  : "Entrar na plataforma"}
+        <button className={styles.primaryButton} disabled={loading}>
+          {loading ? <span className={styles.spinner} aria-hidden="true" /> : null}
+          <span>{loading ? "Abrindo seu estúdio…" : submitLabel}</span>
+          {!loading ? <b aria-hidden="true">→</b> : null}
         </button>
 
         {mode === "confirm" ? (
           <button
             type="button"
-            className="login-text-action"
-            onClick={() => void resendFreeAccountCode(email).then(() => setNotice("Enviamos um novo código.")).catch((reason) => setError(reason.message))}
+            className={styles.textAction}
+            onClick={() => void resendCode()}
           >
-            Reenviar código
+            Não recebeu? <strong>Reenviar código</strong>
           </button>
         ) : null}
         {mode === "login" ? (
-          <button type="button" className="login-text-action" onClick={() => changeMode("forgot")}>
+          <button type="button" className={styles.textAction} onClick={() => changeMode("forgot")}>
             Esqueci minha senha
           </button>
         ) : null}
         {mode === "forgot" || mode === "reset" ? (
-          <button type="button" className="login-text-action" onClick={() => changeMode("login")}>
-            Voltar ao login
-          </button>
+          <p className={styles.recoveryHint}>O código expira por segurança. Se precisar, solicite outro.</p>
         ) : null}
       </form>
 
-      <button type="button" className="login-legacy-toggle" onClick={() => changeMode(mode === "legacy" ? "login" : "legacy")}>
-        {mode === "legacy" ? "Voltar ao login por e-mail" : "Já comprou antes? Entrar com código do pedido"}
-      </button>
-      <small>Um e-mail por conta. Contas gratuitas são protegidas por limites de dispositivo e rede.</small>
-    </section>
+      {mode !== "confirm" && mode !== "reset" && mode !== "forgot" ? (
+        <div className={styles.legacyAccess}>
+          <span>Comprou na versão anterior?</span>
+          <button type="button" onClick={() => changeMode(mode === "legacy" ? "login" : "legacy")}>
+            {mode === "legacy" ? "Entrar com e-mail" : "Usar código do pedido"}
+          </button>
+        </div>
+      ) : null}
+
+      <p className={styles.privacyNote}>
+        Ao continuar, você concorda com o uso seguro do acesso para proteger sua conta e o benefício diário.
+      </p>
+    </div>
   );
 }

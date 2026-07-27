@@ -65,3 +65,34 @@ test("renders the express music creator without the conversational studio", asyn
   assert.doesNotMatch(html, /Crie sua música em uma conversa/i);
   assert.doesNotMatch(html, /Produtor IA está pensando/i);
 });
+
+test("renders the redesigned studio access with a clear free path", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test", `login-${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+
+  const response = await worker.fetch(
+    new Request("http://localhost/login/", {
+      headers: { accept: "text/html" },
+    }),
+    {
+      ASSETS: {
+        fetch: async () => new Response("Not found", { status: 404 }),
+      },
+    },
+    {
+      waitUntil() {},
+      passThroughOnException() {},
+    },
+  );
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Uma ideia hoje\./i);
+  assert.match(html, /Uma música sua\./i);
+  assert.match(html, /Abra seu estúdio\./i);
+  assert.match(html, /Criar minha conta grátis/i);
+  assert.match(html, /Não precisa de cartão/i);
+  assert.match(html, /Usar código do pedido/i);
+  assert.match(html, /href=["']\/login\?mode=login["']/i);
+});
