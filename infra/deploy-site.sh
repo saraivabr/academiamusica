@@ -16,6 +16,18 @@ aws s3 cp out/_next/static "s3://${BUCKET_NAME}/_next/static" \
   --cache-control "public,max-age=31536000,immutable" \
   --only-show-errors
 
+aws s3 cp out "s3://${BUCKET_NAME}" \
+  --recursive \
+  --exclude "*" \
+  --include "*.webp" \
+  --include "*.png" \
+  --include "*.jpg" \
+  --include "*.jpeg" \
+  --include "*.svg" \
+  --include "*.mp3" \
+  --cache-control "public,max-age=86400,stale-while-revalidate=604800" \
+  --only-show-errors
+
 bash infra/enable-static-routing.sh >/dev/null
 
 INVALIDATION_ID="$(aws cloudfront create-invalidation \

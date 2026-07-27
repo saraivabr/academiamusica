@@ -27,14 +27,22 @@ export type PlayerSelection = {
 
 export const academyPlayerEvent = "academia:play-track";
 export const academyPlayerStorageKey = "academia_player_track_v1";
+export const academyPlayerPendingStorageKey = "academia_player_pending_v1";
 
 export function playableTrackUrl(track: PlatformTrack) {
   return track.audioUrl || track.streamAudioUrl;
 }
 
 export function playInAcademyPlayer(track: PlatformTrack, context = "Minhas músicas") {
+  const selection = { track, context };
+  try {
+    window.localStorage.setItem(academyPlayerStorageKey, JSON.stringify(selection));
+    window.localStorage.setItem(academyPlayerPendingStorageKey, "1");
+  } catch {
+    // The event still reaches an already mounted player when storage is unavailable.
+  }
   window.dispatchEvent(new CustomEvent<PlayerSelection>(academyPlayerEvent, {
-    detail: { track, context },
+    detail: selection,
   }));
 }
 

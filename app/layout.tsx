@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import FunnelAnalytics from "./components/FunnelAnalytics";
 import MetaPixel from "./components/MetaPixel";
-import AcademyPlayer from "./components/AcademyPlayer";
+import MemberPlayerBoundary from "./components/MemberPlayerBoundary";
 import "./globals.css";
-import "./experience-v2.css";
-import "./spotify-experience.css";
-import "./home-brasil.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://musicacom.ia.br"),
@@ -45,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<AcademyPlayer /><FunnelAnalytics /><MetaPixel /></body>
+      <body>{children}<MemberPlayerBoundary /><FunnelAnalytics /><MetaPixel /></body>
     </html>
   );
 }

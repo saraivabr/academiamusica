@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 test("renders finished production metadata", async () => {
@@ -32,6 +33,11 @@ test("renders finished production metadata", async () => {
   assert.match(html, /A plataforma de geração de música/i);
   assert.match(html, /FEITA NO BRASIL\. PARA O SOM DO BRASIL\./i);
   assert.match(html, /O aprendizado acontece dentro da própria plataforma/i);
+  assert.match(
+    html,
+    /<audio[^>]+academia-musica-ia-trap-jingle\.mp3[^>]+preload=["']none["']/i,
+  );
+  assert.doesNotMatch(html, /cada rodada extra usa dois créditos/i);
   assert.doesNotMatch(html, /Quero conversar e criar/i);
   assert.doesNotMatch(html, /Produtor IA/i);
   assert.doesNotMatch(html, /codex-preview/i);
@@ -95,4 +101,24 @@ test("renders the redesigned studio access with a clear free path", async () => 
   assert.match(html, /Não precisa de cartão/i);
   assert.match(html, /Usar código do pedido/i);
   assert.match(html, /href=["']\/login\?mode=login["']/i);
+});
+
+test("keeps an early track selection until the lazy player is mounted", async () => {
+  const [platformSource, playerSource] = await Promise.all([
+    readFile(new URL("../app/lib/musicPlatform.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/AcademyPlayer.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(
+    platformSource,
+    /localStorage\.setItem\(academyPlayerPendingStorageKey,\s*["']1["']\)/,
+  );
+  assert.match(
+    playerSource,
+    /localStorage\.getItem\(academyPlayerPendingStorageKey\)\s*===\s*["']1["']/,
+  );
+  assert.match(
+    playerSource,
+    /localStorage\.removeItem\(academyPlayerPendingStorageKey\)/,
+  );
 });

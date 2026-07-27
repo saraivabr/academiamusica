@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import "./home-brasil.css";
 
 const Arrow = () => <span aria-hidden="true">↗</span>;
 const Check = () => <span aria-hidden="true">✓</span>;
@@ -35,7 +36,7 @@ const faqs = [
   ["Preciso escrever um prompt?", "Não. Você informa o que quer contar e escolhe sentimento, estilo e voz em uma experiência visual e direta."],
   ["Quais estilos posso criar?", "Você pode explorar ritmos brasileiros e outros estilos. A experiência dá destaque a referências como sertanejo, trap BR, forró, funk, pagode, gospel, MPB e brega."],
   ["Quanto custa para começar?", "Nada. Sua conta inclui uma música grátis por dia, sem cartão e sem prazo de teste. Recargas são opcionais para quem quiser criar mais."],
-  ["Como funcionam as criações extras?", "Depois da música grátis do dia, cada rodada extra usa dois créditos e entrega duas versões para você comparar."],
+  ["Como funcionam as criações extras?", "Depois da música grátis do dia, cada criação extra entrega duas músicas para você comparar."],
   ["Onde ficam as músicas?", "No seu repertório. Você pode ouvir, comparar, baixar e continuar o projeto sem perder o histórico."],
   ["Como funcionam os tutoriais?", "O aprendizado acontece dentro da própria plataforma. As orientações aparecem durante a criação, a capa e a preparação do lançamento."],
   ["A música vai direto para as plataformas?", "O tutorial mostra como preparar a publicação, mas distribuição e aprovação seguem as regras dos serviços utilizados. Não prometemos streams, renda ou aprovação automática."],
@@ -135,12 +136,12 @@ export default function Home() {
             </div>
           </div>
           <div className="br-track-card br-track-one">
-            <img src="/album-grid-saraiva.webp" alt="" />
+            <img src="/album-grid-thumb.webp" alt="" width="160" height="160" />
             <div><small>HOJE • GRÁTIS</small><strong>Minha raiz</strong><span>Sertanejo • 3:12</span></div>
             <i>▶</i>
           </div>
           <div className="br-track-card br-track-two">
-            <img src="/identidades-musicais.webp" alt="" />
+            <img src="/identidades-thumb.webp" alt="" width="160" height="160" />
             <div><small>ONTEM • REPERTÓRIO</small><strong>Casa da gente</strong><span>Sertanejo • 2:58</span></div>
             <i>▶</i>
           </div>
@@ -220,7 +221,14 @@ export default function Home() {
           <div className="br-song-tags"><span>TRAP BR</span><span>JINGLE</span><span>3:08</span></div>
         </div>
         <div className={`br-audio-card ${playing ? "active" : ""}`}>
-          <img src="/album-grid-saraiva.webp" alt="Capa da música Academia Música IA" />
+          <img
+            src="/album-grid-saraiva.webp"
+            alt="Capa da música Academia Música IA"
+            loading="lazy"
+            decoding="async"
+            width="1254"
+            height="1254"
+          />
           <div className="br-audio-info">
             <small>CRIADA NA PLATAFORMA</small>
             <strong>Academia Música IA</strong>
@@ -251,7 +259,7 @@ export default function Home() {
           <audio
             ref={audioRef}
             src="/academia-musica-ia-trap-jingle.mp3"
-            preload="metadata"
+            preload="none"
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
             onEnded={() => setPlaying(false)}
@@ -283,7 +291,14 @@ export default function Home() {
 
       <section className="br-tutorial br-section" id="tutorial">
         <div className="br-tutorial-art">
-          <img src="/studio-saraiva.webp" alt="Saraiva criando música em um estúdio" />
+          <img
+            src="/studio-saraiva.webp"
+            alt="Saraiva criando música em um estúdio"
+            loading="lazy"
+            decoding="async"
+            width="1254"
+            height="1254"
+          />
           <div className="br-tutorial-label"><span>TUTORIAL INTEGRADO</span><b>Aprenda fazendo.</b></div>
         </div>
         <div className="br-tutorial-copy">
@@ -320,7 +335,14 @@ export default function Home() {
           <small>Recargas opcionais para criar mais no mesmo dia</small>
         </div>
         <div className="br-access-art">
-          <img src="/kit-lancamento.webp" alt="Música, capa e materiais de lançamento reunidos" />
+          <img
+            src="/kit-lancamento.webp"
+            alt="Música, capa e materiais de lançamento reunidos"
+            loading="lazy"
+            decoding="async"
+            width="1254"
+            height="1254"
+          />
           <span>IDEIA → MÚSICA → CAPA → LANÇAMENTO</span>
         </div>
       </section>

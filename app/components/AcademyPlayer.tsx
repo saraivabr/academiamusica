@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { memberApi } from "../lib/access";
 import {
   academyPlayerEvent,
+  academyPlayerPendingStorageKey,
   academyPlayerStorageKey,
   flattenGenerations,
   playableTrackUrl,
@@ -36,6 +37,9 @@ export default function AcademyPlayer() {
       const saved = window.localStorage.getItem(academyPlayerStorageKey);
       if (saved) {
         const restored = JSON.parse(saved) as PlayerSelection;
+        autoplayRef.current =
+          window.localStorage.getItem(academyPlayerPendingStorageKey) === "1";
+        window.localStorage.removeItem(academyPlayerPendingStorageKey);
         restoreTimer = window.setTimeout(() => setSelection(restored), 0);
       }
     } catch {
@@ -54,6 +58,7 @@ export default function AcademyPlayer() {
       setCurrentTime(0);
       try {
         window.localStorage.setItem(academyPlayerStorageKey, JSON.stringify(next));
+        window.localStorage.removeItem(academyPlayerPendingStorageKey);
       } catch {
         // Playback still works when storage is unavailable.
       }
