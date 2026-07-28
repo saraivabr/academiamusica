@@ -2,7 +2,7 @@
   "framework": "SaraivaOS",
   "version": "1.0.0",
   "createdAt": "2026-07-26T10:17:11.124Z",
-  "updatedAt": "2026-07-28T00:07:31.328Z",
+  "updatedAt": "2026-07-28T00:30:12.176Z",
   "project": {
     "id": "project-20260726101711-bd39b7b6",
     "name": "musicacom.ia",
@@ -14,9 +14,9 @@
     "completedStages": []
   },
   "navigation": {
-    "currentRoute": "Rota Única validada localmente; preparar publicação e medir ativação",
-    "nextArtifact": "Deploy produtivo da Rota Única com baseline de conclusão por etapa",
-    "blocker": "Publicação em produção ainda não executada nesta rodada"
+    "currentRoute": "Rota Única publicada; medir abertura do criador até geração concluída nas primeiras 100 sessões válidas.",
+    "nextArtifact": "Resultado do experimento de ativação em 100 sessões, com taxa, inválidos e decisão supported/refuted/inconclusive.",
+    "blocker": ""
   },
   "identity": {
     "business": "",
@@ -25,7 +25,7 @@
     "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
   },
   "evidenceSummary": {
-    "observed": 11,
+    "observed": 14,
     "provided": 2,
     "inferred": 0,
     "hypothesis": 0,
@@ -33,9 +33,9 @@
   },
   "methods": {
     "active": [
-      "Jobs/minimalismo",
-      "First Principles",
-      "HyperFrames"
+      "saraiva-os",
+      "hyperframes",
+      "first-party-analytics"
     ],
     "considered": []
   },
@@ -66,6 +66,15 @@
       "metric": "ausência de preço ou promessa divergente entre landing, checkout e backend",
       "status": "pending",
       "createdAt": "2026-07-26T18:03:01.757Z"
+    },
+    {
+      "id": "action-20260728003012-902ee982",
+      "title": "Medir diariamente a Rota Única até 100 sessões válidas",
+      "owner": "Codex heartbeat",
+      "deadline": "",
+      "metric": "music_route_unique_confirmed / music_route_unique_opened; inválidos <=5%",
+      "status": "pending",
+      "createdAt": "2026-07-28T00:30:12.175Z"
     }
   ],
   "experiments": [
@@ -89,6 +98,17 @@
       "target": "+20% relativo após 100 sessões",
       "status": "active",
       "createdAt": "2026-07-26T18:03:01.822Z",
+      "result": null
+    },
+    {
+      "id": "exp-20260728002930-3c5ba83f",
+      "name": "Rota Única: abertura até música entregue",
+      "hypothesis": "Se a Rota Única reduzir o atrito do criador, então a taxa de sessões que abrem o criador e recebem uma geração concluída superará em 20% relativo o proxy histórico de ativação.",
+      "metric": "sessões válidas com music_route_unique_confirmed vinculadas / sessões válidas com music_route_unique_opened, nas primeiras 100 sessões",
+      "baseline": "33.3% proxy plan_ready/opened, n=3, baixa confiança",
+      "target": ">=40.0% em 100 sessões válidas; telemetria inválida <=5%",
+      "status": "active",
+      "createdAt": "2026-07-28T00:29:30.537Z",
       "result": null
     }
   ],

@@ -1,0 +1,11 @@
+{
+  "id": "exp-20260728002930-3c5ba83f",
+  "name": "Rota Única: abertura até música entregue",
+  "hypothesis": "Se a Rota Única reduzir o atrito do criador, então a taxa de sessões que abrem o criador e recebem uma geração concluída superará em 20% relativo o proxy histórico de ativação.",
+  "metric": "sessões válidas com music_route_unique_confirmed vinculadas / sessões válidas com music_route_unique_opened, nas primeiras 100 sessões",
+  "baseline": "33.3% proxy plan_ready/opened, n=3, baixa confiança",
+  "target": ">=40.0% em 100 sessões válidas; telemetria inválida <=5%",
+  "status": "active",
+  "createdAt": "2026-07-28T00:29:30.537Z",
+  "result": null
+}

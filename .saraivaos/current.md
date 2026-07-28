@@ -1,19 +1,19 @@
 # SaraivaOS — Estado atual
 
-Atualizado em: 2026-07-28T00:07:31.328Z
+Atualizado em: 2026-07-28T00:30:12.176Z
 
 ## Projeto
 
 - Nome: musicacom.ia
 - Objetivo: Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue
 - Etapa: validacao
-- Rota: Rota Única validada localmente; preparar publicação e medir ativação
-- Próximo artefato: Deploy produtivo da Rota Única com baseline de conclusão por etapa
-- Bloqueio: Publicação em produção ainda não executada nesta rodada
+- Rota: Rota Única publicada; medir abertura do criador até geração concluída nas primeiras 100 sessões válidas.
+- Próximo artefato: Resultado do experimento de ativação em 100 sessões, com taxa, inválidos e decisão supported/refuted/inconclusive.
+- Bloqueio: Nenhum
 
 ## Evidências
 
-- Observadas: 11
+- Observadas: 14
 - Fornecidas: 2
 - Inferidas: 0
 - Hipóteses: 0
@@ -21,20 +21,22 @@ Atualizado em: 2026-07-28T00:07:31.328Z
 
 ## Métodos ativos
 
-- Jobs/minimalismo
-- First Principles
-- HyperFrames
+- saraiva-os
+- hyperframes
+- first-party-analytics
 
 ## Ações pendentes
 
 - [ ] Conduzir 100 sessões qualificadas ao funil comercial — responsável: Saraiva — prazo: 2026-08-09 — métrica: visita para checkout, checkout para Pix e Pix para pagamento por origem
 - [ ] Substituir chat pelo Criador Express — responsável: Saraiva — prazo: 2026-07-27 — métrica: tempo até confirmação da primeira geração
 - [ ] Validar landing e checkout contra nova oferta por créditos — responsável: Saraiva — prazo: 2026-07-28 — métrica: ausência de preço ou promessa divergente entre landing, checkout e backend
+- [ ] Medir diariamente a Rota Única até 100 sessões válidas — responsável: Codex heartbeat — prazo: não definido — métrica: music_route_unique_confirmed / music_route_unique_opened; inválidos <=5%
 
 ## Experimentos ativos
 
 - exp-20260726101711-c93bfb9d: Baseline do funil comercial — métrica: taxa entre landing_view, checkout_view, pix_created e purchase_confirmed
 - exp-20260726180301-922371d8: Criador Express versus conversa — métrica: taxa de abertura do criador até music_generation_confirmed
+- exp-20260728002930-3c5ba83f: Rota Única: abertura até música entregue — métrica: sessões válidas com music_route_unique_confirmed vinculadas / sessões válidas com music_route_unique_opened, nas primeiras 100 sessões
 
 ## Artefatos
 
