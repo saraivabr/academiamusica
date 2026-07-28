@@ -124,6 +124,7 @@ test("renders the redesigned studio access with a clear free path", async () => 
   assert.match(html, /Uma música sua\./i);
   assert.match(html, /Abra seu estúdio\./i);
   assert.match(html, /Criar minha conta grátis/i);
+  assert.match(html, /Continuar com Google/i);
   assert.match(html, /Não precisa de cartão/i);
   assert.match(html, /Usar código do pedido/i);
   assert.match(html, /href=["']\/login\?mode=login["']/i);

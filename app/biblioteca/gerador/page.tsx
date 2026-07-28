@@ -427,7 +427,11 @@ export default function Gerador() {
       </section>
 
       {!isGenerating && !tracks.length ? (
-        <section className="express-flow" aria-live="polite">
+        <section
+          className="express-flow"
+          aria-live="polite"
+          data-interactive={hydrated && providerReady !== null ? "true" : "false"}
+        >
           <header className="express-flow-progress">
             <span>PASSO {visibleChoiceStep} DE {totalChoiceSteps}</span>
             <div aria-hidden="true">

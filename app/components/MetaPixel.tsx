@@ -53,11 +53,15 @@ function initializePixel() {
 
 export default function MetaPixel() {
   const [consent, setConsent] = useState<Consent>(null);
+  const [interactive, setInteractive] = useState(false);
 
   useEffect(() => {
     const stored = readConsent();
     if (stored === "granted") initializePixel();
-    const timeout = window.setTimeout(() => setConsent(stored), 0);
+    const timeout = window.setTimeout(() => {
+      setConsent(stored);
+      setInteractive(true);
+    }, 0);
     return () => window.clearTimeout(timeout);
   }, []);
 
@@ -74,7 +78,11 @@ export default function MetaPixel() {
   if (consent !== null) return null;
 
   return (
-    <aside className="cookie-consent" aria-label="Preferências de medição">
+    <aside
+      className="cookie-consent"
+      aria-label="Preferências de medição"
+      data-interactive={interactive ? "true" : "false"}
+    >
       <div>
         <strong>Sua privacidade importa.</strong>
         <p>

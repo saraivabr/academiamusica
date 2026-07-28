@@ -447,6 +447,68 @@
   gap: 17px;
 }
 
+.googleButton {
+  width: 100%;
+  min-height: 52px;
+  margin-bottom: 18px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid rgba(7, 16, 11, 0.16);
+  border-radius: 11px;
+  color: var(--studio-ink);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 5px 18px rgba(7, 16, 11, 0.04);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.googleButton:hover {
+  border-color: rgba(7, 16, 11, 0.28);
+  box-shadow: 0 9px 24px rgba(7, 16, 11, 0.08);
+  transform: translateY(-1px);
+}
+
+.googleButton:focus-visible {
+  outline: 3px solid rgba(56, 229, 111, 0.28);
+  outline-offset: 2px;
+}
+
+.googleButton:disabled {
+  cursor: wait;
+  opacity: 0.68;
+  transform: none;
+}
+
+.googleButton svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
+.accessDivider {
+  margin: 0 0 18px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+  align-items: center;
+  color: rgba(7, 16, 11, 0.4);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.accessDivider::before,
+.accessDivider::after {
+  content: "";
+  height: 1px;
+  background: rgba(7, 16, 11, 0.11);
+}
+
 .field {
   display: grid;
   gap: 8px;
@@ -454,6 +516,114 @@
   font-size: 0.69rem;
   font-weight: 850;
   letter-spacing: 0.02em;
+}
+
+.googleCallback {
+  --studio-green: #38e56f;
+  width: min(620px, calc(100% - 32px));
+  min-height: 520px;
+  margin: 32px auto 64px;
+  padding: clamp(42px, 8vw, 76px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 28px;
+  color: #f7f5ed;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(56, 229, 111, 0.24), transparent 34%),
+    linear-gradient(150deg, #102b19, #07100b 64%);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.34);
+}
+
+.googleCallback::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.14;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 38px 38px;
+  mask-image: radial-gradient(circle, black, transparent 74%);
+}
+
+.googleCallback > * {
+  position: relative;
+}
+
+.callbackDisc {
+  width: 92px;
+  aspect-ratio: 1;
+  margin-bottom: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(56, 229, 111, 0.42);
+  border-radius: 50%;
+  color: #07100b;
+  background:
+    radial-gradient(circle, var(--studio-green) 0 21%, #101713 22% 61%, #050806 62%);
+  box-shadow: 0 0 0 12px rgba(56, 229, 111, 0.05), 0 18px 42px rgba(0, 0, 0, 0.42);
+  animation: vinylSpin 8s linear infinite;
+}
+
+.callbackDisc span {
+  margin-top: 43px;
+  color: var(--studio-green);
+  font-size: 0.65rem;
+}
+
+.googleCallback h1 {
+  margin: 12px 0 14px;
+  font-family: Iowan Old Style, Baskerville, "Times New Roman", serif;
+  font-size: clamp(2.65rem, 7vw, 4.2rem);
+  line-height: 0.95;
+  letter-spacing: -0.055em;
+}
+
+.googleCallback p {
+  max-width: 410px;
+  margin: 0;
+  color: rgba(247, 245, 237, 0.66);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.callbackProgress {
+  height: 34px;
+  margin-top: 28px;
+  display: flex;
+  gap: 7px;
+  align-items: end;
+}
+
+.callbackProgress i {
+  width: 4px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--studio-green);
+  animation: callbackBars 800ms ease-in-out infinite alternate;
+}
+
+.callbackProgress i:nth-child(2) { height: 27px; animation-delay: -400ms; }
+.callbackProgress i:nth-child(3) { height: 18px; animation-delay: -200ms; }
+
+.callbackReturn {
+  margin-top: 28px;
+  padding: 14px 20px;
+  border-radius: 999px;
+  color: #07100b;
+  background: var(--studio-green);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+@keyframes callbackBars {
+  to { height: 31px; opacity: 0.45; }
 }
 
 .field input {
@@ -826,7 +996,9 @@
   .accessCard,
   .vinyl,
   .waveform i,
-  .spinner {
+  .spinner,
+  .callbackDisc,
+  .callbackProgress i {
     animation: none;
   }
 

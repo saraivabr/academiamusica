@@ -126,3 +126,20 @@ test("login redirect and Cognito key rotation are hardened", async () => {
   assert.match(backend, /cachedCognitoJwksForcedRefreshAt/);
   assert.match(deploy, /EXPECTED_COGNITO_CLIENT_ID/);
 });
+
+test("Google login uses Cognito authorization code with PKCE and state", async () => {
+  const [access, login, callback, deploy] = await Promise.all([
+    readFile(new URL("../app/lib/access.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/login/AccessLogin.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/login/google/callback/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../infra/configure-cognito-auth.sh", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(login, /Continuar com Google/);
+  assert.match(access, /code_challenge_method: "S256"/);
+  assert.match(access, /returnedState !== session\.state/);
+  assert.match(access, /grant_type: "authorization_code"/);
+  assert.match(callback, /completeGoogleLogin/);
+  assert.match(deploy, /SupportedIdentityProviders = \["COGNITO", "Google"\]/);
+  assert.match(deploy, /AllowedOAuthFlows = \["code"\]/);
+});

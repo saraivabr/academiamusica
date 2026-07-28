@@ -3,8 +3,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import {
   activateMemberAccess,
+  beginGoogleLogin,
   confirmFreePasswordReset,
   confirmFreeAccount,
+  GOOGLE_AUTH_ENABLED,
   loginFreeAccount,
   registerFreeAccount,
   requestFreePasswordReset,
@@ -76,6 +78,8 @@ export default function AccessLogin() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [interactive, setInteractive] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -84,6 +88,7 @@ export default function AccessLogin() {
     const timer = window.setTimeout(() => {
       setNextPath(safeNextPath(requested));
       if (requestedMode === "login") setMode("login");
+      setInteractive(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -105,6 +110,17 @@ export default function AccessLogin() {
       setNotice("Novo código enviado. Confira também a caixa de spam.");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Não foi possível reenviar o código.");
+    }
+  }
+
+  async function loginWithGoogle() {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      await beginGoogleLogin(nextPath);
+    } catch (reason) {
+      setGoogleLoading(false);
+      setError(reason instanceof Error ? reason.message : "Não foi possível abrir o Google.");
     }
   }
 
@@ -217,7 +233,31 @@ export default function AccessLogin() {
         ) : null}
       </header>
 
-      <form className={styles.accessForm} onSubmit={submit}>
+      {isPrimaryMode && GOOGLE_AUTH_ENABLED ? (
+        <>
+          <button
+            type="button"
+            className={styles.googleButton}
+            disabled={googleLoading || loading}
+            onClick={() => void loginWithGoogle()}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.19-2.07H12v3.92h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.33 2.98-7.41Z" />
+              <path fill="#34A853" d="M12 22c2.7 0 4.98-.9 6.63-2.36l-3.24-2.54c-.9.6-2.05.96-3.39.96-2.6 0-4.81-1.76-5.6-4.13H3.05v2.62A10 10 0 0 0 12 22Z" />
+              <path fill="#FBBC05" d="M6.4 13.93A6 6 0 0 1 6.09 12c0-.67.11-1.32.31-1.93V7.45H3.05A10 10 0 0 0 2 12c0 1.64.39 3.19 1.05 4.55l3.35-2.62Z" />
+              <path fill="#EA4335" d="M12 5.94c1.47 0 2.78.5 3.82 1.49l2.87-2.87A9.62 9.62 0 0 0 12 2a10 10 0 0 0-8.95 5.45l3.35 2.62C7.19 7.7 9.4 5.94 12 5.94Z" />
+            </svg>
+            <span>{googleLoading ? "Abrindo o Google…" : "Continuar com Google"}</span>
+          </button>
+          <div className={styles.accessDivider}><span>ou use seu e-mail</span></div>
+        </>
+      ) : null}
+
+      <form
+        className={styles.accessForm}
+        data-interactive={interactive ? "true" : "false"}
+        onSubmit={submit}
+      >
 
         {mode === "register" ? (
           <label className={styles.field}>

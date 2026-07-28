@@ -37,3 +37,38 @@ jobs:
 
       - name: Construir e testar
         run: npm test
+
+  e2e:
+    name: Jornada do usuário (desktop e celular)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm run install:ci
+
+      - name: Instalar navegador
+        run: npx playwright install --with-deps chromium
+
+      - name: Validar fricção da jornada
+        run: npm run test:e2e
+
+      - name: Guardar relatório e evidências
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-friction-report
+          path: |
+            playwright-report/e2e/
+            test-results/e2e/
+          if-no-files-found: ignore
+          retention-days: 14

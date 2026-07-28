@@ -62,6 +62,8 @@ if [[ "$COGNITO_CLIENT_ID" != "$EXPECTED_COGNITO_CLIENT_ID" ]]; then
   exit 1
 fi
 
+bash infra/configure-cognito-auth.sh
+
 if ! aws dynamodb describe-table --region "$AWS_REGION" --table-name "$TABLE_NAME" >/dev/null 2>&1; then
   aws dynamodb create-table \
     --region "$AWS_REGION" \

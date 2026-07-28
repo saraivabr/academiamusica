@@ -5,7 +5,10 @@ import { clearAcademyPlayerSelection } from "./musicPlatform";
 
 export const CHECKOUT_API = "https://fb9323mkb2.execute-api.us-east-1.amazonaws.com";
 export const COGNITO_CLIENT_ID = "375mcuenagmq50eellircoljq6";
+export const COGNITO_AUTH_DOMAIN = "musicacom-ia.auth.us-east-1.amazoncognito.com";
+export const GOOGLE_AUTH_ENABLED = true;
 const COGNITO_ENDPOINT = "https://cognito-idp.us-east-1.amazonaws.com/";
+const googleAuthStorageKey = "musicacom_google_auth_v1";
 
 function transitionMemberWorkspace(token = "") {
   clearAcademyPlayerSelection();
@@ -65,6 +68,99 @@ async function exchangeCognitoToken(idToken: string) {
   }
   setMemberAccess(data.access);
   return data;
+}
+
+function base64Url(bytes: Uint8Array) {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+
+function randomUrlSafe(size = 32) {
+  const bytes = new Uint8Array(size);
+  crypto.getRandomValues(bytes);
+  return base64Url(bytes);
+}
+
+async function pkceChallenge(verifier: string) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(verifier),
+  );
+  return base64Url(new Uint8Array(digest));
+}
+
+function googleCallbackUrl() {
+  return `${window.location.origin}/login/google/callback/`;
+}
+
+export async function beginGoogleLogin(nextPath: string) {
+  if (!GOOGLE_AUTH_ENABLED) {
+    throw new Error("O acesso com Google ainda não está disponível.");
+  }
+  const state = randomUrlSafe();
+  const verifier = randomUrlSafe(64);
+  const challenge = await pkceChallenge(verifier);
+  window.sessionStorage.setItem(googleAuthStorageKey, JSON.stringify({
+    createdAt: Date.now(),
+    nextPath,
+    state,
+    verifier,
+  }));
+
+  const params = new URLSearchParams({
+    identity_provider: "Google",
+    response_type: "code",
+    client_id: COGNITO_CLIENT_ID,
+    redirect_uri: googleCallbackUrl(),
+    scope: "openid email profile",
+    state,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+  });
+  window.location.assign(`https://${COGNITO_AUTH_DOMAIN}/oauth2/authorize?${params}`);
+}
+
+export async function completeGoogleLogin(code: string, returnedState: string) {
+  const rawSession = window.sessionStorage.getItem(googleAuthStorageKey);
+  window.sessionStorage.removeItem(googleAuthStorageKey);
+  if (!rawSession) throw new Error("Esta tentativa de acesso expirou. Comece novamente.");
+
+  const session = JSON.parse(rawSession) as {
+    createdAt: number;
+    nextPath: string;
+    state: string;
+    verifier: string;
+  };
+  if (
+    !returnedState
+    || returnedState !== session.state
+    || !session.verifier
+    || Date.now() - session.createdAt > 10 * 60 * 1_000
+  ) {
+    throw new Error("Não foi possível validar o acesso com Google. Tente novamente.");
+  }
+
+  const response = await fetch(`https://${COGNITO_AUTH_DOMAIN}/oauth2/token`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: COGNITO_CLIENT_ID,
+      code,
+      redirect_uri: googleCallbackUrl(),
+      code_verifier: session.verifier,
+    }),
+  });
+  const tokens = await response.json().catch(() => ({}));
+  if (!response.ok || !tokens.id_token) {
+    throw new Error("O Google não conseguiu liberar seu acesso. Tente novamente.");
+  }
+  await exchangeCognitoToken(tokens.id_token);
+  return session.nextPath;
 }
 
 function setMemberAccess(access: { token: string; expiresAt: string }) {
