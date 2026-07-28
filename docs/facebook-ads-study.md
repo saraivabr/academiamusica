@@ -1,6 +1,6 @@
 # Estudo SaraivaOS — Facebook e Instagram Ads
 
-**Produto:** Academia Música IA
+**Produto:** musicacom.ia
 
 **Domínio:** https://musicacom.ia.br
 
@@ -372,7 +372,7 @@ viagem?”. Em seguida, o texto vira uma faixa tocando no player.
 
 **Texto principal:**
 
-> Você traz a ideia. A Academia Música IA ajuda a escolher a direção e transforma
+> Você traz a ideia. A musicacom.ia ajuda a escolher a direção e transforma
 > tudo em som. Tem uma criação grátis por dia.
 
 **Headline:** Uma ideia. Uma música sua.

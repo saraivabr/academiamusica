@@ -88,7 +88,7 @@ export default function Biblioteca() {
           <small>REPERTÓRIO</small>
           <h2>Suas músicas</h2>
           <p>Do primeiro rascunho ao áudio final: tudo o que você criou fica organizado aqui.</p>
-          <strong>Academia Música IA • {trackCount} músicas • {generations.length} rodadas</strong>
+          <strong>musicacom.ia • {trackCount} músicas • {generations.length} rodadas</strong>
         </div>
       </section>
 

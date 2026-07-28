@@ -5,7 +5,7 @@ import styles from "./login.module.css";
 
 export const metadata: Metadata = {
   title: "Entrar",
-  description: "Entre ou crie sua conta grátis na Academia Música IA.",
+  description: "Entre ou crie sua conta grátis na musicacom.ia.",
   robots: {
     index: false,
     follow: false,

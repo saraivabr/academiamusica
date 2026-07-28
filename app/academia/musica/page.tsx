@@ -8,7 +8,7 @@ export default function Musica() {
         <span>01</span>
         <div>
           <h2>Transforme escolhas simples em som.</h2>
-          <p>Conte o essencial, escolha emoção, estilo e voz e receba duas músicas para comparar.</p>
+          <p>Conte o essencial, escolha emoção, estilo e voz e receba sua música. Nas rodadas extras, compare duas versões.</p>
           <Link className="module-intro-action" href="/biblioteca/gerador">Abrir o criador →</Link>
         </div>
       </section>

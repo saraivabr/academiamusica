@@ -25,6 +25,19 @@ const uniqueSessions = (name, source) => new Set(
     .filter((event) => event.name === name && (!source || event.source === source))
     .map((event) => event.sessionId),
 ).size;
+const sessionSet = (name) => new Set(
+  events
+    .filter((event) => (
+      event.name === name
+      && event.sessionId
+      && event.sessionId !== "server"
+    ))
+    .map((event) => event.sessionId),
+);
+const invalidSessionEvents = (name) => events.filter((event) => (
+  event.name === name
+  && (!event.sessionId || event.sessionId === "server")
+)).length;
 
 const percent = (value, base) => base > 0 ? `${((value / base) * 100).toFixed(1)}%` : "—";
 const rows = stages.map((stage) => {
@@ -65,3 +78,25 @@ console.log("");
 console.log(baselineReady
   ? "Baseline por volume: pronto para primeira decisão."
   : "Baseline por volume: coleta em andamento (meta: 100 sessões ou 14 dias).");
+
+const creatorOpened = sessionSet("music_route_unique_opened");
+const creatorConfirmed = sessionSet("music_route_unique_confirmed");
+const linkedConfirmations = new Set(
+  [...creatorConfirmed].filter((sessionId) => creatorOpened.has(sessionId)),
+);
+const unlinkedConfirmations = new Set(
+  [...creatorConfirmed].filter((sessionId) => !creatorOpened.has(sessionId)),
+);
+const creatorBaselineReady = creatorOpened.size >= 100;
+
+console.log("");
+console.log("ROTA ÚNICA — ativação do criador");
+console.log(`Aberturas únicas: ${creatorOpened.size}`);
+console.log(`Confirmações vinculadas: ${linkedConfirmations.size}`);
+console.log(`Taxa de ativação: ${percent(linkedConfirmations.size, creatorOpened.size)}`);
+console.log(`Confirmações sem abertura vinculada: ${unlinkedConfirmations.size}`);
+console.log(`Aberturas sem sessão válida: ${invalidSessionEvents("music_route_unique_opened")}`);
+console.log(`Confirmações sem sessão válida: ${invalidSessionEvents("music_route_unique_confirmed")}`);
+console.log(creatorBaselineReady
+  ? "Amostra da Rota Única: pronta para decisão (100 sessões ou mais)."
+  : `Amostra da Rota Única: coleta em andamento (${creatorOpened.size}/100 sessões).`);

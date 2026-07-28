@@ -1,4 +1,4 @@
-# Academia Música IA — Blueprint da Plataforma V2
+# musicacom.ia — Blueprint da Plataforma V2
 
 Data: 2026-07-26
 
@@ -133,4 +133,3 @@ Hipótese: escolhas visuais em uma tela aumentarão a passagem de abertura do cr
 - métrica primária: `music_generation_confirmed / music_creator_opened`;
 - guardrails: erro, restituição, tempo até geração e suporte;
 - decisão: manter, ajustar ou retirar depois da janela.
-

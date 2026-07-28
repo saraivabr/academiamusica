@@ -91,7 +91,7 @@ export default function Academia() {
     <AcademyShell title="Início" eyebrow="SEU ESTÚDIO">
       <section className="spotify-greeting">
         <div>
-          <small>ACADEMIA MÚSICA IA</small>
+          <small>musicacom.ia</small>
           <h2>Boa criação.</h2>
           <p>Continue de onde parou ou comece um novo lançamento.</p>
         </div>

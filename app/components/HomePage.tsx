@@ -74,9 +74,9 @@ export default function Home() {
   return (
     <main className="br-home" id="inicio">
       <nav className="br-nav" aria-label="Navegação principal">
-        <a className="br-brand" href="#inicio" aria-label="Academia Música IA — início">
+        <a className="br-brand" href="#inicio" aria-label="musicacom.ia — início">
           <span className="br-brand-mark" aria-hidden="true"><i /><i /><i /></span>
-          <span>Academia <b>Música IA</b></span>
+          <span>musicacom<b>.ia</b></span>
         </a>
         <div className="br-nav-links">
           <a href="#plataforma">A plataforma</a>
@@ -223,7 +223,7 @@ export default function Home() {
         <div className={`br-audio-card ${playing ? "active" : ""}`}>
           <img
             src="/album-grid-saraiva.webp"
-            alt="Capa da música Academia Música IA"
+            alt="Capa da música musicacom.ia"
             loading="lazy"
             decoding="async"
             width="1254"
@@ -231,7 +231,7 @@ export default function Home() {
           />
           <div className="br-audio-info">
             <small>CRIADA NA PLATAFORMA</small>
-            <strong>Academia Música IA</strong>
+            <strong>musicacom.ia</strong>
             <span>Trap Jingle • musicasbyia</span>
             <div className="br-wave" aria-hidden="true">
               {Array.from({ length: 36 }, (_, index) => <i key={index} style={{ "--wave": `${22 + ((index * 19) % 68)}%` } as React.CSSProperties} />)}
@@ -377,7 +377,7 @@ export default function Home() {
       <footer className="br-footer">
         <a className="br-brand" href="#inicio">
           <span className="br-brand-mark" aria-hidden="true"><i /><i /><i /></span>
-          <span>Academia <b>Música IA</b></span>
+          <span>musicacom<b>.ia</b></span>
         </a>
         <p>Plataforma brasileira para transformar ideias em música.</p>
         <div><a href="/termos">Termos</a><a href="/privacidade">Privacidade</a><a href="/suporte">Suporte</a></div>

@@ -1,19 +1,19 @@
 # SaraivaOS — Estado atual
 
-Atualizado em: 2026-07-26T18:14:04.569Z
+Atualizado em: 2026-07-28T00:07:31.328Z
 
 ## Projeto
 
-- Nome: Academia Música IA
+- Nome: musicacom.ia
 - Objetivo: Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue
 - Etapa: validacao
-- Rota: Criador Express publicado; validar ativação e preparar carteira Pix
-- Próximo artefato: Especificação configurável dos pacotes de créditos e recarga Pix
-- Bloqueio: Preço, quantidade e margem dos pacotes ainda não definidos
+- Rota: Rota Única validada localmente; preparar publicação e medir ativação
+- Próximo artefato: Deploy produtivo da Rota Única com baseline de conclusão por etapa
+- Bloqueio: Publicação em produção ainda não executada nesta rodada
 
 ## Evidências
 
-- Observadas: 9
+- Observadas: 11
 - Fornecidas: 2
 - Inferidas: 0
 - Hipóteses: 0
@@ -22,9 +22,8 @@ Atualizado em: 2026-07-26T18:14:04.569Z
 ## Métodos ativos
 
 - Jobs/minimalismo
-- Sexy Canvas
-- Hormozi Money Model
 - First Principles
+- HyperFrames
 
 ## Ações pendentes
 
@@ -44,6 +43,7 @@ Atualizado em: 2026-07-26T18:14:04.569Z
 - painel operacional: infra/funnel.sh — prova: npm run funnel executado contra DynamoDB e retornou baseline limpo
 - product: app/biblioteca/gerador/page.tsx — prova: Criador Express renderizado; teste automatizado confirma ausência do estúdio conversacional
 - blueprint: .saraivaos/artifacts/platform-v2-blueprint.md — prova: Sinais, rota, backlog, carteira e experimento documentados
+- isolamento de workspace: app/lib/accountWorkspace.js — prova: Teste comportamental preserva a mesma conta e limpa troca de conta ou logout
 
 ## Aprendizados recentes
 

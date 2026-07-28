@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { memberApi } from "../lib/access";
 import {
+  academyPlayerClearEvent,
   academyPlayerEvent,
   academyPlayerPendingStorageKey,
   academyPlayerStorageKey,
@@ -63,10 +64,23 @@ export default function AcademyPlayer() {
         // Playback still works when storage is unavailable.
       }
     };
+    const handleClear = () => {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute("src");
+      }
+      setSelection(null);
+      setPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+    };
     window.addEventListener(academyPlayerEvent, handlePlay);
+    window.addEventListener(academyPlayerClearEvent, handleClear);
     return () => {
       window.clearTimeout(restoreTimer);
       window.removeEventListener(academyPlayerEvent, handlePlay);
+      window.removeEventListener(academyPlayerClearEvent, handleClear);
     };
   }, []);
 

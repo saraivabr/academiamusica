@@ -2,10 +2,10 @@
   "framework": "SaraivaOS",
   "version": "1.0.0",
   "createdAt": "2026-07-26T10:17:11.124Z",
-  "updatedAt": "2026-07-26T18:14:04.569Z",
+  "updatedAt": "2026-07-28T00:07:31.328Z",
   "project": {
     "id": "project-20260726101711-bd39b7b6",
-    "name": "Academia Música IA",
+    "name": "musicacom.ia",
     "root": "/Users/saraiva/academiamusica",
     "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
   },
@@ -14,9 +14,9 @@
     "completedStages": []
   },
   "navigation": {
-    "currentRoute": "Criador Express publicado; validar ativação e preparar carteira Pix",
-    "nextArtifact": "Especificação configurável dos pacotes de créditos e recarga Pix",
-    "blocker": "Preço, quantidade e margem dos pacotes ainda não definidos"
+    "currentRoute": "Rota Única validada localmente; preparar publicação e medir ativação",
+    "nextArtifact": "Deploy produtivo da Rota Única com baseline de conclusão por etapa",
+    "blocker": "Publicação em produção ainda não executada nesta rodada"
   },
   "identity": {
     "business": "",
@@ -25,7 +25,7 @@
     "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
   },
   "evidenceSummary": {
-    "observed": 9,
+    "observed": 11,
     "provided": 2,
     "inferred": 0,
     "hypothesis": 0,
@@ -34,9 +34,8 @@
   "methods": {
     "active": [
       "Jobs/minimalismo",
-      "Sexy Canvas",
-      "Hormozi Money Model",
-      "First Principles"
+      "First Principles",
+      "HyperFrames"
     ],
     "considered": []
   },
@@ -128,6 +127,13 @@
       "type": "blueprint",
       "proof": "Sinais, rota, backlog, carteira e experimento documentados",
       "createdAt": "2026-07-26T18:10:15.202Z"
+    },
+    {
+      "id": "artifact-20260728000731-8991109c",
+      "path": "app/lib/accountWorkspace.js",
+      "type": "isolamento de workspace",
+      "proof": "Teste comportamental preserva a mesma conta e limpa troca de conta ou logout",
+      "createdAt": "2026-07-28T00:07:31.290Z"
     }
   ],
   "sessions": [

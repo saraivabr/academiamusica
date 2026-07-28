@@ -3,7 +3,7 @@ import { LegalPage } from "../components/Portal";
 
 export const metadata: Metadata = {
   title: "Política de privacidade",
-  description: "Saiba como a Academia Música IA trata e protege seus dados.",
+  description: "Saiba como a musicacom.ia trata e protege seus dados.",
   alternates: { canonical: "/privacidade/" },
 };
 
@@ -11,7 +11,7 @@ export default function Privacidade() {
   return (
     <LegalPage title="Política de privacidade" updated="27 de julho de 2026">
       <h2>1. Quem controla os dados</h2>
-      <p>A Academia Música IA é responsável pelas decisões sobre o tratamento realizado dentro da plataforma. Solicitações podem ser encaminhadas pelo canal oficial indicado na página de suporte.</p>
+      <p>A musicacom.ia é responsável pelas decisões sobre o tratamento realizado dentro da plataforma. Solicitações podem ser encaminhadas pelo canal oficial indicado na página de suporte.</p>
 
       <h2>2. Dados tratados</h2>
       <p>Tratamos nome, e-mail confirmado, telefone informado voluntariamente, identificadores da conta e do pedido, situação do pagamento, dados de acesso, suporte, progresso e informações técnicas necessárias para segurança e entrega da experiência. Na assinatura via Pix Automático, CPF e endereço são enviados ao provedor de pagamento para criar e administrar a autorização recorrente.</p>

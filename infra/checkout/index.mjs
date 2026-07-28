@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import {
   ConditionalCheckFailedException,
+  DeleteItemCommand,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
@@ -57,7 +58,7 @@ const MUSIC_MODEL = "V5";
 const MUSIC_PRODUCTS = Object.freeze({
   starter_20: Object.freeze({
     id: "starter_20",
-    name: "Acesso Academia Música IA + 20 músicas",
+    name: "Acesso musicacom.ia + 20 músicas",
     type: "starter",
     value: 4_997,
     credits: 20,
@@ -129,6 +130,7 @@ const ALLOWED_CLIENT_EVENTS = new Set([
   "login_view",
   "music_creator_opened",
   "music_creator_plan_ready",
+  "music_route_unique_opened",
 ]);
 
 let cachedSecrets;
@@ -592,7 +594,7 @@ async function recordFunnelEvent({
   orderId,
   value,
 }) {
-  if (!EVENTS_TABLE_NAME) return;
+  if (!EVENTS_TABLE_NAME) return false;
   const now = new Date().toISOString();
   const item = {
     id: { S: normalizedEventId(id) },
@@ -614,7 +616,9 @@ async function recordFunnelEvent({
       Item: item,
       ConditionExpression: "attribute_not_exists(id)",
     }));
+    return true;
   } catch (error) {
+    if (error instanceof ConditionalCheckFailedException) return true;
     if (!(error instanceof ConditionalCheckFailedException)) {
       console.error("Unable to record funnel event", {
         eventId: item.id.S,
@@ -622,18 +626,20 @@ async function recordFunnelEvent({
         message: error.message,
       });
     }
+    return false;
   }
 }
 
-async function recordMemberMusicEvent(order, name, id, value) {
-  await recordFunnelEvent({
+async function recordMemberMusicEvent(order, name, id, value, context = {}) {
+  return recordFunnelEvent({
     id,
     name,
-    sessionId: order.sessionId,
+    sessionId: context.sessionId || order.sessionId,
     path: "/biblioteca/gerador/",
-    source: order.source,
-    medium: order.medium,
-    campaign: order.campaign,
+    source: context.source || order.source,
+    medium: context.medium || order.medium,
+    campaign: context.campaign || order.campaign,
+    referrer: context.referrer,
     orderId: order.id,
     value,
   });
@@ -1267,7 +1273,7 @@ function conversationSystemPrompt({ mode, currentPlan, availableStyles, userTurn
     : [];
   const expectedField = missingMusicPlanFields(currentPlan)[0] ?? "review";
   return [
-    "Você é o Produtor IA da Academia Música IA.",
+    "Você é o Produtor IA da musicacom.ia.",
     "Conduza uma conversa curta, humana e acolhedora em português do Brasil.",
     "Nunca fale de prompt, modelo, API, fornecedor ou detalhes técnicos.",
     "Faça somente uma pergunta por resposta e não repita algo que o aluno já informou.",
@@ -1481,7 +1487,96 @@ async function releaseSunoGeneration(orderId, reservation = { reservationType: "
   }
 }
 
-async function rememberSunoTask(taskId, orderId, reservation) {
+function sunoAnalyticsContextId(callbackToken) {
+  return `suno_context_${crypto
+    .createHash("sha256")
+    .update(callbackToken)
+    .digest("hex")
+    .slice(0, 40)}`;
+}
+
+async function rememberSunoAnalyticsContext(callbackToken, orderId, context = {}) {
+  const id = sunoAnalyticsContextId(callbackToken);
+  const callbackTokenHash = crypto
+    .createHash("sha256")
+    .update(callbackToken)
+    .digest("hex");
+  await dynamo.send(new PutItemCommand({
+    TableName: EVENTS_TABLE_NAME,
+    Item: {
+      id: { S: id },
+      name: { S: "suno_generation_context" },
+      orderId: { S: orderId },
+      callbackTokenHash: { S: callbackTokenHash },
+      sessionId: { S: normalizedSessionId(context.sessionId) },
+      ...(context.source ? { source: { S: safeString(context.source, 100) } } : {}),
+      ...(context.medium ? { medium: { S: safeString(context.medium, 100) } } : {}),
+      ...(context.campaign ? { campaign: { S: safeString(context.campaign, 140) } } : {}),
+      ...(context.referrer ? { referrer: { S: safeString(context.referrer, 140) } } : {}),
+      createdAt: { S: new Date().toISOString() },
+      ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 48) },
+    },
+    ConditionExpression: "attribute_not_exists(id)",
+  }));
+  return id;
+}
+
+async function bindSunoAnalyticsContext(contextId, taskId, orderId) {
+  await dynamo.send(new UpdateItemCommand({
+    TableName: EVENTS_TABLE_NAME,
+    Key: { id: { S: contextId } },
+    UpdateExpression: "SET providerTaskId = :taskId, updatedAt = :updatedAt",
+    ConditionExpression: "orderId = :orderId AND attribute_not_exists(providerTaskId)",
+    ExpressionAttributeValues: {
+      ":orderId": { S: orderId },
+      ":taskId": { S: taskId },
+      ":updatedAt": { S: new Date().toISOString() },
+    },
+  }));
+}
+
+async function deleteSunoAnalyticsContext(contextId) {
+  if (!contextId) return;
+  await dynamo.send(new DeleteItemCommand({
+    TableName: EVENTS_TABLE_NAME,
+    Key: { id: { S: contextId } },
+  }));
+}
+
+async function cleanupFailedSunoSetup(orderId, reservation, contextId) {
+  await releaseSunoGeneration(orderId, reservation);
+  try {
+    await deleteSunoAnalyticsContext(contextId);
+  } catch (error) {
+    console.error("Unable to remove failed Suno analytics context", {
+      orderId,
+      message: error.message,
+    });
+  }
+}
+
+async function sunoAnalyticsContextItem(contextId) {
+  if (!contextId) return null;
+  const result = await dynamo.send(new GetItemCommand({
+    TableName: EVENTS_TABLE_NAME,
+    Key: { id: { S: contextId } },
+    ConsistentRead: true,
+  }));
+  return result.Item ?? null;
+}
+
+function analyticsContextFromItem(item) {
+  if (!item) return { sessionId: "server" };
+  return {
+    sessionId: item.sessionId?.S,
+    source: item.source?.S,
+    medium: item.medium?.S,
+    campaign: item.campaign?.S,
+    referrer: item.referrer?.S,
+  };
+}
+
+async function rememberSunoTask(taskId, orderId, reservation, contextId) {
   await dynamo.send(new PutItemCommand({
     TableName: EVENTS_TABLE_NAME,
     Item: {
@@ -1489,6 +1584,7 @@ async function rememberSunoTask(taskId, orderId, reservation) {
       name: { S: "suno_generation_started" },
       orderId: { S: orderId },
       providerTaskId: { S: taskId },
+      contextId: { S: contextId },
       reservationType: { S: reservation.reservationType },
       trackLimit: { N: String(reservation.trackLimit) },
       ...(reservation.dailyMarkerId
@@ -2132,18 +2228,12 @@ async function getMusicLibrary(event) {
     let tracks = tracksFromTaskItem(item);
     let error = safeString(item.errorMessage?.S, 240);
 
-    if (!tracks.length && !SUNO_FAILED_STATUSES.has(status)) {
+    if (status !== "SUCCESS" && !SUNO_FAILED_STATUSES.has(status)) {
       try {
-        const data = await sunoRequest(
-          `/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
-          { method: "GET" },
-        );
-        status = safeString(data?.status || status, 40);
-        tracks = (data?.response?.sunoData ?? []).map(normalizeSunoTrack);
-        error = SUNO_FAILED_STATUSES.has(status)
-          ? safeString(data?.errorMessage || "Essa criação não foi concluída.", 240)
-          : "";
-        await rememberSunoTaskSnapshot(taskId, order.id, status, tracks, error);
+        const result = await reconcileSunoTask(taskId, item, order);
+        status = result.status;
+        tracks = result.allTracks;
+        error = result.errorMessage;
       } catch (libraryError) {
         console.error("Unable to refresh music library item", {
           orderId: order.id,
@@ -2151,6 +2241,8 @@ async function getMusicLibrary(event) {
           message: libraryError.message,
         });
       }
+    } else if (status === "SUCCESS") {
+      await recordSuccessfulSunoTask(order, taskId, item, tracks);
     }
 
     return {
@@ -2199,6 +2291,76 @@ async function sunoTaskItem(taskId) {
     ConsistentRead: true,
   }));
   return result.Item;
+}
+
+async function recordSuccessfulSunoTask(order, taskId, task, tracks) {
+  const contextId = task?.contextId?.S;
+  const contextItem = await sunoAnalyticsContextItem(contextId);
+  const hasExactContext = contextItem?.orderId?.S === order.id
+    && contextItem?.providerTaskId?.S === taskId;
+  const exactContext = hasExactContext
+    ? analyticsContextFromItem(contextItem)
+    : { sessionId: "server" };
+  const genericContext = hasExactContext ? exactContext : {};
+  const [genericRecorded, activationRecorded] = await Promise.all([
+    recordMemberMusicEvent(
+      order,
+      "music_generation_completed",
+      `music_generation_completed_${taskId}`,
+      tracks.length,
+      genericContext,
+    ),
+    recordMemberMusicEvent(
+      order,
+      "music_route_unique_confirmed",
+      `music_route_unique_confirmed_${taskId}`,
+      tracks.length,
+      exactContext,
+    ),
+  ]);
+  if (activationRecorded && contextId) {
+    try {
+      await deleteSunoAnalyticsContext(contextId);
+    } catch (error) {
+      console.error("Unable to remove completed Suno analytics context", {
+        orderId: order.id,
+        taskId,
+        message: error.message,
+      });
+    }
+  }
+  return genericRecorded && activationRecorded;
+}
+
+async function reconcileSunoTask(taskId, task, order) {
+  const data = await sunoRequest(
+    `/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
+    { method: "GET" },
+  );
+  const status = safeString(data?.status || "PENDING", 40);
+  const allTracks = (data?.response?.sunoData ?? []).map(normalizeSunoTrack);
+  const failed = SUNO_FAILED_STATUSES.has(status);
+  const trackLimit = Number(task.trackLimit?.N ?? MUSIC_TRACKS_PER_GENERATION);
+  const tracks = failed ? [] : allTracks.slice(0, trackLimit);
+  const errorMessage = failed
+    ? safeString(data?.errorMessage || "A geração falhou. Ajuste a direção e tente novamente.", 240)
+    : "";
+  await rememberSunoTaskSnapshot(taskId, order.id, status, allTracks, errorMessage);
+  const refunded = failed
+    ? await refundFailedSunoTask(taskId, order.id)
+    : false;
+  if (status === "SUCCESS") {
+    await recordSuccessfulSunoTask(order, taskId, task, tracks);
+  } else if (failed && task.contextId?.S) {
+    await deleteSunoAnalyticsContext(task.contextId.S);
+  }
+  return {
+    status,
+    allTracks,
+    tracks,
+    errorMessage,
+    refunded,
+  };
 }
 
 async function refundFailedSunoTask(taskId, orderId) {
@@ -2301,6 +2463,13 @@ async function createSunoGeneration(event) {
   const instrumental = body.instrumental === true;
   const conversationId = normalizeConversationId(body.conversationId);
   const mode = body.mode === "refine" ? "refine" : "create";
+  const analyticsContext = {
+    sessionId: body.sessionId,
+    source: body.source,
+    medium: body.medium,
+    campaign: body.campaign,
+    referrer: body.referrer,
+  };
   if (prompt.length < 20 || prompt.length > 500) {
     return response(400, { error: "Descreva a música em 20 a 500 caracteres." });
   }
@@ -2325,6 +2494,19 @@ async function createSunoGeneration(event) {
     });
   }
 
+  const callbackToken = crypto.randomBytes(32).toString("hex");
+  let contextId;
+  try {
+    contextId = await rememberSunoAnalyticsContext(
+      callbackToken,
+      order.id,
+      analyticsContext,
+    );
+  } catch (error) {
+    await releaseSunoGeneration(order.id, reservation);
+    throw error;
+  }
+
   let data;
   try {
     data = await sunoRequest("/generate", {
@@ -2333,23 +2515,24 @@ async function createSunoGeneration(event) {
         customMode: false,
         instrumental,
         model: MUSIC_MODEL,
-        callBackUrl: `${PUBLIC_API_URL}/v1/suno/callback`,
+        callBackUrl: `${PUBLIC_API_URL}/v1/suno/callback?token=${callbackToken}`,
         prompt,
       }),
     });
   } catch (error) {
-    await releaseSunoGeneration(order.id, reservation);
+    await cleanupFailedSunoSetup(order.id, reservation, contextId);
     throw error;
   }
   const taskId = safeString(data?.taskId, 100);
   if (!/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)) {
-    await releaseSunoGeneration(order.id, reservation);
+    await cleanupFailedSunoSetup(order.id, reservation, contextId);
     throw new Error("O serviço não devolveu um identificador de geração válido.");
   }
   try {
-    await rememberSunoTask(taskId, order.id, reservation);
+    await bindSunoAnalyticsContext(contextId, taskId, order.id);
+    await rememberSunoTask(taskId, order.id, reservation, contextId);
   } catch (error) {
-    await releaseSunoGeneration(order.id, reservation);
+    await cleanupFailedSunoSetup(order.id, reservation, contextId);
     throw error;
   }
   await recordMemberMusicEvent(
@@ -2357,6 +2540,7 @@ async function createSunoGeneration(event) {
     "music_generation_confirmed",
     `music_generation_confirmed_${taskId}`,
     reservation.trackLimit,
+    analyticsContext,
   );
   return response(202, {
     taskId,
@@ -2383,30 +2567,12 @@ async function getSunoGeneration(event, taskId) {
     return response(404, { error: "Geração não encontrada para este acesso." });
   }
 
-  const data = await sunoRequest(
-    `/generate/record-info?taskId=${encodeURIComponent(taskId)}`,
-    { method: "GET" },
-  );
-  const status = safeString(data?.status || "PENDING", 40);
-  const allTracks = (data?.response?.sunoData ?? []).map(normalizeSunoTrack);
-  const failed = SUNO_FAILED_STATUSES.has(status);
-  const trackLimit = Number(task.trackLimit?.N ?? MUSIC_TRACKS_PER_GENERATION);
-  const tracks = failed ? [] : allTracks.slice(0, trackLimit);
-  const errorMessage = failed
-    ? safeString(data?.errorMessage || "A geração falhou. Ajuste a direção e tente novamente.", 240)
-    : "";
-  await rememberSunoTaskSnapshot(taskId, order.id, status, allTracks, errorMessage);
-  const refunded = failed
-    ? await refundFailedSunoTask(taskId, order.id)
-    : false;
-  if (status === "SUCCESS") {
-    await recordMemberMusicEvent(
-      order,
-      "music_generation_completed",
-      `music_generation_completed_${taskId}`,
-      tracks.length,
-    );
-  }
+  const {
+    status,
+    tracks,
+    errorMessage,
+    refunded,
+  } = await reconcileSunoTask(taskId, task, order);
   const dailyStateAfterFailure = refunded && task.reservationType?.S === "FREE_DAILY"
     ? await freeDailyState(order)
     : null;
@@ -2420,6 +2586,58 @@ async function getSunoGeneration(event, taskId) {
       : undefined,
     dailyFreeAvailable: dailyStateAfterFailure?.available,
     freeDailyAttemptsRemaining: dailyStateAfterFailure?.attemptsRemaining,
+  });
+}
+
+function callbackTokenMatches(contextItem, token) {
+  if (!/^[a-f0-9]{64}$/.test(token)) return false;
+  const expected = contextItem?.callbackTokenHash?.S;
+  if (!/^[a-f0-9]{64}$/.test(expected ?? "")) return false;
+  const suppliedHash = crypto.createHash("sha256").update(token).digest("hex");
+  const supplied = Buffer.from(suppliedHash, "hex");
+  const expectedBuffer = Buffer.from(expected, "hex");
+  return supplied.length === expectedBuffer.length
+    && crypto.timingSafeEqual(supplied, expectedBuffer);
+}
+
+async function handleSunoCallback(event) {
+  let body;
+  try {
+    body = readBody(event);
+  } catch {
+    return response(400, { error: "Callback inválido." });
+  }
+  const taskId = safeString(body?.data?.task_id ?? body?.data?.taskId, 100);
+  if (!/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)) {
+    return response(400, { error: "Callback sem tarefa válida." });
+  }
+  const task = await sunoTaskItem(taskId);
+  if (!task) return response(404, { error: "Tarefa não encontrada." });
+
+  const contextId = task.contextId?.S;
+  const contextItem = await sunoAnalyticsContextItem(contextId);
+  if (!contextItem && task.status?.S === "SUCCESS") {
+    return response(200, { received: true, alreadyProcessed: true });
+  }
+  const callbackToken = safeString(event.queryStringParameters?.token, 80);
+  if (
+    !callbackTokenMatches(contextItem, callbackToken)
+    || contextItem?.providerTaskId?.S !== taskId
+    || contextItem?.orderId?.S !== task.orderId?.S
+  ) {
+    return response(403, { error: "Callback não autorizado." });
+  }
+
+  const callbackType = safeString(body?.data?.callbackType, 40);
+  if (!["complete", "error"].includes(callbackType)) {
+    return response(200, { received: true, pending: true });
+  }
+  const order = await findOrder(task.orderId.S);
+  if (!order) return response(404, { error: "Conta da tarefa não encontrada." });
+  const result = await reconcileSunoTask(taskId, task, order);
+  return response(200, {
+    received: true,
+    status: result.status,
   });
 }
 
@@ -2604,7 +2822,7 @@ async function createWooviCharge({ orderId, digest, product, name, email, phone 
       body: JSON.stringify({
         correlationID: orderId,
         value: product.value,
-        comment: `${product.credits} musicas - Academia Musica IA`,
+        comment: `${product.credits} musicas - musicacom.ia`,
         expiresIn: 3600,
         customer: {
           name,
@@ -2822,7 +3040,7 @@ async function createCreditCheckout(event) {
             correlationID: `customer_${digest}`,
           },
           correlationID: orderId,
-          comment: "Academia Musica IA",
+          comment: "musicacom.ia",
           frequency: "MONTHLY",
           type: "PIX_RECURRING",
           pixRecurringOptions: {
@@ -3351,7 +3569,7 @@ export const handler = async (event) => {
       );
     }
     if (method === "POST" && path === "/v1/suno/callback") {
-      return response(200, { received: true });
+      return await handleSunoCallback(event);
     }
     return response(404, { error: "Rota não encontrada." });
   } catch (error) {

@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import {
+  authenticatedWorkspaceKeys,
+  authenticatedWorkspaceOwnerKey,
+  transitionAuthenticatedWorkspace,
+} from "../app/lib/accountWorkspace.js";
 
 test("renders finished production metadata", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -62,7 +67,7 @@ test("publishes crawl instructions and only important public URLs", async () => 
   assert.equal(manifest.theme_color, "#35e66a");
 });
 
-test("renders the express music creator without the conversational studio", async () => {
+test("renders the single-route music creator without the conversational studio", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `express-${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
@@ -84,9 +89,11 @@ test("renders the express music creator without the conversational studio", asyn
 
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /CRIADOR EXPRESS/i);
-  assert.match(html, /Uma ideia\. Algumas escolhas\./i);
-  assert.match(html, /uma música grátis por dia/i);
+  assert.match(html, /ROTA DE CRIAÇÃO/i);
+  assert.match(html, /Sua música, passo a passo\./i);
+  assert.match(html, /PASSO[\s\S]{0,30}1[\s\S]{0,30}DE[\s\S]{0,30}5/i);
+  assert.match(html, /O que você quer criar\?/i);
+  assert.doesNotMatch(html, /Qual é a sua ideia\?/i);
   assert.doesNotMatch(html, /Crie sua música em uma conversa/i);
   assert.doesNotMatch(html, /Produtor IA está pensando/i);
 });
@@ -140,4 +147,64 @@ test("keeps an early track selection until the lazy player is mounted", async ()
     playerSource,
     /localStorage\.removeItem\(academyPlayerPendingStorageKey\)/,
   );
+});
+
+test("keeps account workspaces isolated and the persistent player on listening routes", async () => {
+  const [accessSource, boundarySource, portalSource, creatorSource] = await Promise.all([
+    readFile(new URL("../app/lib/access.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/MemberPlayerBoundary.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/Portal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/biblioteca/gerador/page.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(accessSource, /transitionMemberWorkspace\(access\.token\)/);
+  assert.match(accessSource, /transitionMemberWorkspace\(\)/);
+  assert.match(boundarySource, /pathname\.replace\(\/\\\/\+\$\/, ""\) \|\| "\/"/);
+  assert.match(boundarySource, /normalizedPathname === "\/academia"/);
+  assert.match(boundarySource, /normalizedPathname === "\/biblioteca"/);
+  assert.doesNotMatch(portalSource, /href=["']#["']/);
+  assert.match(portalSource, /CONTEÚDO EM PREPARAÇÃO/);
+  assert.match(creatorSource, /<small>\{plan\.style\}<\/small>/);
+  assert.doesNotMatch(creatorSource, /track\.tags \|\| plan\.style/);
+});
+
+test("preserves workspace for the same account and clears it on account changes", () => {
+  const values = new Map();
+  const storage = {
+    getItem(key) {
+      return values.get(key) ?? null;
+    },
+    removeItem(key) {
+      values.delete(key);
+    },
+    setItem(key, value) {
+      values.set(key, value);
+    },
+  };
+  const tokenFor = (identity, expiry = "2000000000") => `v1.${expiry}.${identity}.signature`;
+
+  const firstLogin = transitionAuthenticatedWorkspace(storage, tokenFor("ami_account_a"));
+  assert.equal(firstLogin.cleared, true);
+  values.set(authenticatedWorkspaceKeys[0], "music draft");
+  values.set(authenticatedWorkspaceKeys[1], "cover job");
+
+  const sameAccount = transitionAuthenticatedWorkspace(
+    storage,
+    tokenFor("ami_account_a", "2100000000"),
+  );
+  assert.equal(sameAccount.cleared, false);
+  assert.equal(values.get(authenticatedWorkspaceKeys[0]), "music draft");
+  assert.equal(values.get(authenticatedWorkspaceKeys[1]), "cover job");
+
+  const differentAccount = transitionAuthenticatedWorkspace(storage, tokenFor("ami_account_b"));
+  assert.equal(differentAccount.cleared, true);
+  assert.equal(values.has(authenticatedWorkspaceKeys[0]), false);
+  assert.equal(values.has(authenticatedWorkspaceKeys[1]), false);
+  assert.equal(values.get(authenticatedWorkspaceOwnerKey), "ami_account_b");
+
+  values.set(authenticatedWorkspaceKeys[0], "new draft");
+  const logout = transitionAuthenticatedWorkspace(storage, "");
+  assert.equal(logout.cleared, true);
+  assert.equal(values.has(authenticatedWorkspaceKeys[0]), false);
+  assert.equal(values.has(authenticatedWorkspaceOwnerKey), false);
 });

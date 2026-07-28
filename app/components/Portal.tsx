@@ -6,7 +6,7 @@ import AcademyTopBar from "./AcademyTopBar";
 export const Logo = ({ href = "/" }: { href?: string }) => (
   <Link href={href} className="portal-logo">
     <span className="brand-disc"><i /><i /><i /></span>
-    <span>Academia <b>Música IA</b></span>
+    <span>musicacom<b>.ia</b></span>
   </Link>
 );
 
@@ -25,7 +25,7 @@ export function PublicShell({ children, compact = false }: { children: ReactNode
       <footer className="portal-footer">
         <Logo />
         <div><a href="/termos">Termos</a><a href="/privacidade">Privacidade</a><a href="/reembolso">Reembolso</a><a href="/suporte">Suporte</a></div>
-        <span>© 2026 Academia Música IA</span>
+        <span>© 2026 musicacom.ia</span>
       </footer>
     </div>
   );
@@ -62,16 +62,18 @@ export function AcademyShell({
         <Link href="/biblioteca/gerador"><span>CRIAR</span></Link>
         <Link href="/biblioteca"><span>MÚSICAS</span></Link>
         <Link href="/biblioteca/creditos"><span>CRÉDITOS</span></Link>
-        <Link href="/academia/comecar"><span>TUTORIAL</span></Link>
       </nav>
     </div>
   );
 }
 
-export function LessonCard({ number, title, text, time = "8 min", href = "#" }: { number: string; title: string; text: string; time?: string; href?: string }) {
-  return <Link href={href} className="lesson-card"><span>{number}</span><div><small>TUTORIAL • {time}</small><h3>{title}</h3><p>{text}</p></div><b>▶</b></Link>;
+export function LessonCard({ number, title, text, time = "8 min", href }: { number: string; title: string; text: string; time?: string; href?: string }) {
+  const content = <><span>{number}</span><div><small>{href ? `TUTORIAL • ${time}` : "CONTEÚDO EM PREPARAÇÃO"}</small><h3>{title}</h3><p>{text}</p></div><b>{href ? "▶" : "EM BREVE"}</b></>;
+  return href
+    ? <Link href={href} className="lesson-card">{content}</Link>
+    : <article className="lesson-card is-upcoming" aria-label={`${title} — em breve`}>{content}</article>;
 }
 
 export function LegalPage({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {
-  return <PublicShell compact><main className="legal-page"><div className="eyebrow">ACADEMIA MÚSICA IA</div><h1>{title}</h1><small>Última atualização: {updated}</small><article>{children}</article></main></PublicShell>;
+  return <PublicShell compact><main className="legal-page"><div className="eyebrow">musicacom.ia</div><h1>{title}</h1><small>Última atualização: {updated}</small><article>{children}</article></main></PublicShell>;
 }

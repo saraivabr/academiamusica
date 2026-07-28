@@ -45,7 +45,7 @@ export default function Checkout() {
             <span className="cover-mini">AMI</span>
             <div>
               <small>SEU ACESSO</small>
-              <h2>Academia Música IA</h2>
+              <h2>musicacom.ia</h2>
               <p>Plataforma brasileira de criação musical</p>
             </div>
           </div>

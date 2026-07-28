@@ -11,7 +11,7 @@ export type MusicProduct = {
 
 export const STARTER_PRODUCT: MusicProduct = {
   id: "starter_20",
-  name: "Acesso Academia Música IA + 20 músicas",
+  name: "Acesso musicacom.ia + 20 músicas",
   shortName: "Comece agora",
   description: "Acesso permanente à plataforma com 20 músicas para criar e baixar.",
   priceCents: 4_997,

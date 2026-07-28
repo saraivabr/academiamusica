@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PublicShell } from "../components/Portal";
 export const metadata: Metadata = {
   title: "Suporte",
-  description: "Ajuda para acessar, criar músicas e usar a Academia Música IA.",
+  description: "Ajuda para acessar, criar músicas e usar a musicacom.ia.",
   alternates: { canonical: "/suporte/" },
 };
 export default function Suporte(){return <PublicShell compact><main className="support-page"><div className="eyebrow">CENTRAL DE AJUDA</div><h1>Como podemos ajudar?</h1><p>Encontre respostas rápidas ou fale com nosso atendimento pelo WhatsApp.</p><section><article><span>01</span><h2>Acesso e senha</h2><p>Orientações de primeiro acesso e recuperação de conta.</p></article><article><span>02</span><h2>Pagamento</h2><p>Dúvidas sobre confirmação, garantia e comprovantes.</p></article><article><span>03</span><h2>Criação e plataforma</h2><p>Ajuda para criar músicas, organizar o repertório e seguir os tutoriais.</p></article></section><div className="support-contact"><div><small>ATENDIMENTO</small><h2>Fale com uma pessoa</h2><p>Envie sua dúvida. Inclua o e-mail da compra se você já tiver efetuado o pagamento.</p></div><a className="support-whatsapp" href="https://wa.me/5511991143605?text=Oi%2C%20preciso%20de%20ajuda%20com%20a%20Academia%20M%C3%BAsica%20IA." target="_blank" rel="noreferrer">Abrir WhatsApp ↗</a></div></main></PublicShell>}

@@ -1,8 +1,20 @@
 "use client";
 
+import { transitionAuthenticatedWorkspace } from "./accountWorkspace";
+import { clearAcademyPlayerSelection } from "./musicPlatform";
+
 export const CHECKOUT_API = "https://fb9323mkb2.execute-api.us-east-1.amazonaws.com";
 export const COGNITO_CLIENT_ID = "375mcuenagmq50eellircoljq6";
 const COGNITO_ENDPOINT = "https://cognito-idp.us-east-1.amazonaws.com/";
+
+function transitionMemberWorkspace(token = "") {
+  clearAcademyPlayerSelection();
+  try {
+    transitionAuthenticatedWorkspace(window.localStorage, token);
+  } catch {
+    // The account transition must still complete when storage is unavailable.
+  }
+}
 
 function getDeviceId() {
   const storageKey = "academia-free-device";
@@ -56,6 +68,7 @@ async function exchangeCognitoToken(idToken: string) {
 }
 
 function setMemberAccess(access: { token: string; expiresAt: string }) {
+  transitionMemberWorkspace(access.token);
   const expiresAt = new Date(access.expiresAt).getTime();
   const maxAge = Number.isFinite(expiresAt)
     ? Math.max(0, Math.floor((expiresAt - Date.now()) / 1000))
@@ -131,6 +144,7 @@ export function getMemberAccessToken() {
 }
 
 export function clearMemberAccess() {
+  transitionMemberWorkspace();
   document.cookie = "academia_access=; Path=/; Max-Age=0; Secure; SameSite=Strict";
 }
 

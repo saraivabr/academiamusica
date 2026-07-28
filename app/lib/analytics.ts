@@ -1,7 +1,8 @@
 "use client";
 
+import { getOrCreateAnalyticsSession } from "./analyticsSession";
+
 const ANALYTICS_API = "https://fb9323mkb2.execute-api.us-east-1.amazonaws.com";
-const SESSION_KEY = "academia-musica-session";
 const ATTRIBUTION_KEY = "academia-musica-attribution";
 
 type Attribution = {
@@ -16,15 +17,11 @@ function randomId(prefix: string) {
 }
 
 export function getSessionId() {
-  try {
-    const existing = window.localStorage.getItem(SESSION_KEY);
-    if (existing) return existing;
-    const created = randomId("ses");
-    window.localStorage.setItem(SESSION_KEY, created);
-    return created;
-  } catch {
-    return randomId("ses");
-  }
+  return getOrCreateAnalyticsSession(
+    window.localStorage,
+    Date.now(),
+    () => randomId("ses"),
+  );
 }
 
 export function getAttribution(): Attribution {

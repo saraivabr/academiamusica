@@ -26,6 +26,7 @@ export type PlayerSelection = {
 };
 
 export const academyPlayerEvent = "academia:play-track";
+export const academyPlayerClearEvent = "academia:clear-player";
 export const academyPlayerStorageKey = "academia_player_track_v1";
 export const academyPlayerPendingStorageKey = "academia_player_pending_v1";
 
@@ -44,6 +45,16 @@ export function playInAcademyPlayer(track: PlatformTrack, context = "Minhas mús
   window.dispatchEvent(new CustomEvent<PlayerSelection>(academyPlayerEvent, {
     detail: selection,
   }));
+}
+
+export function clearAcademyPlayerSelection() {
+  try {
+    window.localStorage.removeItem(academyPlayerStorageKey);
+    window.localStorage.removeItem(academyPlayerPendingStorageKey);
+  } catch {
+    // Clearing the authenticated session must still work when storage is unavailable.
+  }
+  window.dispatchEvent(new Event(academyPlayerClearEvent));
 }
 
 export function flattenGenerations(generations: PlatformGeneration[]) {

@@ -66,7 +66,7 @@ test("paid recharges and subscription installments use verified atomic crediting
   assert.doesNotMatch(backend, /#status <> :paid OR attribute_not_exists\(creditsAppliedAt\)/);
 });
 
-test("mobile purchase flow keeps checkout and five destinations usable", async () => {
+test("mobile purchase flow keeps checkout and four primary destinations usable", async () => {
   const [globals, experience, confirmation] = await Promise.all([
     source("app/globals.css"),
     source("app/spotify-experience.css"),
@@ -74,7 +74,7 @@ test("mobile purchase flow keeps checkout and five destinations usable", async (
   ]);
 
   assert.match(globals, /\.checkout-page>\.checkout-card\{order:-1\}/);
-  assert.match(experience, /grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(experience, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
   assert.doesNotMatch(confirmation, /`purchase_\$\{orderId\}`/);
   assert.match(confirmation, /history\.replaceState/);
 });

@@ -1,6 +1,6 @@
 {
-  "name": "Academia Música IA",
-  "short_name": "Música IA",
+  "name": "musicacom.ia",
+  "short_name": "musicacom.ia",
   "description": "Plataforma brasileira para criar música com IA, organizar seu repertório e preparar o lançamento.",
   "start_url": "/",
   "display": "standalone",

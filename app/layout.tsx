@@ -7,15 +7,15 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://musicacom.ia.br"),
   title: {
-    default: "Academia Música IA",
-    template: "%s | Academia Música IA",
+    default: "musicacom.ia",
+    template: "%s | musicacom.ia",
   },
   description:
     "Plataforma brasileira para criar música com inteligência artificial, organizar seu repertório e desenvolver a identidade do lançamento.",
-  applicationName: "Academia Música IA",
+  applicationName: "musicacom.ia",
   category: "Música e criatividade",
-  creator: "Academia Música IA",
-  publisher: "Academia Música IA",
+  creator: "musicacom.ia",
+  publisher: "musicacom.ia",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.svg",

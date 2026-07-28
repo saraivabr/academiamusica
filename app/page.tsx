@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import HomePage from "./components/HomePage";
 
-const title = "Gerador de Música com IA Grátis | Academia Música IA";
+const title = "Gerador de Música com IA Grátis | musicacom.ia";
 const description =
   "Crie música com IA em português, explore sertanejo, trap, forró, funk e outros ritmos brasileiros. Faça uma criação grátis por dia, sem cartão.";
 
@@ -20,15 +20,15 @@ export const metadata: Metadata = {
     title,
     description,
     url: "/",
-    siteName: "Academia Música IA",
+    siteName: "musicacom.ia",
     locale: "pt_BR",
     type: "website",
     images: [
       {
-        url: "/og-academia-musica-ia.jpg",
+        url: "/og-musicacom-ia.jpg",
         width: 1200,
         height: 630,
-        alt: "Academia Música IA — da ideia ao play",
+        alt: "musicacom.ia — da ideia ao play",
       },
     ],
   },
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["/og-academia-musica-ia.jpg"],
+    images: ["/og-musicacom-ia.jpg"],
   },
 };
 
@@ -46,7 +46,7 @@ const structuredData = {
     {
       "@type": "Organization",
       "@id": "https://musicacom.ia.br/#organization",
-      name: "Academia Música IA",
+      name: "musicacom.ia",
       url: "https://musicacom.ia.br/",
       logo: {
         "@type": "ImageObject",
@@ -59,7 +59,7 @@ const structuredData = {
       "@type": "WebSite",
       "@id": "https://musicacom.ia.br/#website",
       url: "https://musicacom.ia.br/",
-      name: "Academia Música IA",
+      name: "musicacom.ia",
       alternateName: "Música com IA",
       inLanguage: "pt-BR",
       publisher: {
@@ -69,14 +69,14 @@ const structuredData = {
     {
       "@type": "SoftwareApplication",
       "@id": "https://musicacom.ia.br/#software",
-      name: "Academia Música IA",
+      name: "musicacom.ia",
       applicationCategory: "MultimediaApplication",
       applicationSubCategory: "Gerador de música com inteligência artificial",
       operatingSystem: "Web",
       url: "https://musicacom.ia.br/",
       inLanguage: "pt-BR",
       description,
-      image: "https://musicacom.ia.br/og-academia-musica-ia.jpg",
+      image: "https://musicacom.ia.br/og-musicacom-ia.jpg",
       offers: {
         "@type": "Offer",
         price: "0",

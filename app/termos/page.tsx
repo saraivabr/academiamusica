@@ -3,7 +3,7 @@ import { LegalPage } from "../components/Portal";
 
 export const metadata: Metadata = {
   title: "Termos de uso",
-  description: "Condições para usar a plataforma Academia Música IA.",
+  description: "Condições para usar a plataforma musicacom.ia.",
   alternates: { canonical: "/termos/" },
 };
 
@@ -11,7 +11,7 @@ export default function Termos() {
   return (
     <LegalPage title="Termos de uso" updated="27 de julho de 2026">
       <h2>1. Objeto</h2>
-      <p>Estes termos regulam o acesso à Academia Música IA, uma plataforma para criação, organização e preparação de lançamentos musicais com tutoriais integrados à experiência.</p>
+      <p>Estes termos regulam o acesso à musicacom.ia, uma plataforma para criação, organização e preparação de lançamentos musicais com tutoriais integrados à experiência.</p>
 
       <h2>2. Conta gratuita</h2>
       <p>O cadastro inicial é gratuito e exige e-mail válido e confirmado. A conta oferece uma música gratuita por dia, sujeita à disponibilidade técnica e aos controles de uso justo. Não é necessário cadastrar cartão.</p>
