@@ -1,6 +1,8 @@
-import { readFile } from "node:fs/promises";
-
-const raw = await readFile("/dev/stdin", "utf8");
+process.stdin.setEncoding("utf8");
+let raw = "";
+for await (const chunk of process.stdin) {
+  raw += chunk;
+}
 const payload = JSON.parse(raw || "{}");
 const events = (payload.Items ?? []).map((item) => ({
   id: item.id?.S ?? "",
