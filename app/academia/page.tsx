@@ -65,6 +65,7 @@ function TrackCard({ track, index }: { track: PlatformTrack; index: number }) {
 export default function Academia() {
   const [tracks, setTracks] = useState<PlatformTrack[]>([]);
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
+  const [libraryLoaded, setLibraryLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -79,6 +80,9 @@ export default function Academia() {
       })
       .catch(() => {
         // The home remains useful before the library is available.
+      })
+      .finally(() => {
+        if (active) setLibraryLoaded(true);
       });
     return () => {
       active = false;
@@ -86,40 +90,35 @@ export default function Academia() {
   }, []);
 
   const featuredTrack = tracks[0];
+  const hasMusic = Boolean(featuredTrack);
 
   return (
     <AcademyShell title="Início" eyebrow="SEU ESTÚDIO">
       <section className="spotify-greeting">
         <div>
           <small>musicacom.ia</small>
-          <h2>Boa criação.</h2>
-          <p>Continue de onde parou ou comece um novo lançamento.</p>
+          <h2>{hasMusic ? "Sua música está aqui." : "Vamos criar a primeira?"}</h2>
+          <p>{hasMusic
+            ? "Ouça sua criação e escolha o próximo passo."
+            : "Conte uma ideia. A parte técnica fica com a plataforma."}</p>
         </div>
         <span><b>{remainingSongs ?? "—"}</b> créditos disponíveis</span>
       </section>
 
-      <section className="spotify-quick-grid" aria-label="Acessos rápidos">
-        <Link href="/biblioteca/gerador">
-          <i className="quick-create">＋</i>
-          <b>Criar nova música</b>
-          <span>▶</span>
-        </Link>
-        <Link href="/biblioteca">
-          <i className="quick-library">♫</i>
-          <b>Seu repertório</b>
-          <span>▶</span>
-        </Link>
-        <Link href="/biblioteca/capa">
-          <i className="quick-cover">▣</i>
-          <b>Criar uma capa</b>
-          <span>▶</span>
-        </Link>
-        <Link href="/academia/comecar">
-          <i className="quick-method">01</i>
-          <b>Abrir tutorial</b>
-          <span>▶</span>
-        </Link>
-      </section>
+      {hasMusic ? (
+        <section className="spotify-quick-grid" aria-label="Próximos passos">
+          <Link href="/biblioteca">
+            <i className="quick-library">♫</i>
+            <b>Ouvir e escolher</b>
+            <span>▶</span>
+          </Link>
+          <Link href={`/biblioteca/capa?track=${encodeURIComponent(featuredTrack.id)}`}>
+            <i className="quick-cover">▣</i>
+            <b>Criar a capa</b>
+            <span>▶</span>
+          </Link>
+        </section>
+      ) : null}
 
       <section
         className="platform-feature"
@@ -128,26 +127,39 @@ export default function Academia() {
           : undefined}
       >
         <div className="platform-feature-copy">
-          <small>SEU PRÓXIMO LANÇAMENTO</small>
-          <h2>Conte uma história.<br />Saia com uma música.</h2>
-          <p>Você escolhe o essencial. A plataforma libera uma música grátis por dia, organiza a capa e ajuda a preparar tudo para publicar.</p>
+          <small>{hasMusic ? "CONTINUE DE ONDE PAROU" : "SUA PRIMEIRA MÚSICA"}</small>
+          <h2>{hasMusic
+            ? <>Ouça. Escolha.<br />Siga para a capa.</>
+            : <>Conte uma história.<br />Saia com uma música.</>}</h2>
+          <p>{hasMusic
+            ? "Sua criação está salva. Escute antes de decidir se quer criar a capa ou tentar uma nova direção."
+            : "Você escolhe o essencial. A primeira música do dia é grátis e não precisa de cartão."}</p>
           <div>
-            <Link href="/biblioteca/gerador" className="platform-primary-action">
-              <span aria-hidden="true">▶</span> Começar agora
-            </Link>
             {featuredTrack ? (
               <button
                 type="button"
-                className="platform-secondary-action"
+                className="platform-primary-action"
                 onClick={() => playInAcademyPlayer(featuredTrack, "Sua criação mais recente")}
               >
-                ▶ Ouvir a mais recente
+                ▶ Ouvir e escolher
               </button>
-            ) : <Link href="/academia/comecar" className="platform-secondary-action">Como funciona</Link>}
+            ) : (
+              <Link
+                href="/biblioteca/gerador"
+                className="platform-primary-action"
+                data-track="creator_primary_action"
+                data-track-placement="member_home_empty"
+              >
+                <span aria-hidden="true">▶</span> Criar minha primeira música
+              </Link>
+            )}
+            {featuredTrack
+              ? <Link href="/biblioteca/gerador" className="platform-secondary-action">Criar outra música</Link>
+              : <Link href="/academia/comecar" className="platform-secondary-action">Como funciona</Link>}
           </div>
         </div>
         <aside className="platform-feature-art">
-          <span className="feature-vinyl"><i>AMI</i></span>
+          <span className="feature-vinyl"><i><img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" /></i></span>
           <small>IDEIA → SOM → CAPA → LANÇAMENTO</small>
         </aside>
       </section>
@@ -165,21 +177,19 @@ export default function Academia() {
           </div>
         ) : (
           <div className="platform-empty-shelf">
-            <div><span>AMI</span></div>
+            <div><img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" /></div>
             <div>
               <small>SEU REPERTÓRIO</small>
               <h3>As músicas que você criar aparecerão aqui.</h3>
             <p>Comece com uma ideia e faça escolhas simples. A plataforma cuida do restante.</p>
             </div>
-            <Link href="/biblioteca/gerador">Começar agora →</Link>
           </div>
         )}
       </section>
 
-      <section className="platform-section">
+      {libraryLoaded && hasMusic ? <section className="platform-section">
         <header className="platform-section-head">
-          <div><small>O VALOR DO PROCESSO</small><h2>Você não recebe só um arquivo</h2></div>
-          <Link href="/academia/comecar">Abrir tutorial</Link>
+          <div><small>PRÓXIMOS PASSOS</small><h2>Continue no seu ritmo</h2></div>
         </header>
         <div className="platform-journey-grid">
           {journey.map((item) => (
@@ -192,7 +202,7 @@ export default function Academia() {
             </Link>
           ))}
         </div>
-      </section>
+      </section> : null}
     </AcademyShell>
   );
 }

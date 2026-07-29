@@ -12,6 +12,7 @@ import {
   requestFreePasswordReset,
   resendFreeAccountCode,
 } from "../lib/access";
+import { trackEvent } from "../lib/analytics";
 import styles from "./login.module.css";
 
 type Mode = "login" | "register" | "confirm" | "forgot" | "reset" | "legacy";
@@ -116,6 +117,9 @@ export default function AccessLogin() {
   async function loginWithGoogle() {
     setError("");
     setGoogleLoading(true);
+    trackEvent("auth_google_started", window.location.pathname, {
+      placement: mode,
+    });
     try {
       await beginGoogleLogin(nextPath);
     } catch (reason) {
@@ -151,6 +155,9 @@ export default function AccessLogin() {
     setNotice("");
     try {
       if (mode === "register") {
+        trackEvent("auth_email_started", window.location.pathname, {
+          placement: "register",
+        });
         await registerFreeAccount(name, email, password);
         setShowPassword(false);
         setMode("confirm");
@@ -160,6 +167,9 @@ export default function AccessLogin() {
       if (mode === "confirm") {
         await confirmFreeAccount(email, code);
         await loginFreeAccount(email, password);
+        trackEvent("auth_email_completed", window.location.pathname, {
+          outcome: "register",
+        });
         window.location.assign(nextPath);
         return;
       }
@@ -184,6 +194,9 @@ export default function AccessLogin() {
         return;
       }
       await loginFreeAccount(email, password);
+      trackEvent("auth_email_completed", window.location.pathname, {
+        outcome: "login",
+      });
       window.location.assign(nextPath);
     } catch (requestError) {
       if (requestError instanceof Error && requestError.name === "UserNotConfirmedException") {

@@ -5,6 +5,11 @@ import Link from "next/link";
 import { AcademyShell } from "../../components/Portal";
 import { memberApi } from "../../lib/access";
 import { getAnalyticsContext, trackEvent } from "../../lib/analytics";
+import {
+  businessProspectStorageKey,
+  createBusinessJingleIdea,
+  isBusinessProspect,
+} from "../../lib/businessProspects";
 import { musicStyles } from "../../lib/musicStyles";
 
 type GeneratedTrack = {
@@ -127,7 +132,8 @@ function makeId(prefix: string) {
 }
 
 function findStyle(styleName: string) {
-  const normalized = styleName.toLocaleLowerCase("pt-BR");
+  const normalized = styleName.trim().toLocaleLowerCase("pt-BR");
+  if (!normalized) return undefined;
   return musicStyles.find((item) => (
     item.name.toLocaleLowerCase("pt-BR") === normalized
     || item.slug === normalized
@@ -182,6 +188,7 @@ export default function Gerador() {
   const [hydrated, setHydrated] = useState(false);
   const [showAllStyles, setShowAllStyles] = useState(false);
   const [flowStep, setFlowStep] = useState<CreatorStep>(1);
+  const [importNotice, setImportNotice] = useState("");
   const generationLockRef = useRef(false);
   const resultRef = useRef<HTMLDivElement | null>(null);
   const resultAudioRefs = useRef<Array<HTMLAudioElement | null>>([]);
@@ -203,23 +210,87 @@ export default function Gerador() {
     trackEvent("music_creator_opened");
     trackEvent("music_route_unique_opened");
     const timer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const importSource = params.get("source") || "";
+      let importedBusinessName = "";
+      let importedIdea = params.get("idea")?.trim().slice(0, 500) || "";
+      if (importSource === "business-prospect") {
+        try {
+          const storedProspect = JSON.parse(
+            window.sessionStorage.getItem(businessProspectStorageKey) || "null",
+          );
+          if (isBusinessProspect(storedProspect)) {
+            importedIdea = createBusinessJingleIdea(storedProspect);
+            importedBusinessName = storedProspect.name;
+          }
+        } catch {
+          // A malformed browser draft must not prevent the creator from opening.
+        } finally {
+          window.sessionStorage.removeItem(businessProspectStorageKey);
+        }
+      }
+      const importedStyle = findStyle(params.get("style") || "");
+      let nextPlan = defaultPlan;
+      let nextCreationType = "historia";
+      let nextTaskId = "";
+      let nextGenerationStatus = "IDLE";
+      let nextTracks: GeneratedTrack[] = [];
+      let nextMode: "create" | "refine" = "create";
+      let nextFlowStep: CreatorStep = 1;
       try {
         const saved = window.localStorage.getItem(storageKey);
         if (saved) {
           const data = JSON.parse(saved) as SavedStudio;
-          if (data.plan) setPlan(data.plan);
-          if (data.creationType) setCreationType(data.creationType);
-          if (data.taskId) setTaskId(data.taskId);
-          if (data.generationStatus) setGenerationStatus(data.generationStatus);
-          if (Array.isArray(data.tracks)) setTracks(data.tracks);
-          if (data.mode) setMode(data.mode);
+          if (data.plan) nextPlan = data.plan;
+          if (data.creationType) nextCreationType = data.creationType;
+          if (data.taskId) nextTaskId = data.taskId;
+          if (data.generationStatus) nextGenerationStatus = data.generationStatus;
+          if (Array.isArray(data.tracks)) nextTracks = data.tracks;
+          if (data.mode) nextMode = data.mode;
           if (isCreatorStep(data.flowStep)) {
-            setFlowStep(data.flowStep === 5 && data.plan?.instrumental ? 4 : data.flowStep);
+            nextFlowStep = data.flowStep === 5 && data.plan?.instrumental ? 4 : data.flowStep;
           }
         }
       } catch {
         window.localStorage.removeItem(storageKey);
       }
+
+      if (importedIdea || importedStyle) {
+        nextPlan = {
+          ...nextPlan,
+          ...(importedIdea ? { theme: importedIdea, instrumental: false } : {}),
+          ...(importedStyle ? { style: importedStyle.name } : {}),
+        };
+        nextCreationType = importedBusinessName
+          ? "jingle"
+          : importedIdea ? "historia" : nextCreationType;
+        nextTaskId = "";
+        nextGenerationStatus = "IDLE";
+        nextTracks = [];
+        nextMode = "create";
+        nextFlowStep = importedIdea
+          ? 3
+          : nextPlan.theme.trim().length >= 8
+            ? nextPlan.instrumental ? 4 : 5
+            : 2;
+        setImportNotice(importedBusinessName
+          ? `${importedBusinessName} foi aplicado ao briefing. Agora escolha a emoção do jingle.`
+          : importedIdea
+            ? "Sua história foi aplicada. Agora escolha a emoção."
+            : `${importedStyle?.name} foi aplicado. Continue sua direção.`);
+        trackEvent("expert_direction_received", window.location.pathname, {
+          placement: importSource || "direct",
+        });
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+
+      setPlan(nextPlan);
+      setCreationType(nextCreationType);
+      setTaskId(nextTaskId);
+      setGenerationStatus(nextGenerationStatus);
+      setTracks(nextTracks);
+      setMode(nextMode);
+      setFlowStep(nextFlowStep);
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
@@ -259,6 +330,13 @@ export default function Gerador() {
   }, [creationType, flowStep, generationStatus, hydrated, mode, plan, taskId, tracks]);
 
   useEffect(() => {
+    if (!hydrated || isGenerating || tracks.length) return;
+    trackEvent("creator_step_viewed", window.location.pathname, {
+      step: String(flowStep),
+    });
+  }, [flowStep, hydrated, isGenerating, tracks.length]);
+
+  useEffect(() => {
     if (!taskId || completedStatuses.has(generationStatus)) return;
     let active = true;
     let timer = 0;
@@ -275,6 +353,11 @@ export default function Gerador() {
         }
         if (data.status === "SUCCESS") {
           generationLockRef.current = false;
+          trackEvent("music_generation_delivered", window.location.pathname, {
+            outcome: Array.isArray(data.tracks) && data.tracks.length > 1
+              ? "multiple_tracks"
+              : "single_track",
+          });
           window.setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
         }
         if (failedStatuses.has(data.status)) generationLockRef.current = false;
@@ -388,6 +471,9 @@ export default function Gerador() {
   }
 
   function goNext() {
+    trackEvent("creator_step_completed", window.location.pathname, {
+      step: String(flowStep),
+    });
     if (flowStep === 4 && plan.instrumental) {
       setFlowStep(6);
       return;
@@ -432,6 +518,7 @@ export default function Gerador() {
           aria-live="polite"
           data-interactive={hydrated && providerReady !== null ? "true" : "false"}
         >
+          {importNotice ? <p className="express-import-notice" role="status">{importNotice}</p> : null}
           <header className="express-flow-progress">
             <span>PASSO {visibleChoiceStep} DE {totalChoiceSteps}</span>
             <div aria-hidden="true">
@@ -485,6 +572,16 @@ export default function Gerador() {
                   <b>Exemplo</b>
                   <p>“Quero homenagear minha mãe, que criou três filhos sozinha e nunca deixou faltar amor.”</p>
                 </div>
+                {creationType === "jingle" ? (
+                  <Link className="express-business-search" href="/biblioteca/negocios">
+                    <span>⌖</span>
+                    <div>
+                      <b>Ainda não escolheu uma empresa?</b>
+                      <small>Busque negócios reais com o Apify e volte com o briefing preenchido.</small>
+                    </div>
+                    <em>Buscar negócios →</em>
+                  </Link>
+                ) : null}
               </section>
             ) : null}
 
@@ -668,7 +765,9 @@ export default function Gerador() {
 
       {isGenerating ? (
         <section className="express-generation-stage" aria-live="polite">
-          <div className="express-generation-disc" aria-hidden="true"><span>AMI</span></div>
+          <div className="express-generation-disc" aria-hidden="true">
+            <img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" />
+          </div>
           <div>
             <small>CRIANDO AGORA</small>
             <h2>{status?.title || "Sua música está ganhando forma"}</h2>
@@ -714,7 +813,12 @@ export default function Gerador() {
                         controls
                         preload="metadata"
                         src={playableUrl}
-                        onPlay={() => keepSingleResultPlaying(index)}
+                        onPlay={() => {
+                          keepSingleResultPlaying(index);
+                          trackEvent("music_result_played", window.location.pathname, {
+                            placement: `result_${index + 1}`,
+                          });
+                        }}
                       />
                     ) : null}
                   </div>

@@ -12,6 +12,14 @@ type Attribution = {
   referrer: string;
 };
 
+export type AnalyticsProperties = {
+  placement?: string;
+  journey?: string;
+  step?: string;
+  outcome?: string;
+  product?: string;
+};
+
 function randomId(prefix: string) {
   return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
 }
@@ -64,13 +72,18 @@ export function getAnalyticsContext() {
   };
 }
 
-export function trackEvent(name: string, path = window.location.pathname) {
+export function trackEvent(
+  name: string,
+  path = window.location.pathname,
+  properties: AnalyticsProperties = {},
+) {
   const context = getAnalyticsContext();
   const payload = {
     eventId: randomId("evt"),
     name,
     path,
     ...context,
+    ...properties,
   };
   void fetch(`${ANALYTICS_API}/v1/events`, {
     method: "POST",

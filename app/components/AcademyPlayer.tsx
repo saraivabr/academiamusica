@@ -153,7 +153,7 @@ export default function AcademyPlayer() {
           style={selection?.track.imageUrl ? { backgroundImage: `url("${selection.track.imageUrl}")` } : {}}
           aria-hidden="true"
         >
-          {!selection ? <span>AMI</span> : null}
+          {!selection ? <img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" /> : null}
         </div>
         <div>
           <strong>{selection?.track.title || "Seu repertório começa aqui"}</strong>
@@ -227,16 +227,18 @@ export default function AcademyPlayer() {
         </button>
       </div>
 
-      <audio
-        ref={audioRef}
-        src={playableUrl}
-        preload="metadata"
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-        onEnded={() => setPlaying(false)}
-        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
-        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-      />
+      {playableUrl ? (
+        <audio
+          ref={audioRef}
+          src={playableUrl}
+          preload="metadata"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          onEnded={() => setPlaying(false)}
+          onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+          onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+        />
+      ) : null}
     </footer>
   );
 }

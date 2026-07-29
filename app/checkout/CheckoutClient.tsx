@@ -252,7 +252,7 @@ export default function CheckoutClient() {
   return (
     <section className="checkout-card">
       <div className="order-title">
-        <span className="cover-mini">AMI</span>
+        <span className="cover-mini"><img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" /></span>
         <div>
           <small>SEU ACESSO</small>
           <h2>musicacom.ia</h2>

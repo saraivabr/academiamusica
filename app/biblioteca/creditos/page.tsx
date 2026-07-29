@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AcademyShell } from "../../components/Portal";
 import { CHECKOUT_API, memberApi } from "../../lib/access";
+import { trackEvent } from "../../lib/analytics";
 import {
   formatProductPrice,
   RECHARGE_PRODUCTS,
@@ -141,6 +142,10 @@ export default function CreditosPage() {
   }, [order?.id, order?.status, selectedProductId]);
 
   function chooseProduct(product: MusicProduct) {
+    trackEvent("credits_offer_selected", window.location.pathname, {
+      placement: product.type,
+      product: product.id,
+    });
     setSelected(product);
     setOrder(null);
     setAcceptedTerms(false);
@@ -159,6 +164,10 @@ export default function CreditosPage() {
     }
     setLoading(true);
     setError("");
+    trackEvent("credits_checkout_started", window.location.pathname, {
+      placement: selected.type,
+      product: selected.id,
+    });
     try {
       const data = await memberApi("/v1/credits/checkout", {
         method: "POST",
@@ -212,10 +221,11 @@ export default function CreditosPage() {
             Comprar é opcional: a música grátis volta todos os dias. A recarga
             não vence; no Clube, os créditos entram após cada mensalidade paga.
           </p>
+          <a className="credits-hero-action" href="#recargas">Ver opções de recarga ↓</a>
         </div>
       </section>
 
-      <section className="credit-section">
+      <section className="credit-section" id="recargas">
         <header>
           <small>RECARGA AVULSA</small>
           <h2>Comprou, creditou, criou.</h2>
@@ -234,7 +244,7 @@ export default function CreditosPage() {
               <b>{formatProductPrice(product.priceCents)}</b>
               <span>{formatProductPrice(Math.round(product.priceCents / product.credits))} por música</span>
               <button type="button" onClick={() => chooseProduct(product)}>
-                Escolher recarga
+                Adicionar {product.credits} músicas
               </button>
             </article>
           ))}

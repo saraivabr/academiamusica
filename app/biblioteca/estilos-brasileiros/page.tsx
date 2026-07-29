@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AcademyShell } from "../../components/Portal";
 import { musicStyles } from "../../lib/musicStyles";
@@ -12,7 +13,7 @@ export default function Estilos(){
     <div className="style-tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar estilo ou região…"/><select value={family} onChange={e=>setFamily(e.target.value)}>{families.map(f=><option key={f}>{f}</option>)}</select></div>
     <section className="style-catalog">{filtered.map((s,i)=><article key={s.slug} className={open===s.slug?"open":""}>
       <button className="style-summary" onClick={()=>setOpen(open===s.slug?"":s.slug)}><span>{String(i+1).padStart(2,"0")}</span><div><small>{s.family} • {s.region}</small><h3>{s.name}</h3></div><em>{s.bpm} BPM</em><b>{open===s.slug?"−":"+"}</b></button>
-      {open===s.slug&&<div className="style-detail"><div className="style-data"><p><small>CLIMA</small>{s.mood}</p><p><small>INSTRUMENTOS</small>{s.instruments}</p><p><small>GROOVE</small>{s.groove}</p><p><small>VOCAL</small>{s.vocal}</p></div><div className="style-prompt"><header><span>DIREÇÃO MUSICAL</span><button onClick={()=>copy(s.slug,s.prompt)}>{copied===s.slug?"COPIADO ✓":"COPIAR DIREÇÃO"}</button></header><p>{s.prompt}</p><small>O QUE EVITAR</small><p>{s.exclude}</p></div></div>}
+      {open===s.slug&&<div className="style-detail"><div className="style-data"><p><small>CLIMA</small>{s.mood}</p><p><small>INSTRUMENTOS</small>{s.instruments}</p><p><small>GROOVE</small>{s.groove}</p><p><small>VOCAL</small>{s.vocal}</p></div><div className="style-prompt"><header><span>DIREÇÃO MUSICAL</span><Link href={`/biblioteca/gerador?style=${encodeURIComponent(s.name)}&source=styles`} data-track="expert_direction_applied" data-track-placement="styles">Usar no criador →</Link></header><p>{s.mood}. {s.instruments}. {s.groove}. Voz {s.vocal}.</p><details><summary>Ver direção técnica</summary><p>{s.prompt}</p><small>O QUE EVITAR</small><p>{s.exclude}</p><button onClick={()=>copy(s.slug,s.prompt)}>{copied===s.slug?"COPIADO ✓":"COPIAR TEXTO TÉCNICO"}</button></details></div></div>}
     </article>)}</section>
   </AcademyShell>
 }

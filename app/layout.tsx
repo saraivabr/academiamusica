@@ -18,8 +18,8 @@ export const metadata: Metadata = {
   publisher: "musicacom.ia",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
     apple: "/icon-192.png",
   },
 };

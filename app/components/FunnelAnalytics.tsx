@@ -24,7 +24,15 @@ export default function FunnelAnalytics() {
     const handleTrackedClick = (event: MouseEvent) => {
       const element = (event.target as Element | null)?.closest<HTMLElement>("[data-track]");
       const eventName = element?.dataset.track;
-      if (eventName) trackEvent(eventName, pathname);
+      if (eventName) {
+        trackEvent(eventName, pathname, {
+          placement: element.dataset.trackPlacement,
+          journey: element.dataset.trackJourney,
+          step: element.dataset.trackStep,
+          outcome: element.dataset.trackOutcome,
+          product: element.dataset.trackProduct,
+        });
+      }
     };
 
     document.addEventListener("click", handleTrackedClick, { capture: true });

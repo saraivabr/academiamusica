@@ -1,7 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { FormEvent } from "react";
 import "../home-brasil.css";
+import BrandLogo from "./BrandLogo";
 
 const Arrow = () => <span aria-hidden="true">↗</span>;
 const Check = () => <span aria-hidden="true">✓</span>;
@@ -42,6 +44,12 @@ const faqs = [
   ["A música vai direto para as plataformas?", "O tutorial mostra como preparar a publicação, mas distribuição e aprovação seguem as regras dos serviços utilizados. Não prometemos streams, renda ou aprovação automática."],
 ];
 
+const ideaStarters = [
+  ["Homenagem", "Uma homenagem para alguém que mudou a minha vida"],
+  ["Minha história", "Uma história sobre o momento em que eu recomecei"],
+  ["Jingle", "Um jingle marcante para apresentar o meu negócio"],
+];
+
 function Equalizer({ playing }: { playing: boolean }) {
   return (
     <span className={`br-equalizer ${playing ? "is-playing" : ""}`} aria-hidden="true">
@@ -63,6 +71,7 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(188.64);
   const [openFaq, setOpenFaq] = useState(0);
+  const [idea, setIdea] = useState("");
 
   const toggleAudio = async () => {
     const audio = audioRef.current;
@@ -71,90 +80,130 @@ export default function Home() {
     else audio.pause();
   };
 
+  const startWithIdea = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalizedIdea = idea.trim();
+    if (normalizedIdea.length < 8) return;
+    const nextPath = `/biblioteca/gerador/?idea=${encodeURIComponent(normalizedIdea)}`;
+    window.location.assign(`/login?mode=register&next=${encodeURIComponent(nextPath)}`);
+  };
+
   return (
     <main className="br-home" id="inicio">
       <nav className="br-nav" aria-label="Navegação principal">
         <a className="br-brand" href="#inicio" aria-label="musicacom.ia — início">
-          <span className="br-brand-mark" aria-hidden="true"><i /><i /><i /></span>
-          <span>musicacom<b>.ia</b></span>
+          <BrandLogo className="br-brand-logo" />
         </a>
         <div className="br-nav-links">
-          <a href="#plataforma">A plataforma</a>
           <a href="#como-funciona">Como funciona</a>
-          <a href="#tutorial">Tutorial</a>
-          <a href="#duvidas">Dúvidas</a>
+          <a href="#ouca">Ouça uma música</a>
         </div>
         <div className="br-nav-actions">
           <a href="/login?mode=login" className="br-login">Entrar</a>
-          <a href="/login?mode=register" className="br-button br-button-small" data-track="checkout_cta">Começar grátis <Arrow /></a>
+          <a
+            href="/login?mode=register"
+            className="br-button br-button-small"
+            data-track="cta_start_free_clicked"
+            data-track-placement="nav"
+          >
+            Criar grátis
+          </a>
         </div>
       </nav>
 
-      <section className="br-hero">
-        <div className="br-hero-glow" aria-hidden="true" />
-        <div className="br-hero-copy">
-          <div className="br-kicker"><span>●</span> FEITA NO BRASIL. PARA O SOM DO BRASIL.</div>
-          <h1>A plataforma de geração de música com IA <em>100% brasileirada.</em></h1>
+      <section className={`br-hero ${playing ? "is-playing" : ""}`}>
+        <img
+          className="br-hero-background"
+          src="/hero-studio-empty-v3.webp"
+          alt=""
+          width="1717"
+          height="916"
+          fetchPriority="high"
+        />
+        <div className="br-hero-veil" aria-hidden="true" />
+
+        <button
+          type="button"
+          className="br-floating-track br-floating-track-left"
+          onClick={toggleAudio}
+          aria-label={playing ? "Pausar música de exemplo" : "Ouvir música de exemplo"}
+        >
+          <img src="/elemento-vinil-capa.png" alt="" width="160" height="160" />
+          <span>
+            <small>CRIADA AQUI</small>
+            <strong>Minha raiz</strong>
+            <em>{playing ? "TOCANDO" : "OUVIR"}</em>
+          </span>
+        </button>
+
+        <button
+          type="button"
+          className="br-floating-track br-floating-track-right"
+          onClick={toggleAudio}
+          aria-label={playing ? "Pausar música de exemplo" : "Ouvir música de exemplo"}
+        >
+          <img src="/elemento-play-3d.png" alt="" width="160" height="160" />
+          <span>
+            <small>DUAS VERSÕES</small>
+            <strong>Casa da gente</strong>
+            <em>{playing ? "PAUSAR" : "OUVIR"}</em>
+          </span>
+        </button>
+
+        <div className="br-hero-center">
+          <div className="br-kicker">DA SUA HISTÓRIA AO PLAY</div>
+          <h1>Uma história sua.<br /><em>Duas músicas para sentir.</em></h1>
           <p>
-            Tire sua música da cabeça sem entender de produção. Escolha a história,
-            o sentimento, o ritmo e a voz. A plataforma organiza tudo e cria a
-            sua música para você ouvir. A primeira criação do dia é grátis.
+            Conte uma lembrança, uma homenagem ou uma ideia do seu jeito.
+            Você escolhe a emoção e o ritmo. A musicacom.ia transforma em som.
           </p>
-          <div className="br-hero-actions">
-            <a href="/login?mode=register" className="br-button" data-track="checkout_cta">Criar grátis agora <Arrow /></a>
-            <button type="button" className="br-play-button" onClick={toggleAudio}>
-              <span>{playing ? "Ⅱ" : "▶"}</span>
-              {playing ? "Pausar música" : "Ouvir uma música"}
-              <Equalizer playing={playing} />
-            </button>
-          </div>
-          <div className="br-proof-row">
-            <span><Check /> Sem prompt</span>
-            <span><Check /> 1 música grátis por dia</span>
-            <span><Check /> Sem cartão</span>
-            <span><Check /> Capa integrada</span>
-            <span><Check /> Tutorial durante a criação</span>
-          </div>
-        </div>
 
-        <div className="br-product-stage" aria-label="Demonstração da plataforma">
-          <div className="br-stage-flag">BR</div>
-          <div className="br-product-window">
-            <header>
-              <span className="br-window-brand"><i /> CRIADOR</span>
-              <span className="br-credit-pill">GRÁTIS TODO DIA</span>
-            </header>
-            <div className="br-product-body">
-              <small>O QUE VOCÊ QUER CRIAR?</small>
-              <h2>Uma música com a sua cara.</h2>
-              <div className="br-idea-field">Uma homenagem para minha mãe</div>
-              <div className="br-choice-label"><span>Escolha o ritmo</span><b>Ver todos</b></div>
-              <div className="br-style-chips">
-                <span className="active">Sertanejo</span><span>Forró</span><span>Pagode</span><span>Trap BR</span>
+          <form className="br-idea-form" onSubmit={startWithIdea}>
+            <label htmlFor="hero-idea">Que história você quer transformar em música?</label>
+            <textarea
+              id="hero-idea"
+              name="idea"
+              value={idea}
+              onChange={(event) => setIdea(event.target.value)}
+              placeholder="Ex.: uma homenagem para minha mãe, com saudade e esperança..."
+              maxLength={280}
+              rows={2}
+              required
+            />
+            <div className="br-idea-form-footer">
+              <div className="br-idea-starters" aria-label="Sugestões para começar">
+                {ideaStarters.map(([label, value]) => (
+                  <button key={label} type="button" onClick={() => setIdea(value)}>
+                    {label}
+                  </button>
+                ))}
               </div>
-              <button type="button" tabIndex={-1}>Criar minha música grátis <Arrow /></button>
+              <button
+                type="submit"
+                className="br-create-button"
+                disabled={idea.trim().length < 8}
+                data-track="cta_start_free_clicked"
+                data-track-placement="hero"
+              >
+                Criar minha música
+              </button>
             </div>
-          </div>
-          <div className="br-track-card br-track-one">
-            <img src="/album-grid-thumb.webp" alt="" width="160" height="160" />
-            <div><small>HOJE • GRÁTIS</small><strong>Minha raiz</strong><span>Sertanejo • 3:12</span></div>
-            <i>▶</i>
-          </div>
-          <div className="br-track-card br-track-two">
-            <img src="/identidades-thumb.webp" alt="" width="160" height="160" />
-            <div><small>ONTEM • REPERTÓRIO</small><strong>Casa da gente</strong><span>Sertanejo • 2:58</span></div>
-            <i>▶</i>
+          </form>
+
+          <div className="br-hero-note">
+            <span>1 música grátis por dia</span>
+            <span>Sem cartão</span>
+            <span>Sem prompt técnico</span>
           </div>
         </div>
 
-        <div className="br-hero-ticker" aria-hidden="true">
-          <div>
-            <span>SERTANEJO</span><i>✦</i><span>TRAP BR</span><i>✦</i><span>FORRÓ</span><i>✦</i>
-            <span>FUNK</span><i>✦</i><span>PAGODE</span><i>✦</i><span>GOSPEL</span><i>✦</i>
-            <span>MPB</span><i>✦</i><span>BREGA</span><i>✦</i>
-            <span>SERTANEJO</span><i>✦</i><span>TRAP BR</span><i>✦</i><span>FORRÓ</span><i>✦</i>
-            <span>FUNK</span><i>✦</i><span>PAGODE</span><i>✦</i><span>GOSPEL</span><i>✦</i>
-          </div>
+        <div className="br-hero-proofbar">
+          <span>FEITA NO BRASIL</span>
+          <b>Português de verdade</b>
+          <b>Duas versões por criação</b>
+          <button type="button" onClick={toggleAudio}>
+            {playing ? "Pausar exemplo" : "Ouvir um exemplo"}
+          </button>
         </div>
       </section>
 
@@ -200,7 +249,14 @@ export default function Home() {
           <div className="br-section-tag">DA IDEIA AO PLAY</div>
           <h2>Fazer música ficou<br /><em>mais simples.</em></h2>
           <p>Uma decisão por vez. Você entende o que está escolhendo e vê o resultado dentro da própria plataforma.</p>
-          <a href="/login?mode=register" className="br-text-link" data-track="checkout_cta">Quero começar grátis <Arrow /></a>
+          <a
+            href="/login?mode=register"
+            className="br-text-link"
+            data-track="cta_start_free_clicked"
+            data-track-placement="how_it_works"
+          >
+            Criar minha música <Arrow />
+          </a>
         </div>
         <div className="br-step-list">
           {steps.map(([number, title, description]) => (
@@ -213,7 +269,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="br-player-section br-section">
+      <section className="br-player-section br-section" id="ouca">
         <div className="br-listen-copy">
           <div className="br-section-tag">PROVA ANTES DA PROMESSA</div>
           <h2>Uma ideia virou<br /><em>essa música.</em></h2>
@@ -222,7 +278,7 @@ export default function Home() {
         </div>
         <div className={`br-audio-card ${playing ? "active" : ""}`}>
           <img
-            src="/album-grid-saraiva.webp"
+            src="/brand/musicacom-social-square.jpg"
             alt="Capa da música musicacom.ia"
             loading="lazy"
             decoding="async"
@@ -292,8 +348,8 @@ export default function Home() {
       <section className="br-tutorial br-section" id="tutorial">
         <div className="br-tutorial-art">
           <img
-            src="/studio-saraiva.webp"
-            alt="Saraiva criando música em um estúdio"
+            src="/elemento-ideia-ao-link.png"
+            alt="Da ideia ao play: música pronta para compartilhar"
             loading="lazy"
             decoding="async"
             width="1254"
@@ -331,13 +387,20 @@ export default function Home() {
             <strong>R$0</strong>
             <span>sem cartão e sem prazo de teste</span>
           </div>
-          <a href="/login?mode=register" className="br-button br-button-light" data-track="checkout_cta">Criar minha conta grátis <Arrow /></a>
+          <a
+            href="/login?mode=register"
+            className="br-button br-button-light"
+            data-track="cta_start_free_clicked"
+            data-track-placement="free_offer"
+          >
+            Criar minha música grátis <Arrow />
+          </a>
           <small>Recargas opcionais para criar mais no mesmo dia</small>
         </div>
         <div className="br-access-art">
           <img
-            src="/kit-lancamento.webp"
-            alt="Música, capa e materiais de lançamento reunidos"
+            src="/elemento-vinil-capa.png"
+            alt="Vinil e capa representando uma música pronta"
             loading="lazy"
             decoding="async"
             width="1254"
@@ -369,15 +432,19 @@ export default function Home() {
         <div className="br-section-tag">A SUA HISTÓRIA MERECE SOM</div>
         <h2>O Brasil já tem ritmo.<br /><em>Agora falta o seu.</em></h2>
         <p>Comece simples. Escolha a direção. Aperte o play.</p>
-        <a href="/login?mode=register" className="br-button br-button-light" data-track="checkout_cta">Criar minha primeira música grátis <Arrow /></a>
+        <a
+          href="/login?mode=register"
+          className="br-button br-button-light"
+          data-track="cta_start_free_clicked"
+          data-track-placement="final"
+        >
+          Criar minha música grátis <Arrow />
+        </a>
       </section>
-
-      <a href="/login?mode=register" className="br-mobile-cta" data-track="checkout_cta">Criar grátis <Arrow /></a>
 
       <footer className="br-footer">
         <a className="br-brand" href="#inicio">
-          <span className="br-brand-mark" aria-hidden="true"><i /><i /><i /></span>
-          <span>musicacom<b>.ia</b></span>
+          <BrandLogo className="br-brand-logo" />
         </a>
         <p>Plataforma brasileira para transformar ideias em música.</p>
         <div><a href="/termos">Termos</a><a href="/privacidade">Privacidade</a><a href="/suporte">Suporte</a></div>

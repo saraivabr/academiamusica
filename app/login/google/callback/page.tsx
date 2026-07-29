@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PublicShell } from "../../../components/Portal";
 import { completeGoogleLogin } from "../../../lib/access";
+import { trackEvent } from "../../../lib/analytics";
 import styles from "../../login.module.css";
 
 type CallbackState = "connecting" | "error";
@@ -20,6 +21,9 @@ export default function GoogleCallback() {
 
     if (providerError || !code) {
       const timer = window.setTimeout(() => {
+        trackEvent("auth_google_failed", window.location.pathname, {
+          outcome: providerError ? "provider_error" : "missing_code",
+        });
         setState("error");
         setMessage(
           providerError
@@ -31,8 +35,16 @@ export default function GoogleCallback() {
     }
 
     void completeGoogleLogin(code, returnedState)
-      .then((nextPath) => window.location.replace(nextPath))
+      .then((nextPath) => {
+        trackEvent("auth_google_completed", window.location.pathname, {
+          outcome: "success",
+        });
+        window.location.replace(nextPath);
+      })
       .catch((reason) => {
+        trackEvent("auth_google_failed", window.location.pathname, {
+          outcome: "exchange_error",
+        });
         setState("error");
         setMessage(
           reason instanceof Error

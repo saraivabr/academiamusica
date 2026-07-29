@@ -1,7 +1,7 @@
 .loginExperience {
-  --studio-green: #38e56f;
-  --studio-ink: #07100b;
-  --studio-cream: #f3f1e9;
+  --studio-green: #04e688;
+  --studio-ink: #151923;
+  --studio-cream: #f8fbf9;
   width: min(1240px, calc(100% - 40px));
   min-height: calc(100vh - 176px);
   margin: 22px auto 42px;
@@ -10,7 +10,7 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 30px;
   overflow: hidden;
-  background: #0b100d;
+  background: #12151f;
   box-shadow: 0 34px 100px rgba(0, 0, 0, 0.34);
 }
 
@@ -24,8 +24,8 @@
   overflow: hidden;
   color: #f7f5ed;
   background:
-    linear-gradient(145deg, rgba(19, 46, 29, 0.94), rgba(5, 12, 8, 0.98) 62%),
-    radial-gradient(circle at 80% 15%, rgba(56, 229, 111, 0.3), transparent 32%);
+    linear-gradient(145deg, rgba(23, 37, 34, 0.94), rgba(18, 21, 31, 0.98) 62%),
+    radial-gradient(circle at 80% 15%, rgba(4, 230, 136, 0.3), transparent 32%);
 }
 
 .visualPanel::before {
@@ -210,25 +210,17 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #07100b;
+  color: #151923;
   background: var(--studio-green);
   box-shadow: inset 0 0 0 12px rgba(0, 0, 0, 0.1);
 }
 
-.vinylLabel::after {
-  content: "";
-  position: absolute;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #07100b;
-}
-
-.vinylLabel span {
-  margin-top: 31px;
-  font-size: 0.55rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
+.vinylLabel img {
+  position: relative;
+  z-index: 1;
+  width: 56px;
+  height: auto;
+  object-fit: contain;
 }
 
 .miniPlayer {
@@ -254,13 +246,14 @@
   display: grid;
   place-items: center;
   border-radius: 10px;
-  color: var(--studio-green);
-  background:
-    radial-gradient(circle at center, #122f1c 0 21%, transparent 22%),
-    linear-gradient(145deg, #153f24, #07100b);
-  font-size: 0.65rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(21, 25, 35, 0.08);
+}
+
+.playerCover img {
+  width: 44px;
+  height: auto;
+  object-fit: contain;
 }
 
 .playerTrack {
@@ -407,7 +400,7 @@
 }
 
 .cardEyebrow {
-  color: #198f45;
+  color: #008e52;
 }
 
 .cardHeader h2 {
@@ -519,7 +512,7 @@
 }
 
 .googleCallback {
-  --studio-green: #38e56f;
+  --studio-green: #04e688;
   width: min(620px, calc(100% - 32px));
   min-height: 520px;
   margin: 32px auto 64px;

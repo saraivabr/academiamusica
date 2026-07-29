@@ -40,13 +40,15 @@ export default function Login() {
             </div>
             <div className={styles.vinyl}>
               <div className={styles.vinylLabel}>
-                <span>AMI</span>
+                <img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" />
               </div>
             </div>
           </div>
 
           <div className={styles.miniPlayer} aria-hidden="true">
-            <div className={styles.playerCover}>AMI</div>
+            <div className={styles.playerCover}>
+              <img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" />
+            </div>
             <div className={styles.playerTrack}>
               <strong>Seu próximo som</strong>
               <span>Pronto para ganhar forma</span>

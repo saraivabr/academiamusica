@@ -2,11 +2,11 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import MemberNav from "./MemberNav";
 import AcademyTopBar from "./AcademyTopBar";
+import BrandLogo from "./BrandLogo";
 
 export const Logo = ({ href = "/" }: { href?: string }) => (
-  <Link href={href} className="portal-logo">
-    <span className="brand-disc"><i /><i /><i /></span>
-    <span>musicacom<b>.ia</b></span>
+  <Link href={href} className="portal-logo" aria-label="musicacom.ia">
+    <BrandLogo />
   </Link>
 );
 

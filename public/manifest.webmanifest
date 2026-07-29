@@ -4,8 +4,8 @@
   "description": "Plataforma brasileira para criar música com IA, organizar seu repertório e preparar o lançamento.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#07110b",
-  "theme_color": "#35e66a",
+  "background_color": "#12151f",
+  "theme_color": "#04e688",
   "lang": "pt-BR",
   "categories": ["music", "entertainment", "productivity"],
   "icons": [

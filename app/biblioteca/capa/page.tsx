@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from "react";
 import { AcademyShell } from "../../components/Portal";
 import { memberApi } from "../../lib/access";
+import { trackEvent } from "../../lib/analytics";
 import {
   coverFamilies,
   coverFamilyById,
@@ -401,6 +402,9 @@ export default function CoverStudioPage() {
         }),
       });
       setSavedCoverUrl(saved.coverUrl || "");
+      trackEvent("cover_completed", window.location.pathname, {
+        outcome: "saved",
+      });
       setCreationStage("complete");
       setProgress("Capa pronta e salva no seu repertório.");
       window.localStorage.removeItem(PENDING_COVER_KEY);
@@ -420,6 +424,9 @@ export default function CoverStudioPage() {
 
   async function createCover() {
     if (!canCreate || !selectedTrack) return;
+    trackEvent("cover_started", window.location.pathname, {
+      placement: familyId,
+    });
     setCreating(true);
     setError("");
     setFinalCover("");
@@ -617,7 +624,13 @@ export default function CoverStudioPage() {
                 {!canCreate && !creating ? <p className="cover-guidance">Para liberar: escolha a música, envie uma foto, escreva seu nome e confirme a autorização.</p> : null}
                 {finalCover ? (
                   <div className="cover-result-actions">
-                    <a href={finalCover} download={`${title || "capa"}.jpg`}>Baixar capa ↓</a>
+                    <a
+                      href={finalCover}
+                      download={`${title || "capa"}.jpg`}
+                      onClick={() => trackEvent("cover_downloaded")}
+                    >
+                      Baixar capa ↓
+                    </a>
                     {savedCoverUrl ? <a href="/biblioteca">Ver em Minhas músicas →</a> : null}
                   </div>
                 ) : null}

@@ -73,16 +73,40 @@ export default function Biblioteca() {
   ));
   const featuredTrack = rows[0]?.track;
 
+  if (!loading && !error && trackCount === 0) {
+    return (
+      <AcademyShell title="Suas músicas" eyebrow="SUA BIBLIOTECA">
+        <section className="library-first-step">
+          <small>SUA PRIMEIRA MÚSICA</small>
+          <h2>Seu repertório começa com uma ideia.</h2>
+          <p>
+            Conte o essencial, escolha a direção e use a criação grátis de hoje.
+            Sua música aparecerá aqui automaticamente.
+          </p>
+          <Link
+            href="/biblioteca/gerador"
+            data-track="creator_primary_action"
+            data-track-placement="empty_library"
+          >
+            Criar minha primeira música →
+          </Link>
+        </section>
+      </AcademyShell>
+    );
+  }
+
   return (
     <AcademyShell title="Suas músicas" eyebrow="SUA BIBLIOTECA">
       <section
         className="spotify-library-hero"
         style={featuredTrack?.imageUrl
           ? { "--library-cover": `url("${featuredTrack.imageUrl}")` } as CSSProperties
-          : undefined}
+        : undefined}
       >
         <div className="spotify-library-cover">
-          {featuredTrack?.imageUrl ? null : <span>AMI</span>}
+          {featuredTrack?.imageUrl ? null : (
+            <img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" />
+          )}
         </div>
         <div>
           <small>REPERTÓRIO</small>
@@ -128,13 +152,6 @@ export default function Biblioteca() {
           <div className="music-library-state">
             <p>Abrindo sua estante e atualizando os áudios…</p>
           </div>
-        ) : trackCount === 0 ? (
-          <div className="music-library-state empty">
-            <small>AINDA ESTÁ VAZIA</small>
-            <h3>Sua primeira música vai aparecer aqui.</h3>
-            <p>Conte sua ideia, escolha a direção e use a criação grátis de hoje.</p>
-            <Link href="/biblioteca/gerador">Criar minha música grátis →</Link>
-          </div>
         ) : (
           <div className="spotify-track-list">
             {rows.map(({ generation, generationIndex, track, trackIndex }, index) => {
@@ -175,7 +192,7 @@ export default function Biblioteca() {
         )}
       </section>
 
-      <section className="library-learning">
+      {trackCount > 0 ? <section className="library-learning">
         <header>
           <small>CONTINUE O PROCESSO</small>
           <h2>Leve sua música além do play</h2>
@@ -191,7 +208,7 @@ export default function Biblioteca() {
             </Link>
           ))}
         </div>
-      </section>
+      </section> : null}
     </AcademyShell>
   );
 }

@@ -36,8 +36,8 @@ test("renders finished production metadata", async () => {
   assert.match(html, /<title>Gerador de Música com IA Grátis \| musicacom\.ia<\/title>/i);
   assert.match(html, /<meta[^>]+property=["']og:title["'][^>]+Gerador de Música com IA Grátis/i);
   assert.match(html, /<meta[^>]+property=["']og:image["'][^>]+musicacom\.ia\.br\/og-musicacom-ia\.jpg/i);
-  assert.match(html, /A plataforma de geração de música com IA/i);
-  assert.match(html, /FEITA NO BRASIL\. PARA O SOM DO BRASIL\./i);
+  assert.match(html, /Uma história sua\./i);
+  assert.match(html, /DA SUA HISTÓRIA AO PLAY/i);
   assert.match(html, /O aprendizado acontece dentro da própria plataforma/i);
   assert.match(html, /"@type":"SoftwareApplication"/i);
   assert.match(html, /"price":"0"/i);
@@ -64,7 +64,7 @@ test("publishes crawl instructions and only important public URLs", async () => 
   assert.match(sitemap, /https:\/\/musicacom\.ia\.br\/suporte\/<\/loc>/i);
   assert.doesNotMatch(sitemap, /\/login\/|\/checkout\/|\/biblioteca\//i);
   assert.equal(manifest.lang, "pt-BR");
-  assert.equal(manifest.theme_color, "#35e66a");
+  assert.equal(manifest.theme_color, "#04e688");
 });
 
 test("renders the single-route music creator without the conversational studio", async () => {

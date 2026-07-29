@@ -9,13 +9,20 @@ const events = (payload.Items ?? []).map((item) => ({
   name: item.name?.S ?? "unknown",
   sessionId: item.sessionId?.S ?? item.id?.S ?? "",
   source: item.source?.S ?? "unknown",
+  placement: item.placement?.S ?? "",
+  journey: item.journey?.S ?? "",
+  step: item.step?.S ?? "",
+  outcome: item.outcome?.S ?? "",
+  product: item.product?.S ?? "",
   value: Number(item.value?.N ?? 0),
 }));
 
 const stages = [
   { name: "landing_view", label: "Visitas" },
-  { name: "checkout_cta", label: "Cliques para checkout", base: "landing_view" },
-  { name: "checkout_view", label: "Checkout aberto", base: "checkout_cta" },
+  { name: "cta_start_free_clicked", label: "Cliques para começar", base: "landing_view" },
+  { name: "login_view", label: "Entrada aberta", base: "cta_start_free_clicked" },
+  { name: "music_route_unique_opened", label: "Criador aberto", base: "login_view" },
+  { name: "checkout_view", label: "Checkout aberto" },
   { name: "checkout_started", label: "Checkout iniciado", base: "checkout_view" },
   { name: "pix_created", label: "Pix gerado", base: "checkout_started" },
   { name: "purchase_confirmed", label: "Pagamento confirmado", base: "pix_created" },
@@ -58,6 +65,27 @@ for (const row of rows) {
 
 console.log("");
 console.log(`Interesse na oferta: ${uniqueSessions("offer_cta")} sessão(ões)`);
+
+const ctaPlacements = [...new Set(
+  events
+    .filter((event) => event.name === "cta_start_free_clicked" && event.placement)
+    .map((event) => event.placement),
+)].sort();
+if (ctaPlacements.length) {
+  console.log("");
+  console.log("CTA PARA COMEÇAR".padEnd(24) + "  SESSÕES");
+  for (const placement of ctaPlacements) {
+    const sessions = new Set(
+      events
+        .filter((event) => (
+          event.name === "cta_start_free_clicked"
+          && event.placement === placement
+        ))
+        .map((event) => event.sessionId),
+    ).size;
+    console.log(`${placement.slice(0, 24).padEnd(24)}  ${String(sessions).padStart(7)}`);
+  }
+}
 
 const purchases = events.filter((event) => event.name === "purchase_confirmed");
 const revenue = purchases.reduce((sum, event) => sum + event.value, 0) / 100;

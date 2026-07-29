@@ -6,6 +6,14 @@ const apiPattern = "https://fb9323mkb2.execute-api.us-east-1.amazonaws.com/**";
 
 type MockOptions = {
   rejectFirstRegistration?: boolean;
+  libraryTracks?: Array<{
+    id: string;
+    title: string;
+    tags?: string;
+    duration?: number;
+    audioUrl?: string;
+    imageUrl?: string;
+  }>;
 };
 
 async function json(route: Route, body: unknown, status = 200) {
@@ -18,6 +26,11 @@ async function json(route: Route, body: unknown, status = 200) {
 
 export async function mockPlatform(page: Page, options: MockOptions = {}) {
   let registrationAttempts = 0;
+  let businessSearchPolls = 0;
+
+  await page.addInitScript(() => {
+    document.cookie = "academia_access=v1.2000000000.e2e-user.signature; Path=/; SameSite=Strict";
+  });
 
   await page.route(cognitoAuthPattern, async (route) => {
     const request = route.request();
@@ -110,6 +123,63 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
         remainingSongs: 0,
         dailyFreeAvailable: true,
       });
+      return;
+    }
+
+    if (url.pathname === "/v1/music/library") {
+      const tracks = options.libraryTracks ?? [];
+      await json(route, {
+        remainingSongs: 0,
+        dailyFreeAvailable: true,
+        generations: tracks.length
+          ? [{
+              taskId: "e2e_library",
+              status: "SUCCESS",
+              createdAt: "2026-07-28T12:00:00.000Z",
+              tracks: tracks.map((track) => ({
+                streamAudioUrl: "",
+                imageUrl: "",
+                ...track,
+              })),
+            }]
+          : [],
+      });
+      return;
+    }
+
+    if (url.pathname === "/v1/prospects/search" && request.method() === "POST") {
+      await json(route, {
+        searchId: "e2eBusinessRun01",
+        status: "READY",
+        query: "cafeterias",
+        location: "Salvador, BA",
+      }, 202);
+      return;
+    }
+
+    if (url.pathname === "/v1/prospects/search/e2eBusinessRun01") {
+      businessSearchPolls += 1;
+      await json(route, businessSearchPolls > 0
+        ? {
+            searchId: "e2eBusinessRun01",
+            status: "SUCCEEDED",
+            prospects: [{
+              id: "ChIJ-e2e",
+              name: "Café da Praça",
+              category: "Cafeteria",
+              address: "Salvador, BA",
+              phone: "(71) 99999-0000",
+              website: "https://cafe.example.test/",
+              mapsUrl: "https://maps.google.com/example",
+              imageUrl: "",
+              rating: 4.8,
+              reviewsCount: 234,
+            }],
+          }
+        : {
+            searchId: "e2eBusinessRun01",
+            status: "RUNNING",
+          });
       return;
     }
 

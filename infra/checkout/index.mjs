@@ -21,17 +21,28 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
+import { SendEmailCommand, SESv2Client } from "@aws-sdk/client-sesv2";
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
+import {
+  buildGoogleMapsActorInput,
+  businessProspectConfig,
+  normalizeBusinessProspect,
+  normalizeBusinessSearch,
+} from "./business-prospects.mjs";
+import { buildMusicReadyEmail } from "./music-ready-email.mjs";
 
 const dynamo = new DynamoDBClient({});
 const bedrock = new BedrockRuntimeClient({});
 const s3 = new S3Client({});
 const lambda = new LambdaClient({});
 const ssm = new SSMClient({});
+const ses = new SESv2Client({});
 
 const TABLE_NAME = process.env.TABLE_NAME;
 const EVENTS_TABLE_NAME = process.env.EVENTS_TABLE_NAME;
 const SITE_ORIGIN = process.env.SITE_ORIGIN ?? "https://musicacom.ia.br";
+const APIFY_BASE_URL = "https://api.apify.com/v2";
+const APIFY_API_TOKEN_PARAMETER = process.env.APIFY_API_TOKEN_PARAMETER;
 const WOOVI_BASE_URL = "https://api.woovi.com/api/v1";
 const SUNO_BASE_URL = "https://api.sunoapi.org/api/v1";
 const PUBLIC_API_URL = process.env.PUBLIC_API_URL;
@@ -49,6 +60,9 @@ const IMAGE_API_URL = process.env.IMAGE_API_URL
   ?? "https://motor.empresa.ia.br/v1/responses";
 const IMAGE_MODEL = process.env.IMAGE_MODEL ?? "cx/gpt-5.5";
 const IMAGE_PROXY_KEY_PARAMETER = process.env.IMAGE_PROXY_KEY_PARAMETER;
+const EMAIL_FROM_ADDRESS = normalizeEmail(process.env.EMAIL_FROM_ADDRESS);
+const EMAIL_REPLY_TO_ADDRESS = normalizeEmail(process.env.EMAIL_REPLY_TO_ADDRESS);
+const MUSIC_DOWNLOAD_LINK_DAYS = 7;
 const MUSIC_CONVERSATION_DAILY_LIMIT = 60;
 const MUSIC_COVER_DAILY_LIMIT = 10;
 const FREE_DAILY_ATTEMPT_LIMIT = 3;
@@ -121,6 +135,7 @@ const ALLOWED_CLIENT_EVENTS = new Set([
   "landing_view",
   "offer_cta",
   "checkout_cta",
+  "cta_start_free_clicked",
   "checkout_view",
   "checkout_started",
   "checkout_error",
@@ -131,11 +146,32 @@ const ALLOWED_CLIENT_EVENTS = new Set([
   "music_creator_opened",
   "music_creator_plan_ready",
   "music_route_unique_opened",
+  "creator_primary_action",
+  "auth_google_started",
+  "auth_google_completed",
+  "auth_google_failed",
+  "auth_email_started",
+  "auth_email_completed",
+  "expert_direction_applied",
+  "expert_direction_received",
+  "creator_step_viewed",
+  "creator_step_completed",
+  "music_generation_delivered",
+  "music_result_played",
+  "cover_started",
+  "cover_completed",
+  "cover_downloaded",
+  "credits_offer_selected",
+  "credits_checkout_started",
+  "prospect_search_started",
+  "prospect_search_completed",
+  "prospect_jingle_started",
 ]);
 
 let cachedSecrets;
 let cachedSunoApiKey;
 let cachedImageProxyKey;
+let cachedApifyApiToken;
 let cachedCognitoJwks;
 let cachedCognitoJwksFetchedAt = 0;
 let cachedCognitoJwksForcedRefreshAt = 0;
@@ -166,6 +202,18 @@ const imageResponse = (body, contentType = "image/jpeg") => ({
     "x-content-type-options": "nosniff",
   },
   body: Buffer.from(body).toString("base64"),
+});
+
+const redirectResponse = (location) => ({
+  statusCode: 302,
+  headers: {
+    "cache-control": "private, no-store",
+    location,
+    "referrer-policy": "no-referrer",
+    "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+    "x-content-type-options": "nosniff",
+  },
+  body: "",
 });
 
 function readBody(event) {
@@ -593,6 +641,11 @@ async function recordFunnelEvent({
   referrer,
   orderId,
   value,
+  placement,
+  journey,
+  step,
+  outcome,
+  product,
 }) {
   if (!EVENTS_TABLE_NAME) return false;
   const now = new Date().toISOString();
@@ -609,6 +662,11 @@ async function recordFunnelEvent({
     ...(referrer ? { referrer: { S: safeString(referrer, 140) } } : {}),
     ...(orderId ? { orderId: { S: safeString(orderId, 100) } } : {}),
     ...(Number.isFinite(value) ? { value: { N: String(value) } } : {}),
+    ...(placement ? { placement: { S: safeString(placement, 100) } } : {}),
+    ...(journey ? { journey: { S: safeString(journey, 100) } } : {}),
+    ...(step ? { step: { S: safeString(step, 40) } } : {}),
+    ...(outcome ? { outcome: { S: safeString(outcome, 100) } } : {}),
+    ...(product ? { product: { S: safeString(product, 100) } } : {}),
   };
   try {
     await dynamo.send(new PutItemCommand({
@@ -671,6 +729,59 @@ async function reserveConversationTurn(orderId) {
   } catch (error) {
     if (error instanceof ConditionalCheckFailedException) return false;
     throw error;
+  }
+}
+
+async function reserveBusinessSearch(orderId) {
+  if (!EVENTS_TABLE_NAME) return true;
+  const day = saoPauloDay();
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: `business_search_limit_${orderId}_${day}` } },
+      UpdateExpression: "SET #name = :name, orderId = :orderId, updatedAt = :updatedAt, #ttl = :ttl ADD searchCount :one",
+      ConditionExpression: "attribute_not_exists(searchCount) OR searchCount < :limit",
+      ExpressionAttributeNames: {
+        "#name": "name",
+        "#ttl": "ttl",
+      },
+      ExpressionAttributeValues: {
+        ":name": { S: "business_search_rate_limit" },
+        ":orderId": { S: orderId },
+        ":updatedAt": { S: new Date().toISOString() },
+        ":ttl": { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 48) },
+        ":one": { N: "1" },
+        ":limit": { N: String(businessProspectConfig.dailySearchLimit) },
+      },
+    }));
+    return true;
+  } catch (error) {
+    if (error instanceof ConditionalCheckFailedException) return false;
+    throw error;
+  }
+}
+
+async function releaseBusinessSearch(orderId) {
+  if (!EVENTS_TABLE_NAME) return;
+  const day = saoPauloDay();
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: `business_search_limit_${orderId}_${day}` } },
+      UpdateExpression: "ADD searchCount :minusOne",
+      ConditionExpression: "searchCount > :zero",
+      ExpressionAttributeValues: {
+        ":minusOne": { N: "-1" },
+        ":zero": { N: "0" },
+      },
+    }));
+  } catch (error) {
+    if (!(error instanceof ConditionalCheckFailedException)) {
+      console.error("Unable to release business search reservation", {
+        orderId,
+        message: error.message,
+      });
+    }
   }
 }
 
@@ -750,6 +861,11 @@ async function ingestClientEvent(event) {
     medium: body.medium,
     campaign: body.campaign,
     referrer: body.referrer,
+    placement: body.placement,
+    journey: body.journey,
+    step: body.step,
+    outcome: body.outcome,
+    product: body.product,
   });
   return response(202, { accepted: true });
 }
@@ -802,6 +918,62 @@ async function getImageProxyKey() {
   cachedImageProxyKey = result.Parameter?.Value;
   if (!cachedImageProxyKey) throw new Error("Image proxy key is unavailable");
   return cachedImageProxyKey;
+}
+
+async function getApifyApiToken() {
+  if (cachedApifyApiToken) return cachedApifyApiToken;
+  if (!APIFY_API_TOKEN_PARAMETER) {
+    const error = new Error("A busca de negócios ainda não está configurada.");
+    error.statusCode = 503;
+    throw error;
+  }
+  try {
+    const result = await ssm.send(new GetParameterCommand({
+      Name: APIFY_API_TOKEN_PARAMETER,
+      WithDecryption: true,
+    }));
+    cachedApifyApiToken = result.Parameter?.Value;
+  } catch (cause) {
+    console.error("Unable to load Apify API token", {
+      name: cause.name,
+      message: cause.message,
+    });
+  }
+  if (!cachedApifyApiToken) {
+    const error = new Error("A busca de negócios ainda não está configurada.");
+    error.statusCode = 503;
+    throw error;
+  }
+  return cachedApifyApiToken;
+}
+
+async function apifyRequest(path, init = {}) {
+  const token = await getApifyApiToken();
+  const headers = new Headers(init.headers);
+  headers.set("accept", "application/json");
+  headers.set("authorization", `Bearer ${token}`);
+  if (init.body) headers.set("content-type", "application/json");
+  const result = await fetch(`${APIFY_BASE_URL}${path}`, {
+    ...init,
+    headers,
+    signal: AbortSignal.timeout(20_000),
+  });
+  const data = await result.json().catch(() => ({}));
+  if (!result.ok) {
+    console.error("Apify request failed", {
+      path,
+      status: result.status,
+      errorType: data?.error?.type,
+    });
+    const error = new Error(
+      result.status === 402
+        ? "A cota do Apify precisa ser renovada para continuar a busca."
+        : "A busca externa está temporariamente indisponível.",
+    );
+    error.statusCode = result.status === 429 ? 429 : 502;
+    throw error;
+  }
+  return data.data ?? data;
 }
 
 function memberToken(event) {
@@ -1053,6 +1225,144 @@ async function authorizeMember(event) {
   return order && ["FREE", "PAID", "OWNER"].includes(order.status)
     ? order
     : null;
+}
+
+function businessSearchRecordId(runId) {
+  return `business_search_${runId}`;
+}
+
+async function createBusinessSearch(event) {
+  const order = await authorizeMember(event);
+  if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+
+  let body;
+  try {
+    body = readBody(event);
+  } catch {
+    return response(400, { error: "Não consegui ler os dados da busca." });
+  }
+  const search = normalizeBusinessSearch(body);
+  if (!search) {
+    return response(400, {
+      error: "Informe o tipo de negócio e a cidade onde deseja procurar.",
+    });
+  }
+  if (!(await reserveBusinessSearch(order.id))) {
+    return response(429, {
+      error: "Você chegou ao limite de 5 buscas de hoje. Tente novamente amanhã.",
+    });
+  }
+
+  try {
+    const params = new URLSearchParams({
+      maxItems: String(search.limit),
+      maxTotalChargeUsd: String(businessProspectConfig.maxTotalChargeUsd),
+    });
+    const run = await apifyRequest(
+      `/actors/${businessProspectConfig.actorId}/runs?${params}`,
+      {
+        method: "POST",
+        body: JSON.stringify(buildGoogleMapsActorInput(search)),
+      },
+    );
+    const runId = safeString(run.id, 80);
+    const datasetId = safeString(run.defaultDatasetId, 80);
+    if (!/^[a-zA-Z0-9]{10,40}$/.test(runId) || !/^[a-zA-Z0-9]{10,40}$/.test(datasetId)) {
+      throw new Error("Apify returned an invalid search run");
+    }
+
+    await dynamo.send(new PutItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Item: {
+        id: { S: businessSearchRecordId(runId) },
+        name: { S: "business_search" },
+        orderId: { S: order.id },
+        actorRunId: { S: runId },
+        datasetId: { S: datasetId },
+        query: { S: search.query },
+        location: { S: search.location },
+        resultLimit: { N: String(search.limit) },
+        createdAt: { S: new Date().toISOString() },
+        ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24) },
+      },
+      ConditionExpression: "attribute_not_exists(id)",
+    }));
+
+    return response(202, {
+      searchId: runId,
+      status: safeString(run.status, 40) || "RUNNING",
+      query: search.query,
+      location: search.location,
+    });
+  } catch (error) {
+    await releaseBusinessSearch(order.id);
+    if (error.statusCode) throw error;
+    console.error("Unable to start business search", {
+      orderId: order.id,
+      name: error.name,
+      message: error.message,
+    });
+    return response(502, {
+      error: "Não consegui iniciar a busca agora. Tente novamente em alguns instantes.",
+    });
+  }
+}
+
+async function getBusinessSearch(event, runId) {
+  const order = await authorizeMember(event);
+  if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
+  if (!/^[a-zA-Z0-9]{10,40}$/.test(runId)) {
+    return response(404, { error: "Busca não encontrada." });
+  }
+  const stored = await dynamo.send(new GetItemCommand({
+    TableName: EVENTS_TABLE_NAME,
+    Key: { id: { S: businessSearchRecordId(runId) } },
+    ConsistentRead: true,
+  }));
+  const search = stored.Item;
+  if (!search || search.orderId?.S !== order.id) {
+    return response(404, { error: "Busca não encontrada." });
+  }
+
+  const run = await apifyRequest(`/actor-runs/${runId}`);
+  const status = safeString(run.status, 40);
+  if (status !== "SUCCEEDED") {
+    if (["FAILED", "ABORTED", "TIMED-OUT"].includes(status)) {
+      return response(502, {
+        status,
+        error: "A busca não terminou corretamente. Você pode iniciar uma nova pesquisa.",
+      });
+    }
+    return response(202, {
+      searchId: runId,
+      status: status || "RUNNING",
+    });
+  }
+
+  const datasetId = safeString(run.defaultDatasetId || search.datasetId?.S, 80);
+  if (!/^[a-zA-Z0-9]{10,40}$/.test(datasetId)) {
+    return response(502, { error: "O resultado da busca não foi localizado." });
+  }
+  const resultLimit = Math.min(10, Math.max(1, Number(search.resultLimit?.N ?? "10")));
+  const items = await apifyRequest(
+    `/datasets/${datasetId}/items?clean=1&format=json&limit=${resultLimit}`,
+  );
+  const prospects = [];
+  const seen = new Set();
+  for (const item of Array.isArray(items) ? items : []) {
+    const prospect = normalizeBusinessProspect(item);
+    if (!prospect || seen.has(prospect.id)) continue;
+    seen.add(prospect.id);
+    prospects.push(prospect);
+  }
+
+  return response(200, {
+    searchId: runId,
+    status,
+    query: search.query?.S ?? "",
+    location: search.location?.S ?? "",
+    prospects,
+  });
 }
 
 function normalizeSunoTrack(track) {
@@ -1587,6 +1897,7 @@ async function rememberSunoTask(taskId, orderId, reservation, contextId) {
       contextId: { S: contextId },
       reservationType: { S: reservation.reservationType },
       trackLimit: { N: String(reservation.trackLimit) },
+      emailNotificationRequested: { BOOL: true },
       ...(reservation.dailyMarkerId
         ? { dailyMarkerId: { S: reservation.dailyMarkerId } }
         : {}),
@@ -2293,6 +2604,182 @@ async function sunoTaskItem(taskId) {
   return result.Item;
 }
 
+async function signedMusicDownloadUrl(taskId, trackId) {
+  const { accessSecret } = await getSecrets();
+  const expires = Math.floor(Date.now() / 1000) + (60 * 60 * 24 * MUSIC_DOWNLOAD_LINK_DAYS);
+  const payload = `music-download.v1.${taskId}.${trackId}.${expires}`;
+  const signature = crypto.createHmac("sha256", accessSecret).update(payload).digest("hex");
+  const query = new URLSearchParams({
+    expires: String(expires),
+    sig: signature,
+  });
+  return `${PUBLIC_API_URL}/v1/music/download/${encodeURIComponent(taskId)}/${encodeURIComponent(trackId)}?${query}`;
+}
+
+async function verifyMusicDownloadSignature(taskId, trackId, expires, signature) {
+  const expiry = Number(expires);
+  if (
+    !Number.isInteger(expiry)
+    || expiry < Math.floor(Date.now() / 1000)
+    || expiry > Math.floor(Date.now() / 1000) + (60 * 60 * 24 * (MUSIC_DOWNLOAD_LINK_DAYS + 1))
+    || !/^[a-f0-9]{64}$/.test(signature ?? "")
+  ) {
+    return false;
+  }
+  const { accessSecret } = await getSecrets();
+  const expected = crypto
+    .createHmac("sha256", accessSecret)
+    .update(`music-download.v1.${taskId}.${trackId}.${expiry}`)
+    .digest("hex");
+  const suppliedBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expected, "hex");
+  return suppliedBuffer.length === expectedBuffer.length
+    && crypto.timingSafeEqual(suppliedBuffer, expectedBuffer);
+}
+
+async function claimMusicReadyEmail(taskId, orderId) {
+  const claimToken = crypto.randomUUID();
+  const now = new Date();
+  const nowEpoch = Math.floor(now.getTime() / 1_000);
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: `suno_task_${taskId}` } },
+      UpdateExpression: "SET emailNotificationStatus = :sending, emailNotificationClaim = :claim, emailNotificationClaimExpiresAt = :claimExpiresAt, emailNotificationUpdatedAt = :updatedAt",
+      ConditionExpression: "orderId = :orderId AND attribute_not_exists(emailNotificationSentAt) AND (attribute_not_exists(emailNotificationClaimExpiresAt) OR emailNotificationClaimExpiresAt < :nowEpoch)",
+      ExpressionAttributeValues: {
+        ":orderId": { S: orderId },
+        ":sending": { S: "SENDING" },
+        ":claim": { S: claimToken },
+        ":claimExpiresAt": { N: String(nowEpoch + 5 * 60) },
+        ":nowEpoch": { N: String(nowEpoch) },
+        ":updatedAt": { S: now.toISOString() },
+      },
+    }));
+    return { claimToken, alreadySent: false };
+  } catch (error) {
+    if (!(error instanceof ConditionalCheckFailedException)) throw error;
+    const task = await sunoTaskItem(taskId);
+    return {
+      claimToken: "",
+      alreadySent: Boolean(task?.emailNotificationSentAt?.S),
+    };
+  }
+}
+
+async function completeMusicReadyEmail(taskId, orderId, claimToken, messageId) {
+  await dynamo.send(new UpdateItemCommand({
+    TableName: EVENTS_TABLE_NAME,
+    Key: { id: { S: `suno_task_${taskId}` } },
+    UpdateExpression: "SET emailNotificationStatus = :sent, emailNotificationSentAt = :sentAt, emailNotificationMessageId = :messageId, emailNotificationUpdatedAt = :sentAt REMOVE emailNotificationClaim, emailNotificationClaimExpiresAt, emailNotificationLastError",
+    ConditionExpression: "orderId = :orderId AND emailNotificationClaim = :claim",
+    ExpressionAttributeValues: {
+      ":orderId": { S: orderId },
+      ":claim": { S: claimToken },
+      ":sent": { S: "SENT" },
+      ":sentAt": { S: new Date().toISOString() },
+      ":messageId": { S: safeString(messageId || "accepted", 240) },
+    },
+  }));
+}
+
+async function releaseMusicReadyEmailClaim(taskId, orderId, claimToken, error) {
+  try {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: EVENTS_TABLE_NAME,
+      Key: { id: { S: `suno_task_${taskId}` } },
+      UpdateExpression: "SET emailNotificationStatus = :failed, emailNotificationLastError = :error, emailNotificationUpdatedAt = :updatedAt REMOVE emailNotificationClaim, emailNotificationClaimExpiresAt",
+      ConditionExpression: "orderId = :orderId AND emailNotificationClaim = :claim",
+      ExpressionAttributeValues: {
+        ":orderId": { S: orderId },
+        ":claim": { S: claimToken },
+        ":failed": { S: "FAILED" },
+        ":error": { S: safeString(error?.message || "Falha ao enviar e-mail.", 240) },
+        ":updatedAt": { S: new Date().toISOString() },
+      },
+    }));
+  } catch (claimError) {
+    if (!(claimError instanceof ConditionalCheckFailedException)) {
+      console.error("Unable to release music-ready email claim", {
+        orderId,
+        taskId,
+        message: claimError.message,
+      });
+    }
+  }
+}
+
+async function sendMusicReadyEmail(order, taskId, tracks) {
+  const recipient = normalizeEmail(order.email);
+  const downloadableTracks = (tracks ?? []).filter((track) => (
+    track?.id && (track.audioUrl || track.streamAudioUrl)
+  ));
+  if (!recipient || !downloadableTracks.length) return true;
+  if (!EMAIL_FROM_ADDRESS || !PUBLIC_API_URL?.startsWith("https://")) {
+    console.error("Music-ready email is not configured", {
+      orderId: order.id,
+      taskId,
+      hasSender: Boolean(EMAIL_FROM_ADDRESS),
+      hasPublicApi: Boolean(PUBLIC_API_URL),
+    });
+    return false;
+  }
+
+  let claimToken = "";
+  try {
+    const claim = await claimMusicReadyEmail(taskId, order.id);
+    if (claim.alreadySent) return true;
+    if (!claim.claimToken) return false;
+    claimToken = claim.claimToken;
+    const emailTracks = await Promise.all(downloadableTracks.map(async (track) => ({
+      title: track.title,
+      imageUrl: track.imageUrl,
+      downloadUrl: await signedMusicDownloadUrl(taskId, track.id),
+    })));
+    const email = buildMusicReadyEmail({
+      recipientName: order.name,
+      tracks: emailTracks,
+      libraryUrl: `${SITE_ORIGIN}/biblioteca/`,
+      logoUrl: `${SITE_ORIGIN}/brand/musicacom-logo-horizontal-light.png`,
+      supportUrl: `${SITE_ORIGIN}/suporte/`,
+    });
+    const result = await ses.send(new SendEmailCommand({
+      FromEmailAddress: `musicacom.ia <${EMAIL_FROM_ADDRESS}>`,
+      Destination: { ToAddresses: [recipient] },
+      ...(EMAIL_REPLY_TO_ADDRESS ? { ReplyToAddresses: [EMAIL_REPLY_TO_ADDRESS] } : {}),
+      Content: {
+        Simple: {
+          Subject: { Data: email.subject, Charset: "UTF-8" },
+          Body: {
+            Html: { Data: email.html, Charset: "UTF-8" },
+            Text: { Data: email.text, Charset: "UTF-8" },
+          },
+        },
+      },
+    }));
+    await completeMusicReadyEmail(taskId, order.id, claimToken, result.MessageId);
+    await recordMemberMusicEvent(
+      order,
+      "music_ready_email_sent",
+      `music_ready_email_sent_${taskId}`,
+      downloadableTracks.length,
+      { sessionId: "server" },
+    );
+    return true;
+  } catch (error) {
+    if (claimToken) {
+      await releaseMusicReadyEmailClaim(taskId, order.id, claimToken, error);
+    }
+    console.error("Unable to send music-ready email", {
+      orderId: order.id,
+      taskId,
+      name: error.name,
+      message: error.message,
+    });
+    return false;
+  }
+}
+
 async function recordSuccessfulSunoTask(order, taskId, task, tracks) {
   const contextId = task?.contextId?.S;
   const contextItem = await sunoAnalyticsContextItem(contextId);
@@ -2302,7 +2789,10 @@ async function recordSuccessfulSunoTask(order, taskId, task, tracks) {
     ? analyticsContextFromItem(contextItem)
     : { sessionId: "server" };
   const genericContext = hasExactContext ? exactContext : {};
-  const [genericRecorded, activationRecorded] = await Promise.all([
+  const emailNotification = task?.emailNotificationRequested?.BOOL === true
+    ? sendMusicReadyEmail(order, taskId, tracks)
+    : Promise.resolve(true);
+  const [genericRecorded, activationRecorded, emailCompleted] = await Promise.all([
     recordMemberMusicEvent(
       order,
       "music_generation_completed",
@@ -2317,8 +2807,9 @@ async function recordSuccessfulSunoTask(order, taskId, task, tracks) {
       tracks.length,
       exactContext,
     ),
+    emailNotification,
   ]);
-  if (activationRecorded && contextId) {
+  if (emailCompleted && contextId) {
     try {
       await deleteSunoAnalyticsContext(contextId);
     } catch (error) {
@@ -2639,6 +3130,54 @@ async function handleSunoCallback(event) {
     received: true,
     status: result.status,
   });
+}
+
+async function getMusicDownload(event, taskId, trackId) {
+  if (
+    !/^[a-zA-Z0-9_-]{8,100}$/.test(taskId)
+    || !/^[a-zA-Z0-9_-]{1,100}$/.test(trackId)
+    || !(await verifyMusicDownloadSignature(
+      taskId,
+      trackId,
+      event.queryStringParameters?.expires,
+      event.queryStringParameters?.sig,
+    ))
+  ) {
+    return response(403, {
+      error: "Este link de download expirou. Entre na sua biblioteca para baixar a música.",
+      libraryUrl: `${SITE_ORIGIN}/biblioteca/`,
+    });
+  }
+
+  const task = await sunoTaskItem(taskId);
+  if (!task?.orderId?.S) return response(404, { error: "Música não encontrada." });
+  const order = await findOrder(task.orderId.S);
+  if (!order) return response(404, { error: "Conta da música não encontrada." });
+
+  let tracks = tracksFromTaskItem(task);
+  try {
+    const result = await reconcileSunoTask(taskId, task, order);
+    if (result.status !== "SUCCESS") {
+      return response(409, { error: "A música ainda não está pronta." });
+    }
+    tracks = result.allTracks;
+  } catch (error) {
+    console.error("Unable to refresh music download", {
+      orderId: order.id,
+      taskId,
+      trackId,
+      message: error.message,
+    });
+  }
+
+  const track = tracks.find((item) => item.id === trackId);
+  const audioUrl = safeRemoteUrl(track?.audioUrl || track?.streamAudioUrl);
+  return audioUrl
+    ? redirectResponse(audioUrl)
+    : response(404, {
+        error: "O arquivo não está disponível neste link. Abra sua biblioteca para tentar novamente.",
+        libraryUrl: `${SITE_ORIGIN}/biblioteca/`,
+      });
 }
 
 async function wooviRequest(path, options = {}) {
@@ -3529,6 +4068,15 @@ export const handler = async (event) => {
     if (method === "GET" && path === "/v1/music/library") {
       return await getMusicLibrary(event);
     }
+    if (method === "POST" && path === "/v1/prospects/search") {
+      return await createBusinessSearch(event);
+    }
+    if (method === "GET" && path.startsWith("/v1/prospects/search/")) {
+      return await getBusinessSearch(
+        event,
+        decodeURIComponent(path.slice("/v1/prospects/search/".length)),
+      );
+    }
     if (method === "POST" && path === "/v1/music/conversation") {
       return await createMusicConversation(event);
     }
@@ -3549,6 +4097,13 @@ export const handler = async (event) => {
         event,
         decodeURIComponent(path.slice("/v1/music/covers/".length)),
       );
+    }
+    if (method === "GET" && path.startsWith("/v1/music/download/")) {
+      const [taskId, trackId] = path
+        .slice("/v1/music/download/".length)
+        .split("/")
+        .map(decodeURIComponent);
+      return await getMusicDownload(event, taskId ?? "", trackId ?? "");
     }
     if (
       method === "POST"

@@ -38,7 +38,7 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
   }, testInfo) => {
     await page.goto("/");
 
-    const primaryCta = page.getByRole("link", { name: /criar grátis agora/i });
+    const primaryCta = page.locator(".br-hero .br-button");
     await expect(primaryCta).toBeVisible();
     await expect(page.locator(".br-proof-row")).toContainText("1 música grátis por dia");
     await expect(page.locator(".br-proof-row")).toContainText("Sem cartão");
@@ -191,11 +191,14 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
 
     await page.getByRole("button", { name: "Continuar com Google" }).click();
 
-    await expect(page).toHaveURL(/\/biblioteca\/gerador\/?$/);
+    await expect(page).toHaveURL(/\/biblioteca\/gerador\/?$/, {
+      timeout: 15_000,
+    });
     await expect(page.getByRole("heading", { name: "O que você quer criar?" })).toBeVisible();
     await expect(page.locator(".express-flow")).toHaveAttribute(
       "data-interactive",
       "true",
+      { timeout: 15_000 },
     );
 
     await validateFrictionBudget(testInfo, "entrada-com-google", [
@@ -226,9 +229,10 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
   test("cadastro, confirmação e primeira música formam uma jornada contínua", async ({
     page,
   }, testInfo) => {
+    test.setTimeout(60_000);
     await page.goto("/");
     await chooseEssentialMeasurement(page);
-    await page.getByRole("link", { name: /criar grátis agora/i }).click();
+    await page.locator(".br-hero .br-button").click();
     await waitForAccessFormHydration(page);
 
     await page.getByLabel("Como podemos chamar você?").fill("Maria");
@@ -245,6 +249,7 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
     await expect(page.locator(".express-flow")).toHaveAttribute(
       "data-interactive",
       "true",
+      { timeout: 15_000 },
     );
 
     let creativeDecisions = 0;

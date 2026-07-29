@@ -14,6 +14,7 @@ import {
 const primaryNavigation = [
   { href: "/academia", label: "Início", marker: "⌂", exact: true },
   { href: "/biblioteca/gerador", label: "Criar", marker: "＋", featured: true },
+  { href: "/biblioteca/negocios", label: "Buscar negócios", marker: "⌖" },
   { href: "/biblioteca", label: "Suas músicas", marker: "♫", exact: true },
 ];
 
@@ -106,7 +107,7 @@ export default function MemberNav() {
 
       <Link className="academy-course-link" href="/academia/comecar">
         <span>▤</span>
-        <div><small>APRENDA NO FLUXO</small><b>Tutorial</b></div>
+        <div><small>AJUDA CONTEXTUAL</small><b>Como funciona</b></div>
         <em>›</em>
       </Link>
 
