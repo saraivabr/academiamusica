@@ -55,7 +55,7 @@ https://d8j0ntlcm91z4.cloudfront.net/user_3HCc1S8ikFZEiCysMcZTr30ZCAF/hf_2026073
 Arquivos:
 
 - `public/ads/offer-v2-higgsfield/03-oferta-direta-4x5.png`
-- `public/ads/offer-v2-higgsfield/03-oferta-direta-9x16.png`
+- `public/ads/offer-v2-imagegen/03-oferta-direta-9x16.png`
 
 Texto principal:
 
@@ -87,7 +87,7 @@ https://d8j0ntlcm91z4.cloudfront.net/user_3HCc1S8ikFZEiCysMcZTr30ZCAF/hf_2026073
 Arquivos:
 
 - `public/ads/offer-v2-higgsfield/01-reacao-4x5.png`
-- `public/ads/offer-v2-higgsfield/01-reacao-9x16.png`
+- `public/ads/offer-v2-imagegen/01-reacao-9x16.png`
 
 Texto principal:
 
@@ -118,7 +118,7 @@ https://d8j0ntlcm91z4.cloudfront.net/user_3HCc1S8ikFZEiCysMcZTr30ZCAF/hf_2026073
 Arquivos:
 
 - `public/ads/offer-v2-higgsfield/02-frase-ao-play-4x5.png`
-- `public/ads/offer-v2-higgsfield/02-frase-ao-play-9x16.png`
+- `public/ads/offer-v2-imagegen/02-frase-ao-play-9x16.png`
 
 Texto principal:
 
@@ -157,9 +157,10 @@ O modo de vídeo do Higgsfield exige plano pago nesta conta. O roteiro fica
 aprovado, mas o vídeo não deve ser declarado como produzido até a geração
 concluir em uma conta habilitada ou ser filmado/editado externamente.
 
-As três imagens 4:5 foram geradas no Higgsfield e aprovadas visualmente. As
-versões 9:16 são adaptações técnicas com fundo expandido, porque o plano
-gratuito bloqueou novas gerações depois das peças principais.
+As três imagens 4:5 foram geradas no Higgsfield e aprovadas visualmente. Depois
+que o plano gratuito bloqueou novas gerações, as versões 9:16 finais foram
+recompostas nativamente com o ImageGen, sem moldura, recorte automático ou
+fundo desfocado.
 
 ## Regras agressivas de corte
 
