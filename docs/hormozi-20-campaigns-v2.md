@@ -13,6 +13,10 @@ separadas no Gerenciador de Anúncios. Com R$ 500, a estrutura correta é uma
 campanha de Vendas, um conjunto e no máximo cinco anúncios ativos por rodada.
 Isso concentra aprendizado e evita que cada ideia receba verba insuficiente.
 
+Os 20 criativos verticais finais e os 20 roteiros curtos correspondentes estão
+organizados em `public/ads/hormozi-v2-20/` e
+`docs/hormozi-20-content-production-pack.md`.
+
 Primeira rodada recomendada:
 
 1. `C16 — Outro perfume?`
