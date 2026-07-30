@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import {
   ArrowRight,
@@ -19,6 +19,7 @@ import {
   type PlatformGeneration,
   type PlatformTrack,
 } from "../lib/musicPlatform";
+import { gsap, useGSAP } from "../lib/gsap";
 
 const journey = [
   {
@@ -71,6 +72,7 @@ function TrackCard({ track, index }: { track: PlatformTrack; index: number }) {
 }
 
 export default function Academia() {
+  const pageRef = useRef<HTMLDivElement | null>(null);
   const [tracks, setTracks] = useState<PlatformTrack[]>([]);
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
   const [libraryLoaded, setLibraryLoaded] = useState(false);
@@ -100,9 +102,99 @@ export default function Academia() {
   const featuredTrack = tracks[0];
   const hasMusic = Boolean(featuredTrack);
 
+  useGSAP(() => {
+    const page = pageRef.current;
+    if (!libraryLoaded || !page) return;
+
+    const media = gsap.matchMedia();
+    media.add(
+      {
+        reduceMotion: "(prefers-reduced-motion: reduce)",
+        compact: "(max-width: 840px)",
+      },
+      (context) => {
+        const { compact, reduceMotion } = context.conditions as {
+          compact: boolean;
+          reduceMotion: boolean;
+        };
+        if (reduceMotion) return;
+
+        const greetingCopy = page.querySelectorAll(".spotify-greeting > div > *");
+        const greetingBalance = page.querySelector(".spotify-greeting > span");
+        const quickLinks = page.querySelectorAll(".spotify-quick-grid > a");
+        const featureCopy = page.querySelectorAll(".platform-feature-copy > *");
+        const featureArt = page.querySelector(".platform-feature-art");
+        const sectionHeads = page.querySelectorAll(".platform-section-head");
+        const collectionItems = page.querySelectorAll(
+          ".platform-track-card, .platform-empty-shelf, .platform-journey-grid > a",
+        );
+        const timeline = gsap.timeline({
+          defaults: {
+            duration: compact ? 0.42 : 0.52,
+            ease: "power3.out",
+            clearProps: "transform,opacity,visibility",
+          },
+        });
+
+        timeline.from(greetingCopy, {
+          y: compact ? 12 : 18,
+          autoAlpha: 0,
+          stagger: 0.055,
+        });
+        if (greetingBalance) {
+          timeline.from(greetingBalance, {
+            x: compact ? 0 : 14,
+            y: compact ? 8 : 0,
+            autoAlpha: 0,
+          }, "<0.08");
+        }
+        if (quickLinks.length) {
+          timeline.from(quickLinks, {
+            y: 14,
+            scale: 0.985,
+            autoAlpha: 0,
+            stagger: 0.07,
+          }, "<0.08");
+        }
+        timeline.from(featureCopy, {
+          y: 16,
+          autoAlpha: 0,
+          stagger: 0.045,
+        }, "<0.08");
+        if (featureArt) {
+          timeline.from(featureArt, {
+            x: compact ? 0 : 22,
+            y: compact ? 14 : 0,
+            scale: 0.96,
+            autoAlpha: 0,
+          }, "<0.12");
+        }
+        timeline.from(sectionHeads, {
+          y: 12,
+          autoAlpha: 0,
+        }, "<0.08");
+        if (collectionItems.length) {
+          timeline.from(collectionItems, {
+            y: 15,
+            scale: 0.985,
+            autoAlpha: 0,
+            stagger: 0.055,
+          }, "<0.06");
+        }
+      },
+    );
+
+    return () => media.revert();
+  }, {
+    dependencies: [libraryLoaded],
+    revertOnUpdate: true,
+    scope: pageRef,
+  });
+
   return (
     <AcademyShell title="Início" eyebrow="SEU ESTÚDIO">
-      <section className="spotify-greeting">
+      <div ref={pageRef} className="academy-motion-page">
+        <section className="spotify-greeting">
         <div>
           <small>musicacom.ia</small>
           <h2>{hasMusic ? "Sua música está aqui." : "Vamos criar a primeira?"}</h2>
@@ -195,7 +287,7 @@ export default function Academia() {
         )}
       </section>
 
-      {libraryLoaded && hasMusic ? <section className="platform-section">
+        {libraryLoaded && hasMusic ? <section className="platform-section">
         <header className="platform-section-head">
           <div><small>PRÓXIMOS PASSOS</small><h2>Continue no seu ritmo</h2></div>
         </header>
@@ -210,7 +302,8 @@ export default function Academia() {
             </Link>
           ))}
         </div>
-      </section> : null}
+        </section> : null}
+      </div>
     </AcademyShell>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronRight,
   CircleHelp,
@@ -23,6 +23,7 @@ import {
   type PlatformGeneration,
   type PlatformTrack,
 } from "../lib/musicPlatform";
+import { Flip, gsap, useGSAP } from "../lib/gsap";
 
 const primaryNavigation = [
   { href: "/academia", label: "Início", icon: Home, exact: true },
@@ -49,10 +50,69 @@ const mobileNavigation = [
   exact?: boolean;
 }>;
 
+const previousNavigationTarget = new Map<string, string>();
+
 function isCurrentPath(pathname: string, href: string, exact = false) {
   return exact
     ? pathname === href
     : pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function useActiveNavigationMotion(
+  pathname: string,
+  navigationKey: "desktop" | "mobile",
+  targetWithinLink?: string,
+) {
+  const navigationRef = useRef<HTMLElement | null>(null);
+
+  useGSAP(() => {
+    const navigation = navigationRef.current;
+    const indicator = navigation?.querySelector<HTMLElement>(".member-nav-motion-indicator");
+    const activeLink = navigation?.querySelector<HTMLAnchorElement>("a[data-active='true']");
+    const activeTarget = targetWithinLink
+      ? activeLink?.querySelector<HTMLElement>(targetWithinLink)
+      : activeLink;
+    if (!navigation || !indicator || !activeLink || !activeTarget) return;
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const activeKey = activeLink.dataset.navKey;
+    const previousKey = previousNavigationTarget.get(navigationKey);
+    const previousLink = previousKey
+      ? Array.from(navigation.querySelectorAll<HTMLAnchorElement>("a[data-nav-key]"))
+        .find((link) => link.dataset.navKey === previousKey)
+      : null;
+    const previousTarget = targetWithinLink
+      ? previousLink?.querySelector<HTMLElement>(targetWithinLink)
+      : previousLink;
+    const shouldAnimate = Boolean(
+      previousTarget
+      && previousKey !== activeKey
+      && !reduceMotion,
+    );
+
+    gsap.set(indicator, { autoAlpha: 1 });
+    if (shouldAnimate && previousTarget) {
+      Flip.fit(indicator, previousTarget, { duration: 0, scale: true });
+    }
+    Flip.fit(indicator, activeTarget, {
+      duration: shouldAnimate ? 0.42 : 0,
+      ease: "power3.out",
+      scale: true,
+    });
+
+    const icon = activeTarget.querySelector<HTMLElement>("svg");
+    if (icon && shouldAnimate) {
+      gsap.fromTo(
+        icon,
+        { rotation: -7, scale: 0.84 },
+        { rotation: 0, scale: 1, duration: 0.42, ease: "back.out(1.8)", overwrite: "auto" },
+      );
+    }
+
+    if (activeKey) previousNavigationTarget.set(navigationKey, activeKey);
+  }, { dependencies: [pathname], scope: navigationRef });
+
+  return navigationRef;
 }
 
 function NavigationLinks({
@@ -71,6 +131,8 @@ function NavigationLinks({
         href={item.href}
         className={`${active ? "active" : ""} ${item.featured ? "featured" : ""}`}
         aria-current={active ? "page" : undefined}
+        data-active={active ? "true" : undefined}
+        data-nav-key={item.href}
       >
         <span className="member-nav-icon" aria-hidden="true">
           <Icon />
@@ -83,6 +145,7 @@ function NavigationLinks({
 
 export default function MemberNav() {
   const pathname = usePathname();
+  const navigationRef = useActiveNavigationMotion(pathname, "desktop");
   const [recentTracks, setRecentTracks] = useState<PlatformTrack[]>([]);
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
   const [dailyFreeAvailable, setDailyFreeAvailable] = useState(false);
@@ -109,7 +172,12 @@ export default function MemberNav() {
 
   return (
     <div className="member-navigation">
-      <nav className="member-nav member-nav-primary" aria-label="Navegação principal">
+      <nav
+        ref={navigationRef}
+        className="member-nav member-nav-primary member-nav-motion"
+        aria-label="Navegação principal"
+      >
+        <span className="member-nav-motion-indicator" aria-hidden="true" />
         <NavigationLinks items={primaryNavigation} pathname={pathname} />
       </nav>
 
@@ -169,9 +237,15 @@ export default function MemberNav() {
 
 export function MemberMobileNav() {
   const pathname = usePathname();
+  const navigationRef = useActiveNavigationMotion(pathname, "mobile", ":scope > span");
 
   return (
-    <nav className="academy-mobile-nav" aria-label="Navegação principal no celular">
+    <nav
+      ref={navigationRef}
+      className="academy-mobile-nav member-nav-motion"
+      aria-label="Navegação principal no celular"
+    >
+      <span className="member-nav-motion-indicator" aria-hidden="true" />
       {mobileNavigation.map((item) => {
         const active = isCurrentPath(pathname, item.href, item.exact);
         const Icon = item.icon;
@@ -181,6 +255,8 @@ export function MemberMobileNav() {
             key={item.href}
             className={active ? "active" : ""}
             aria-current={active ? "page" : undefined}
+            data-active={active ? "true" : undefined}
+            data-nav-key={item.href}
           >
             <span aria-hidden="true"><Icon /></span>
             <b>{item.label}</b>

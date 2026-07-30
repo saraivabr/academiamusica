@@ -24,6 +24,7 @@ import {
   type PlatformGeneration,
   type PlayerSelection,
 } from "../lib/musicPlatform";
+import { gsap, useGSAP } from "../lib/gsap";
 
 function formatTime(value: number) {
   if (!Number.isFinite(value) || value < 0) return "0:00";
@@ -41,6 +42,11 @@ export default function AcademyPlayer() {
   const [muted, setMuted] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const autoplayRef = useRef(false);
+  const playerRef = useRef<HTMLElement | null>(null);
+  const coverRef = useRef<HTMLDivElement | null>(null);
+  const trackDetailsRef = useRef<HTMLDivElement | null>(null);
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
+  const equalizerRef = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     let restoreTimer = 0;
@@ -108,6 +114,75 @@ export default function AcademyPlayer() {
   const playableUrl = selection ? playableTrackUrl(selection.track) : "";
   const visible = pathname.startsWith("/academia") || pathname.startsWith("/biblioteca");
 
+  useGSAP(() => {
+    if (!visible || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    gsap.from(playerRef.current, {
+      y: 16,
+      autoAlpha: 0,
+      duration: 0.48,
+      ease: "power3.out",
+      clearProps: "transform,opacity,visibility",
+    });
+  }, { dependencies: [visible], scope: playerRef });
+
+  useGSAP(() => {
+    if (!selection?.track.id || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    const timeline = gsap.timeline({
+      defaults: {
+        duration: 0.46,
+        ease: "power3.out",
+        clearProps: "transform,opacity,visibility",
+      },
+    });
+    timeline
+      .from(coverRef.current, {
+        rotation: -3,
+        scale: 0.9,
+        autoAlpha: 0,
+      })
+      .from(trackDetailsRef.current?.children ?? [], {
+        x: 10,
+        autoAlpha: 0,
+        stagger: 0.045,
+      }, "<0.08");
+  }, {
+    dependencies: [selection?.track.id],
+    revertOnUpdate: true,
+    scope: playerRef,
+  });
+
+  useGSAP(() => {
+    const bars = equalizerRef.current?.querySelectorAll("i");
+    if (!bars?.length) return;
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    gsap.set(equalizerRef.current, { autoAlpha: playing ? 1 : 0.62 });
+    gsap.set(bars, { scaleY: playing ? 0.5 : 0.22, transformOrigin: "50% 100%" });
+
+    if (!playing || reduceMotion) return;
+
+    gsap.fromTo(
+      toggleRef.current,
+      { scale: 0.88 },
+      { scale: 1, duration: 0.38, ease: "back.out(2)", overwrite: "auto" },
+    );
+    gsap.to(bars, {
+      scaleY: (index) => [1, 0.58, 0.84][index] ?? 0.72,
+      duration: 0.32,
+      ease: "sine.inOut",
+      stagger: 0.08,
+      repeat: -1,
+      yoyo: true,
+    });
+  }, {
+    dependencies: [playing],
+    revertOnUpdate: true,
+    scope: playerRef,
+  });
+
   useEffect(() => {
     if (!visible || selection) return;
     let active = true;
@@ -156,16 +231,26 @@ export default function AcademyPlayer() {
   if (!visible) return null;
 
   return (
-    <footer className={`academy-player ${selection ? "has-track" : ""}`} aria-label="Player da Academia">
+    <footer
+      ref={playerRef}
+      className={`academy-player ${selection ? "has-track" : ""} ${playing ? "is-playing" : ""}`}
+      aria-label="Player da Academia"
+    >
       <div className="academy-player-track">
         <div
+          ref={coverRef}
           className="academy-player-cover"
           style={selection?.track.imageUrl ? { backgroundImage: `url("${selection.track.imageUrl}")` } : {}}
           aria-hidden="true"
         >
           {!selection ? <img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" /> : null}
+          <span ref={equalizerRef} className="academy-player-equalizer" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
         </div>
-        <div>
+        <div ref={trackDetailsRef}>
           <strong>{selection?.track.title || "Seu repertório começa aqui"}</strong>
           <span>{selection?.context || "Escolha uma faixa em Minhas músicas"}</span>
         </div>
@@ -174,6 +259,7 @@ export default function AcademyPlayer() {
       <div className="academy-player-controls">
         <div>
           <button
+            ref={toggleRef}
             type="button"
             className="academy-player-skip"
             aria-label="Voltar ao início"
