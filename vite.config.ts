@@ -44,6 +44,24 @@ export default defineConfig(async () => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    optimizeDeps: {
+      // Lucide is already ESM and must stay on the same React instance used by
+      // Vinext's client boundary. Pre-bundling it can create duplicate context
+      // renderers during dependency re-optimization in development.
+      exclude: ["lucide-react"],
+    },
+    environments: {
+      rsc: {
+        optimizeDeps: {
+          exclude: ["lucide-react"],
+        },
+      },
+      ssr: {
+        optimizeDeps: {
+          exclude: ["lucide-react"],
+        },
+      },
+    },
     server: {
       host: "0.0.0.0",
       allowedHosts: ["terminal.local"],

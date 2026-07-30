@@ -2,6 +2,13 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import {
+  Download,
+  ImagePlus,
+  Play,
+  Plus,
+  Sparkles,
+} from "lucide-react";
 import { AcademyShell } from "../components/Portal";
 import { memberApi } from "../lib/access";
 import { trackEvent } from "../lib/analytics";
@@ -89,7 +96,8 @@ export default function Biblioteca() {
             data-track="creator_primary_action"
             data-track-placement="empty_library"
           >
-            Criar minha primeira música →
+            <Sparkles aria-hidden="true" />
+            Criar minha primeira música
           </Link>
         </section>
       </AcademyShell>
@@ -127,9 +135,9 @@ export default function Biblioteca() {
               if (featuredTrack) playInAcademyPlayer(featuredTrack, "Seu repertório");
             }}
           >
-            ▶
+            <Play fill="currentColor" aria-hidden="true" />
           </button>
-          <Link href="/biblioteca/gerador">＋ Nova música</Link>
+          <Link href="/biblioteca/gerador"><Plus aria-hidden="true" /> Nova música</Link>
           <span>{dailyFreeAvailable
             ? "1 criação de transição disponível"
             : `${remainingSongs ?? "—"} créditos disponíveis`}</span>
@@ -166,7 +174,7 @@ export default function Biblioteca() {
                     aria-label={`Ouvir ${track.title}`}
                     onClick={() => playInAcademyPlayer(track, `Rodada ${generations.length - generationIndex}`)}
                   >
-                    <span>{index + 1}</span><b>▶</b>
+                    <span>{index + 1}</span><b aria-hidden="true"><Play fill="currentColor" /></b>
                   </button>
                   <div className="spotify-row-title">
                     <i style={track.imageUrl ? { backgroundImage: `url("${track.imageUrl}")` } : {}} />
@@ -182,6 +190,7 @@ export default function Biblioteca() {
                   <span className="spotify-row-duration">{formatDuration(track.duration)}</span>
                   <div className="spotify-row-actions">
                     <Link href={`/biblioteca/capa?track=${encodeURIComponent(track.id)}`}>
+                      <ImagePlus aria-hidden="true" />
                       {track.hasCustomCover ? "Trocar capa" : "Criar capa"}
                     </Link>
                     {track.audioUrl ? (
@@ -194,6 +203,7 @@ export default function Biblioteca() {
                           placement: "library",
                         })}
                       >
+                        <Download aria-hidden="true" />
                         Baixar
                       </a>
                     ) : null}

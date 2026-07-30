@@ -3,6 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import {
+  ChevronRight,
+  CircleHelp,
+  Coins,
+  Home,
+  LibraryBig,
+  LogOut,
+  Music2,
+  Plus,
+  Sparkles,
+  Store,
+  type LucideIcon,
+} from "lucide-react";
 import { clearMemberAccess, memberApi } from "../lib/access";
 import {
   flattenGenerations,
@@ -12,11 +25,35 @@ import {
 } from "../lib/musicPlatform";
 
 const primaryNavigation = [
-  { href: "/academia", label: "Início", marker: "⌂", exact: true },
-  { href: "/biblioteca/gerador", label: "Criar", marker: "＋", featured: true },
-  { href: "/biblioteca/negocios", label: "Buscar negócios", marker: "⌖" },
-  { href: "/biblioteca", label: "Suas músicas", marker: "♫", exact: true },
-];
+  { href: "/academia", label: "Início", icon: Home, exact: true },
+  { href: "/biblioteca/gerador", label: "Criar", icon: Sparkles, featured: true },
+  { href: "/biblioteca/negocios", label: "Buscar negócios", icon: Store },
+  { href: "/biblioteca", label: "Suas músicas", icon: LibraryBig, exact: true },
+] satisfies Array<{
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+  featured?: boolean;
+}>;
+
+const mobileNavigation = [
+  { href: "/academia", label: "Início", icon: Home, exact: true },
+  { href: "/biblioteca/gerador", label: "Criar", icon: Sparkles },
+  { href: "/biblioteca", label: "Músicas", icon: LibraryBig, exact: true },
+  { href: "/biblioteca/creditos", label: "Créditos", icon: Coins },
+] satisfies Array<{
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+}>;
+
+function isCurrentPath(pathname: string, href: string, exact = false) {
+  return exact
+    ? pathname === href
+    : pathname === href || pathname.startsWith(`${href}/`);
+}
 
 function NavigationLinks({
   items,
@@ -26,9 +63,8 @@ function NavigationLinks({
   pathname: string;
 }) {
   return items.map((item) => {
-    const active = item.exact
-      ? pathname === item.href
-      : pathname === item.href || pathname.startsWith(`${item.href}/`);
+    const active = isCurrentPath(pathname, item.href, item.exact);
+    const Icon = item.icon;
     return (
       <Link
         key={item.href}
@@ -36,7 +72,9 @@ function NavigationLinks({
         className={`${active ? "active" : ""} ${item.featured ? "featured" : ""}`}
         aria-current={active ? "page" : undefined}
       >
-        <span aria-hidden="true">{item.marker}</span>
+        <span className="member-nav-icon" aria-hidden="true">
+          <Icon />
+        </span>
         <b>{item.label}</b>
       </Link>
     );
@@ -90,7 +128,9 @@ export default function MemberNav() {
               <span
                 style={track.imageUrl ? { backgroundImage: `url("${track.imageUrl}")` } : {}}
                 aria-hidden="true"
-              />
+              >
+                {!track.imageUrl ? <Music2 /> : null}
+              </span>
               <b>{track.title}</b>
             </button>
           ))}
@@ -98,17 +138,18 @@ export default function MemberNav() {
       ) : null}
 
       <Link className="academy-wallet" href="/biblioteca/creditos" aria-label="Saldo de criação e recarga">
+        <Coins className="academy-wallet-icon" aria-hidden="true" />
         <div>
           <small>{dailyFreeAvailable ? "BENEFÍCIO EM TRANSIÇÃO" : "SEU SALDO"}</small>
           <b>{dailyFreeAvailable ? "1 criação" : `${remainingSongs ?? "—"} créditos`}</b>
         </div>
-        <span>＋ PIX</span>
+        <span><Plus aria-hidden="true" /> PIX</span>
       </Link>
 
       <Link className="academy-course-link" href="/academia/comecar">
-        <span>▤</span>
+        <span aria-hidden="true"><CircleHelp /></span>
         <div><small>AJUDA CONTEXTUAL</small><b>Como funciona</b></div>
-        <em>›</em>
+        <em aria-hidden="true"><ChevronRight /></em>
       </Link>
 
       <button
@@ -119,8 +160,33 @@ export default function MemberNav() {
           window.location.assign("/login?mode=login");
         }}
       >
+        <LogOut aria-hidden="true" />
         Sair da conta
       </button>
     </div>
+  );
+}
+
+export function MemberMobileNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="academy-mobile-nav" aria-label="Navegação principal no celular">
+      {mobileNavigation.map((item) => {
+        const active = isCurrentPath(pathname, item.href, item.exact);
+        const Icon = item.icon;
+        return (
+          <Link
+            href={item.href}
+            key={item.href}
+            className={active ? "active" : ""}
+            aria-current={active ? "page" : undefined}
+          >
+            <span aria-hidden="true"><Icon /></span>
+            <b>{item.label}</b>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

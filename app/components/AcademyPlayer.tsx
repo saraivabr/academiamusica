@@ -3,6 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import {
+  Download,
+  LibraryBig,
+  Pause,
+  Play,
+  RotateCcw,
+  RotateCw,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
 import { memberApi } from "../lib/access";
 import {
   academyPlayerClearEvent,
@@ -170,7 +180,7 @@ export default function AcademyPlayer() {
             disabled={!playableUrl}
             onClick={() => seek(0)}
           >
-            I◀
+            <RotateCcw aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -179,7 +189,9 @@ export default function AcademyPlayer() {
             disabled={!playableUrl}
             onClick={togglePlayback}
           >
-            {playing ? "Ⅱ" : "▶"}
+            {playing
+              ? <Pause fill="currentColor" aria-hidden="true" />
+              : <Play fill="currentColor" aria-hidden="true" />}
           </button>
           <button
             type="button"
@@ -188,7 +200,10 @@ export default function AcademyPlayer() {
             disabled={!playableUrl}
             onClick={() => seek(Math.min(duration || 0, currentTime + 10))}
           >
-            ▶I
+            <span className="academy-skip-forward" aria-hidden="true">
+              <RotateCw />
+              <small>10</small>
+            </span>
           </button>
         </div>
         <div className="academy-player-timeline">
@@ -210,9 +225,10 @@ export default function AcademyPlayer() {
       <div className="academy-player-actions">
         {selection?.track.audioUrl ? (
           <a href={selection.track.audioUrl} target="_blank" rel="noreferrer" download>
+            <Download aria-hidden="true" />
             Baixar
           </a>
-        ) : <Link href="/biblioteca">Abrir músicas</Link>}
+        ) : <Link href="/biblioteca"><LibraryBig aria-hidden="true" /> Abrir músicas</Link>}
         <button
           type="button"
           aria-label={muted ? "Ativar som" : "Silenciar"}
@@ -223,7 +239,9 @@ export default function AcademyPlayer() {
             if (audioRef.current) audioRef.current.muted = next;
           }}
         >
-          {muted ? "SEM SOM" : "SOM"}
+          {muted
+            ? <VolumeX aria-hidden="true" />
+            : <Volume2 aria-hidden="true" />}
         </button>
       </div>
 

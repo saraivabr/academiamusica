@@ -3,6 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
+import {
+  ArrowRight,
+  CirclePlay,
+  Disc3,
+  Image as ImageIcon,
+  Play,
+  Sparkles,
+} from "lucide-react";
 import { AcademyShell } from "../components/Portal";
 import { memberApi } from "../lib/access";
 import {
@@ -54,7 +62,7 @@ function TrackCard({ track, index }: { track: PlatformTrack; index: number }) {
         className="platform-track-art"
         style={track.imageUrl ? { backgroundImage: `url("${track.imageUrl}")` } : {}}
       >
-        <i aria-hidden="true">▶</i>
+        <i aria-hidden="true"><Play fill="currentColor" /></i>
       </span>
       <strong>{track.title}</strong>
       <small>Versão {(index % 2) + 1} • sua criação</small>
@@ -108,14 +116,14 @@ export default function Academia() {
       {hasMusic ? (
         <section className="spotify-quick-grid" aria-label="Próximos passos">
           <Link href="/biblioteca">
-            <i className="quick-library">♫</i>
+            <i className="quick-library" aria-hidden="true"><Disc3 /></i>
             <b>Ouvir e escolher</b>
-            <span>▶</span>
+            <span aria-hidden="true"><Play fill="currentColor" /></span>
           </Link>
           <Link href={`/biblioteca/capa?track=${encodeURIComponent(featuredTrack.id)}`}>
-            <i className="quick-cover">▣</i>
+            <i className="quick-cover" aria-hidden="true"><ImageIcon /></i>
             <b>Criar a capa</b>
-            <span>▶</span>
+            <span aria-hidden="true"><ArrowRight /></span>
           </Link>
         </section>
       ) : null}
@@ -141,7 +149,7 @@ export default function Academia() {
                 className="platform-primary-action"
                 onClick={() => playInAcademyPlayer(featuredTrack, "Sua criação mais recente")}
               >
-                ▶ Ouvir e escolher
+                <CirclePlay aria-hidden="true" /> Ouvir e escolher
               </button>
             ) : (
               <Link
@@ -150,7 +158,7 @@ export default function Academia() {
                 data-track="creator_primary_action"
                 data-track-placement="member_home_empty"
               >
-                <span aria-hidden="true">▶</span> Criar minha primeira música
+                <Sparkles aria-hidden="true" /> Criar minha primeira música
               </Link>
             )}
             {featuredTrack
@@ -198,7 +206,7 @@ export default function Academia() {
               <small>{item.label}</small>
               <h3>{item.title}</h3>
               <p>{item.text}</p>
-              <b>Continuar →</b>
+              <b>Continuar <ArrowRight aria-hidden="true" /></b>
             </Link>
           ))}
         </div>
