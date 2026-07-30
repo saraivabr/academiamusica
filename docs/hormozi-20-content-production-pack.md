@@ -22,6 +22,20 @@ Diretório dos criativos:
 Todos os arquivos principais têm 941 × 1672 pixels, proporção aproximada de
 9:16, prontos para Stories e Reels.
 
+## Layout V2 recomendado
+
+Uma segunda direção visual foi produzida sem sobrescrever os arquivos
+originais. Ela usa fotografia limpa gerada pelo ImageGen, tipografia real,
+marca oficial e componentes vetoriais.
+
+- prancha: `public/ads/hormozi-v2-20/layout-v2/contact-sheet-v2.jpg`;
+- finais: `public/ads/hormozi-v2-20/layout-v2/final/`;
+- sistema: `docs/hormozi-layout-v2-design-system.md`;
+- renderizador: `scripts/render-hormozi-layout-v2.mjs`.
+
+Os arquivos V2 têm 1080 × 1920 pixels e passam a ser a versão recomendada para
+publicação e teste.
+
 ## Índice dos 20 criativos
 
 | ID | Conteúdo | Arquivo | Headline no criativo | CTA |
