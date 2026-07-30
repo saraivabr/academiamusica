@@ -31,7 +31,7 @@ const styleJingles: Record<string, StyleJingle> = {
   "trap-brasileiro": { title: "Do Texto pro Topo", audioUrl: "/jingles/styles/15-trap-brasileiro.mp3", duration: 41.6 },
   "boom-bap-br": { title: "Sem Prompt, Com Verdade", audioUrl: "/jingles/styles/16-boom-bap-br.mp3", duration: 41 },
   "soul-brasileiro": { title: "Tem Som em Você", audioUrl: "/jingles/styles/17-soul-brasileiro.mp3", duration: 76.8 },
-  axe: { title: "Vem Cantar, Brasil", audioUrl: "/jingles/styles/18-axe.mp3", duration: 50 },
+  "axé": { title: "Vem Cantar, Brasil", audioUrl: "/jingles/styles/18-axe.mp3", duration: 50 },
   "samba-reggae": { title: "Tambor da História", audioUrl: "/jingles/styles/19-samba-reggae.mp3", duration: 63.3 },
   tecnobrega: { title: "Aparelhagem da Ideia", audioUrl: "/jingles/styles/20-tecnobrega.mp3", duration: 48.6 },
   carimbo: { title: "Gira, História", audioUrl: "/jingles/styles/21-carimbo.mp3", duration: 47.5 },

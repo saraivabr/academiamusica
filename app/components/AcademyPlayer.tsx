@@ -69,10 +69,19 @@ export default function AcademyPlayer() {
 
     const handlePlay = (event: Event) => {
       const next = (event as CustomEvent<PlayerSelection>).detail;
-      if (!next?.track || !playableTrackUrl(next.track)) return;
-      autoplayRef.current = true;
+      const nextUrl = next?.track ? playableTrackUrl(next.track) : "";
+      if (!next?.track || !nextUrl) return;
+      const audio = audioRef.current;
+      autoplayRef.current = !audio;
       setSelection(next);
       setCurrentTime(0);
+      if (audio) {
+        audio.src = nextUrl;
+        audio.currentTime = 0;
+        void audio.play()
+          .then(() => setPlaying(true))
+          .catch(() => setPlaying(false));
+      }
       try {
         window.localStorage.setItem(academyPlayerStorageKey, JSON.stringify(next));
         window.localStorage.removeItem(academyPlayerPendingStorageKey);
@@ -103,7 +112,12 @@ export default function AcademyPlayer() {
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !selection) return;
-    audio.load();
+    const nextUrl = playableTrackUrl(selection.track);
+    const resolvedUrl = new URL(nextUrl, window.location.href).href;
+    if (audio.src !== resolvedUrl) {
+      audio.src = nextUrl;
+      audio.load();
+    }
     if (!autoplayRef.current) return;
     autoplayRef.current = false;
     void audio.play()
@@ -331,18 +345,15 @@ export default function AcademyPlayer() {
         </button>
       </div>
 
-      {playableUrl ? (
-        <audio
-          ref={audioRef}
-          src={playableUrl}
-          preload="metadata"
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          onEnded={() => setPlaying(false)}
-          onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
-          onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-        />
-      ) : null}
+      <audio
+        ref={audioRef}
+        preload="metadata"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
+        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+      />
     </footer>
   );
 }

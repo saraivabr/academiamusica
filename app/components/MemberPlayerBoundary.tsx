@@ -11,7 +11,9 @@ export default function MemberPlayerBoundary() {
   const pathname = usePathname();
   const normalizedPathname = pathname.replace(/\/+$/, "") || "/";
   const isListeningRoute = normalizedPathname === "/academia"
-    || normalizedPathname === "/biblioteca";
+    || normalizedPathname.startsWith("/academia/")
+    || normalizedPathname === "/biblioteca"
+    || normalizedPathname.startsWith("/biblioteca/");
 
   if (!isListeningRoute) return null;
 
