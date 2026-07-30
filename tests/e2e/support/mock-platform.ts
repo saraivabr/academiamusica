@@ -120,8 +120,9 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
     if (url.pathname === "/v1/music/availability") {
       await json(route, {
         available: true,
-        remainingSongs: 0,
-        dailyFreeAvailable: true,
+        offerVersion: "music_present_v1",
+        remainingSongs: 20,
+        dailyFreeAvailable: false,
       });
       return;
     }
@@ -129,8 +130,9 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
     if (url.pathname === "/v1/music/library") {
       const tracks = options.libraryTracks ?? [];
       await json(route, {
-        remainingSongs: 0,
-        dailyFreeAvailable: true,
+        offerVersion: "music_present_v1",
+        remainingSongs: 20,
+        dailyFreeAvailable: false,
         generations: tracks.length
           ? [{
               taskId: "e2e_library",
@@ -187,8 +189,8 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
       await json(route, {
         taskId: "e2e_generation",
         status: "PENDING",
-        remainingSongs: 0,
-        dailyFreeUsed: true,
+        remainingSongs: 18,
+        dailyFreeUsed: false,
       });
       return;
     }
@@ -196,7 +198,7 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
     if (url.pathname === "/v1/music/generations/e2e_generation") {
       await json(route, {
         status: "SUCCESS",
-        remainingSongs: 0,
+        remainingSongs: 18,
         dailyFreeAvailable: false,
         tracks: [
           {

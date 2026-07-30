@@ -33,31 +33,35 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
     await mockPlatform(page);
   });
 
-  test("a proposta e o caminho grátis aparecem antes da primeira rolagem", async ({
+  test("a proposta e a prévia grátis aparecem antes da primeira rolagem", async ({
     page,
   }, testInfo) => {
     await page.goto("/");
 
-    const primaryCta = page.locator(".br-hero .br-button");
+    const primaryCta = page.getByRole("button", {
+      name: "Começar minha prévia grátis",
+    });
     await expect(primaryCta).toBeVisible();
-    await expect(page.locator(".br-proof-row")).toContainText("1 música grátis por dia");
-    await expect(page.locator(".br-proof-row")).toContainText("Sem cartão");
+    await expect(page.locator(".br-hero-note")).toContainText("Prévia criativa grátis");
+    await expect(page.locator(".br-hero-note")).toContainText("Áudio completo após o Pix");
 
     const horizontalOverflow = await page.evaluate(
       () => Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
     );
 
     await chooseEssentialMeasurement(page);
+    await page.getByLabel("Que história você quer transformar em música?")
+      .fill("Uma homenagem para minha mãe, que sustentou nossa família com coragem.");
     await primaryCta.click();
-    await expect(page).toHaveURL(/\/login\/?\?mode=register$/);
-    await expect(page.getByRole("heading", { name: "Abra seu estúdio." })).toBeVisible();
+    await expect(page).toHaveURL(/\/preview\/?\?idea=/);
+    await expect(page.getByRole("heading", {
+      name: "Sua história começa a ganhar música aqui.",
+    })).toBeVisible();
+    await page.getByRole("button", { name: "Ver minha prévia criativa" }).click();
+    await expect(page.getByText("SUA DIREÇÃO ESTÁ PRONTA")).toBeVisible();
+    await expect(page.getByText("20 créditos musicais")).toBeVisible();
 
-    const requiredFields = await page.locator("form input[required]:visible").count();
-    const paymentCommitments = await page
-      .getByText(/cartão de crédito|dados do cartão|pagamento obrigatório/i)
-      .count();
-
-    await validateFrictionBudget(testInfo, "descoberta-e-cadastro", [
+    await validateFrictionBudget(testInfo, "descoberta-e-previa", [
       {
         metric: "Interrupções obrigatórias antes do cadastro",
         observed: 1,
@@ -66,25 +70,25 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
         note: "O consentimento deve ser resolvido em uma única ação.",
       },
       {
-        metric: "Ações da home até o cadastro",
-        observed: 1,
-        budget: 1,
-        unit: "clique",
-        note: "O CTA principal deve levar diretamente à criação da conta.",
+        metric: "Ações da home até a prévia",
+        observed: 2,
+        budget: 2,
+        unit: "ações",
+        note: "Uma ação leva a história para a prévia e outra revela a direção.",
       },
       {
-        metric: "Campos obrigatórios iniciais",
-        observed: requiredFields,
-        budget: 3,
-        unit: "campos",
-        note: "Nome, e-mail e senha são o máximo aceitável antes da confirmação.",
-      },
-      {
-        metric: "Compromissos de pagamento antes do valor",
-        observed: paymentCommitments,
+        metric: "Cadastros antes da prévia",
+        observed: 0,
         budget: 0,
-        unit: "bloqueios",
-        note: "A entrada gratuita não pode pedir pagamento ou cartão.",
+        unit: "cadastros",
+        note: "A direção criativa deve aparecer antes de pedir conta.",
+      },
+      {
+        metric: "Áudios gratuitos antes do Pix",
+        observed: 0,
+        budget: 0,
+        unit: "áudios",
+        note: "A etapa gratuita valida a direção sem consumir geração musical.",
       },
       {
         metric: "Rolagem horizontal",
@@ -108,7 +112,7 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
     await page.getByLabel("Como podemos chamar você?").fill("Maria");
     await page.getByLabel("Seu melhor e-mail").fill("maria@example.com");
     await page.getByLabel("Sua senha").fill("senhafraca");
-    await page.getByRole("button", { name: "Criar minha conta grátis" }).click();
+    await page.getByRole("button", { name: "Criar minha conta" }).click();
 
     const alert = page.getByRole("alert");
     await expect(alert).toContainText(
@@ -119,7 +123,7 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
     await expect(page.getByLabel("Sua senha")).toHaveValue("senhafraca");
 
     const recoveryActions = await page
-      .getByRole("button", { name: "Criar minha conta grátis" })
+      .getByRole("button", { name: "Criar minha conta" })
       .count();
 
     await validateFrictionBudget(testInfo, "recuperacao-de-erro", [
@@ -151,7 +155,7 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
     const email = page.getByLabel("Seu melhor e-mail");
     const password = page.getByLabel("Sua senha");
     const passwordToggle = page.getByRole("button", { name: "Mostrar senha" });
-    const submit = page.getByRole("button", { name: "Criar minha conta grátis" });
+    const submit = page.getByRole("button", { name: "Criar minha conta" });
 
     await name.focus();
     await expect(name).toBeFocused();
@@ -230,15 +234,14 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
-    await page.goto("/");
+    await page.goto("/login/?mode=register");
     await chooseEssentialMeasurement(page);
-    await page.locator(".br-hero .br-button").click();
     await waitForAccessFormHydration(page);
 
     await page.getByLabel("Como podemos chamar você?").fill("Maria");
     await page.getByLabel("Seu melhor e-mail").fill("maria@example.com");
     await page.getByLabel("Sua senha").fill("SenhaForte1");
-    await page.getByRole("button", { name: "Criar minha conta grátis" }).click();
+    await page.getByRole("button", { name: "Criar minha conta" }).click();
 
     await expect(page.getByRole("heading", { name: "Confirme seu e-mail." })).toBeVisible();
     await page.getByLabel("Código recebido").fill("123456");
@@ -270,10 +273,10 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
 
     await expect(
       page.getByRole("heading", {
-        name: "Como essa música deve fazer alguém se sentir?",
+        name: "O que você quer sentir quando der o play?",
       }),
     ).toBeVisible();
-    await page.getByRole("button", { name: /Saudade/ }).click();
+    await page.getByRole("button", { name: /Quero lembrar com carinho/ }).click();
     creativeDecisions += 1;
     await continueButton.click();
 
@@ -295,7 +298,7 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
       page.getByRole("heading", { name: "É essa música que você quer criar?" }),
     ).toBeVisible();
     const creationButton = page.getByRole("button", {
-      name: /Criar 1 música grátis/,
+      name: /Criar 2 versões/,
     });
     await expect(creationButton).toBeEnabled();
     await creationButton.click();

@@ -22,12 +22,12 @@ const genres = [
 const steps = [
   ["01", "Conte a ideia", "Uma lembrança, uma homenagem, um jingle ou só uma frase. Escreva do seu jeito."],
   ["02", "Escolha a direção", "Defina sentimento, ritmo e voz com opções visuais. Sem prompt e sem termo técnico."],
-  ["03", "Receba sua música", "Sua primeira criação do dia é grátis. Quando quiser produzir mais, você escolhe uma recarga."],
-  ["04", "Dê cara ao lançamento", "Crie a capa, organize o projeto e siga o tutorial para colocar a música no mundo."],
+  ["03", "Aprove a prévia", "Veja o título, o refrão inicial e a direção antes de liberar o áudio completo."],
+  ["04", "Gere suas versões", "O Projeto Música Presente libera 20 créditos: 10 rodadas pagas, com até duas versões por rodada."],
 ];
 
 const features = [
-  ["GERAÇÃO", "Duas versões por rodada", "A mesma ideia ganha duas interpretações para você comparar antes de escolher."],
+  ["GERAÇÃO", "Até duas versões por rodada", "Cada rodada paga usa dois créditos e cria até duas interpretações para você comparar."],
   ["REPERTÓRIO", "Suas músicas, no mesmo lugar", "Player, histórico, versões e downloads organizados como uma biblioteca musical."],
   ["CAPA", "Visual com a sua identidade", "Use sua foto e a direção da música para construir uma capa coerente com o estilo."],
   ["TUTORIAL", "Aprenda dentro da plataforma", "A orientação aparece no momento certo, enquanto você cria, escolhe e prepara o lançamento."],
@@ -37,8 +37,8 @@ const faqs = [
   ["Preciso saber cantar ou tocar?", "Não. Você parte da sua ideia e faz escolhas simples. A plataforma ajuda a organizar a direção musical e entrega versões completas para você ouvir."],
   ["Preciso escrever um prompt?", "Não. Você informa o que quer contar e escolhe sentimento, estilo e voz em uma experiência visual e direta."],
   ["Quais estilos posso criar?", "Você pode explorar ritmos brasileiros e outros estilos. A experiência dá destaque a referências como sertanejo, trap BR, forró, funk, pagode, gospel, MPB e brega."],
-  ["Quanto custa para começar?", "Nada. Sua conta inclui uma música grátis por dia, sem cartão e sem prazo de teste. Recargas são opcionais para quem quiser criar mais."],
-  ["Como funcionam as criações extras?", "Depois da música grátis do dia, cada criação extra entrega duas músicas para você comparar."],
+  ["Quanto custa para começar?", "A prévia criativa é grátis e não exige cartão. Para gerar o áudio completo, o Projeto Música Presente custa R$ 49,97 via Pix."],
+  ["O que está incluído no Projeto Música Presente?", "Você recebe 20 créditos musicais: 10 rodadas pagas, com até duas versões por rodada, além de biblioteca, download, capa e tutorial."],
   ["Onde ficam as músicas?", "No seu repertório. Você pode ouvir, comparar, baixar e continuar o projeto sem perder o histórico."],
   ["Como funcionam os tutoriais?", "O aprendizado acontece dentro da própria plataforma. As orientações aparecem durante a criação, a capa e a preparação do lançamento."],
   ["A música vai direto para as plataformas?", "O tutorial mostra como preparar a publicação, mas distribuição e aprovação seguem as regras dos serviços utilizados. Não prometemos streams, renda ou aprovação automática."],
@@ -49,14 +49,6 @@ const ideaStarters = [
   ["Minha história", "Uma história sobre o momento em que eu recomecei"],
   ["Jingle", "Um jingle marcante para apresentar o meu negócio"],
 ];
-
-function Equalizer({ playing }: { playing: boolean }) {
-  return (
-    <span className={`br-equalizer ${playing ? "is-playing" : ""}`} aria-hidden="true">
-      <i /><i /><i /><i />
-    </span>
-  );
-}
 
 function formatTime(value: number) {
   if (!Number.isFinite(value)) return "0:00";
@@ -84,8 +76,7 @@ export default function Home() {
     event.preventDefault();
     const normalizedIdea = idea.trim();
     if (normalizedIdea.length < 8) return;
-    const nextPath = `/biblioteca/gerador/?idea=${encodeURIComponent(normalizedIdea)}`;
-    window.location.assign(`/login?mode=register&next=${encodeURIComponent(nextPath)}`);
+    window.location.assign(`/preview?idea=${encodeURIComponent(normalizedIdea)}`);
   };
 
   return (
@@ -101,12 +92,12 @@ export default function Home() {
         <div className="br-nav-actions">
           <a href="/login?mode=login" className="br-login">Entrar</a>
           <a
-            href="/login?mode=register"
+            href="/preview/"
             className="br-button br-button-small"
-            data-track="cta_start_free_clicked"
+            data-track="offer_cta"
             data-track-placement="nav"
           >
-            Criar grátis
+            Prévia grátis
           </a>
         </div>
       </nav>
@@ -152,7 +143,7 @@ export default function Home() {
 
         <div className="br-hero-center">
           <div className="br-kicker">DA SUA HISTÓRIA AO PLAY</div>
-          <h1>Uma história sua.<br /><em>Duas músicas para sentir.</em></h1>
+          <h1>Uma história sua.<br /><em>Uma música impossível de esquecer.</em></h1>
           <p>
             Conte uma lembrança, uma homenagem ou uma ideia do seu jeito.
             Você escolhe a emoção e o ritmo. A musicacom.ia transforma em som.
@@ -182,17 +173,17 @@ export default function Home() {
                 type="submit"
                 className="br-create-button"
                 disabled={idea.trim().length < 8}
-                data-track="cta_start_free_clicked"
+                data-track="story_started"
                 data-track-placement="hero"
               >
-                Criar minha música
+                Começar minha prévia grátis
               </button>
             </div>
           </form>
 
           <div className="br-hero-note">
-            <span>1 música grátis por dia</span>
-            <span>Sem cartão</span>
+            <span>Prévia criativa grátis</span>
+            <span>Áudio completo após o Pix</span>
             <span>Sem prompt técnico</span>
           </div>
         </div>
@@ -200,7 +191,7 @@ export default function Home() {
         <div className="br-hero-proofbar">
           <span>FEITA NO BRASIL</span>
           <b>Português de verdade</b>
-          <b>Duas versões por criação</b>
+          <b>Até duas versões por rodada paga</b>
           <button type="button" onClick={toggleAudio}>
             {playing ? "Pausar exemplo" : "Ouvir um exemplo"}
           </button>
@@ -250,12 +241,12 @@ export default function Home() {
           <h2>Fazer música ficou<br /><em>mais simples.</em></h2>
           <p>Uma decisão por vez. Você entende o que está escolhendo e vê o resultado dentro da própria plataforma.</p>
           <a
-            href="/login?mode=register"
+            href="/preview/"
             className="br-text-link"
-            data-track="cta_start_free_clicked"
+            data-track="offer_cta"
             data-track-placement="how_it_works"
           >
-            Criar minha música <Arrow />
+            Começar minha prévia grátis <Arrow />
           </a>
         </div>
         <div className="br-step-list">
@@ -374,28 +365,28 @@ export default function Home() {
         <div className="br-access-copy">
           <div className="br-section-tag">SEU PRIMEIRO PLAY COMEÇA AQUI</div>
           <h2>Entre com uma ideia.<br /><em>Saia com música.</em></h2>
-          <p>Crie sua conta e faça uma música por dia sem pagar. Sua biblioteca e o tutorial ficam disponíveis desde o primeiro acesso.</p>
+          <p>Monte gratuitamente a direção da música. Quando estiver do seu jeito, libere as versões completas com pagamento único via Pix.</p>
           <div className="br-access-includes">
             <span><Check /> Criador visual sem prompt</span>
-            <span><Check /> Uma música grátis por dia</span>
+            <span><Check /> Prévia criativa grátis</span>
             <span><Check /> Repertório com player e download</span>
             <span><Check /> Criação de capa</span>
             <span><Check /> Tutorial integrado à experiência</span>
           </div>
           <div className="br-access-price">
-            <small>CONTA + 1 MÚSICA POR DIA</small>
-            <strong>R$0</strong>
-            <span>sem cartão e sem prazo de teste</span>
+            <small>PROJETO MÚSICA PRESENTE</small>
+            <strong>R$ 49,97</strong>
+            <span>pagamento único via Pix</span>
           </div>
           <a
-            href="/login?mode=register"
+            href="/preview/"
             className="br-button br-button-light"
-            data-track="cta_start_free_clicked"
-            data-track-placement="free_offer"
+            data-track="offer_cta"
+            data-track-placement="paid_offer"
           >
-            Criar minha música grátis <Arrow />
+            Começar minha prévia grátis <Arrow />
           </a>
-          <small>Recargas opcionais para criar mais no mesmo dia</small>
+          <small>20 créditos musicais • 10 rodadas pagas • até 2 versões por rodada</small>
         </div>
         <div className="br-access-art">
           <img
@@ -433,12 +424,12 @@ export default function Home() {
         <h2>O Brasil já tem ritmo.<br /><em>Agora falta o seu.</em></h2>
         <p>Comece simples. Escolha a direção. Aperte o play.</p>
         <a
-          href="/login?mode=register"
+          href="/preview/"
           className="br-button br-button-light"
-          data-track="cta_start_free_clicked"
+          data-track="offer_cta"
           data-track-placement="final"
         >
-          Criar minha música grátis <Arrow />
+          Começar minha prévia grátis <Arrow />
         </a>
       </section>
 

@@ -5,7 +5,7 @@ import styles from "./login.module.css";
 
 export const metadata: Metadata = {
   title: "Entrar",
-  description: "Entre ou crie sua conta grátis na musicacom.ia.",
+  description: "Entre ou crie sua conta na musicacom.ia.",
   robots: {
     index: false,
     follow: false,
@@ -26,16 +26,16 @@ export default function Login() {
               <em>Uma música sua.</em>
             </h1>
             <p>
-              Entre, escolha sua direção e escute o resultado. Você ganha uma
-              criação grátis por dia para transformar inspiração em repertório.
+              Entre, recupere sua direção e acompanhe cada etapa até a música
+              pronta, com créditos e projetos preservados.
             </p>
           </div>
 
           <div className={styles.recordStage} aria-hidden="true">
             <div className={styles.albumSleeve}>
-              <span>EDIÇÃO DIÁRIA</span>
-              <strong>1 GRÁTIS</strong>
-              <small>TODO DIA</small>
+              <span>PROJETO INICIAL</span>
+              <strong>20 CRÉDITOS</strong>
+              <small>10 RODADAS</small>
               <i />
             </div>
             <div className={styles.vinyl}>
@@ -60,8 +60,8 @@ export default function Login() {
           </div>
 
           <div className={styles.benefitStrip}>
-            <span>SEM CARTÃO</span>
-            <span>CRÉDITO DIÁRIO</span>
+            <span>PIX ÚNICO</span>
+            <span>CRÉDITOS PRESERVADOS</span>
             <span>BIBLIOTECA SALVA</span>
           </div>
         </section>

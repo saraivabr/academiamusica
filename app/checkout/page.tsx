@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { PublicShell } from "../components/Portal";
+import CheckoutClient from "./CheckoutClient";
 
 export const metadata: Metadata = {
-  title: "Comece grátis",
-  description: "Crie sua conta grátis e faça uma música por dia sem cartão.",
+  title: "Projeto Música Presente — R$ 49,97",
+  description: "Libere 20 créditos musicais: 10 rodadas pagas, com até 2 versões por rodada.",
   robots: {
     index: false,
     follow: false,
@@ -13,25 +14,26 @@ export const metadata: Metadata = {
 export default function Checkout() {
   return (
     <PublicShell compact>
-      <main className="checkout-page">
+      <main className="checkout-page checkout-paid">
         <section className="checkout-intro">
-          <div className="eyebrow">COMECE SEM PAGAR</div>
-          <h1>Sua primeira música começa grátis.</h1>
+          <div className="eyebrow">SUA PRÉVIA ESTÁ PRONTA</div>
+          <h1>Agora transforme a direção em música completa.</h1>
           <p>
-            Crie sua conta, confirme o e-mail e faça uma música por dia sem cartão.
-            Quando quiser produzir mais, compre créditos por Pix dentro da plataforma.
+            O Projeto Música Presente libera dez rodadas pagas para você
+            experimentar caminhos, comparar versões e escolher a música que mais
+            representa a sua história.
           </p>
           <div className="checkout-proof">
-            <span>✓ Cadastro grátis</span>
-            <span>✓ 1 música por dia</span>
-            <span>✓ Biblioteca pessoal</span>
-            <span>✓ Tutorial integrado</span>
+            <span>✓ 20 créditos musicais</span>
+            <span>✓ 10 rodadas pagas</span>
+            <span>✓ Até 2 versões por rodada</span>
+            <span>✓ Biblioteca, download, capa e tutorial</span>
           </div>
           <div className="checkout-help">
             <small>FICOU COM ALGUMA DÚVIDA?</small>
-            <strong>Fale com o atendimento antes de começar.</strong>
+            <strong>Fale com o atendimento antes de pagar.</strong>
             <a
-              href="https://wa.me/5511991143605?text=Oi%2C%20vim%20pelo%20site%20da%20Academia%20M%C3%BAsica%20IA%20e%20tenho%20uma%20d%C3%BAvida."
+              href="https://wa.me/5511991143605?text=Oi%2C%20vim%20pelo%20site%20da%20musicacom.ia%20e%20tenho%20uma%20d%C3%BAvida%20sobre%20o%20Projeto%20M%C3%BAsica%20Presente."
               target="_blank"
               rel="noreferrer"
               data-track="support_click"
@@ -40,35 +42,7 @@ export default function Checkout() {
             </a>
           </div>
         </section>
-        <section className="checkout-card">
-          <div className="order-title">
-            <span className="cover-mini"><img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" /></span>
-            <div>
-              <small>SEU ACESSO</small>
-              <h2>musicacom.ia</h2>
-              <p>Plataforma brasileira de criação musical</p>
-            </div>
-          </div>
-          <div className="order-includes">
-            <p><b>✓</b> Uma música grátis todos os dias</p>
-            <p><b>✓</b> Criação guiada sem escrever prompt</p>
-            <p><b>✓</b> Capa, repertório e download organizados</p>
-            <p><b>✓</b> Tutorial completo dentro da plataforma</p>
-            <p><b>✓</b> Recargas opcionais para criar mais</p>
-          </div>
-          <div className="order-price">
-            <span>PARA COMEÇAR</span>
-            <strong><small>R$</small>0</strong>
-            <em>sem cartão • sem prazo de teste</em>
-          </div>
-          <a className="checkout-primary checkout-primary-link" href="/login?mode=register">
-            Criar minha conta grátis →
-          </a>
-          <div className="secure-row">
-            <span>🔒 E-mail verificado</span>
-            <span>Compra só quando quiser</span>
-          </div>
-        </section>
+        <CheckoutClient />
       </main>
     </PublicShell>
   );

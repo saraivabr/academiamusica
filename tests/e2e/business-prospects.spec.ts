@@ -26,7 +26,7 @@ test.describe("Busca de negócios para jingles", () => {
     await expect(page.getByRole("status"))
       .toContainText("Café da Praça foi aplicado ao briefing.");
     await expect(page.getByRole("heading", {
-      name: "Como essa música deve fazer alguém se sentir?",
+      name: "O que você quer sentir quando der o play?",
     })).toBeVisible();
   });
 });

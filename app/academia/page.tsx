@@ -133,7 +133,7 @@ export default function Academia() {
             : <>Conte uma história.<br />Saia com uma música.</>}</h2>
           <p>{hasMusic
             ? "Sua criação está salva. Escute antes de decidir se quer criar a capa ou tentar uma nova direção."
-            : "Você escolhe o essencial. A primeira música do dia é grátis e não precisa de cartão."}</p>
+            : "Você escolhe o essencial. Cada rodada paga usa 2 créditos e pode entregar até 2 versões."}</p>
           <div>
             {featuredTrack ? (
               <button

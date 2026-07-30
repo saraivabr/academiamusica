@@ -16,6 +16,16 @@ type Order = {
   expiresAt?: string;
 };
 
+type PreviewDraft = {
+  story: string;
+  title: string;
+  hook: string;
+  emotion: string;
+  style: string;
+};
+
+const previewStorageKey = "musicacom-preview-v1";
+
 function getIdempotencyKey() {
   const storageKey = `academia-musica-checkout-key-${STARTER_PRODUCT.id}`;
   const stored = window.sessionStorage.getItem(storageKey);
@@ -47,6 +57,7 @@ export default function CheckoutClient() {
   const [order, setOrder] = useState<Order | null>(null);
   const [copied, setCopied] = useState(false);
   const [pollRetry, setPollRetry] = useState(0);
+  const [preview, setPreview] = useState<PreviewDraft | null>(null);
   const pollingFailures = useRef(0);
 
   const expiresLabel = (() => {
@@ -55,6 +66,31 @@ export default function CheckoutClient() {
     if (Number.isNaN(date.getTime())) return null;
     return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   })();
+
+  useEffect(() => {
+    const hydration = window.setTimeout(() => {
+      try {
+        const stored = JSON.parse(window.sessionStorage.getItem(previewStorageKey) ?? "null");
+        if (
+          stored?.story
+          && stored?.title
+          && stored?.emotion
+          && stored?.style
+        ) {
+          setPreview({
+            story: String(stored.story).slice(0, 500),
+            title: String(stored.title).slice(0, 100),
+            hook: String(stored.hook ?? "").slice(0, 160),
+            emotion: String(stored.emotion).slice(0, 80),
+            style: String(stored.style).slice(0, 80),
+          });
+        }
+      } catch {
+        window.sessionStorage.removeItem(previewStorageKey);
+      }
+    }, 0);
+    return () => window.clearTimeout(hydration);
+  }, []);
 
   useEffect(() => {
     if (!order?.id || order.status === "PAID") return;
@@ -134,7 +170,10 @@ export default function CheckoutClient() {
     }
     setLoading(true);
     setError("");
-    trackEvent("checkout_started");
+    trackEvent("checkout_started", window.location.pathname, {
+      journey: STARTER_PRODUCT.offerVersion,
+      product: STARTER_PRODUCT.id,
+    });
     trackMetaEvent("InitiateCheckout", {
       content_name: STARTER_PRODUCT.name,
       content_type: "product",
@@ -152,6 +191,7 @@ export default function CheckoutClient() {
           phone,
           acceptedTerms,
           productId: STARTER_PRODUCT.id,
+          preview,
           idempotencyKey: getIdempotencyKey(),
           ...analytics,
         }),
@@ -254,15 +294,22 @@ export default function CheckoutClient() {
       <div className="order-title">
         <span className="cover-mini"><img src="/brand/musicacom-symbol.png" alt="" width="358" height="188" /></span>
         <div>
-          <small>SEU ACESSO</small>
-          <h2>musicacom.ia</h2>
-          <p>Plataforma de criação musical</p>
+          <small>PROJETO MÚSICA PRESENTE</small>
+          <h2>{preview?.title || "Sua história em música"}</h2>
+          <p>{preview ? `${preview.emotion} • ${preview.style}` : "Oferta inicial musicacom.ia"}</p>
         </div>
       </div>
+      {preview ? (
+        <div className="checkout-preview-summary">
+          <small>SUA PRÉVIA</small>
+          <strong>“{preview.hook}”</strong>
+          <p>{preview.story}</p>
+        </div>
+      ) : null}
       <div className="order-includes">
-        <p><b>✓</b> Acesso permanente à plataforma</p>
-        <p><b>✓</b> Criador visual sem prompt</p>
-        <p><b>✓</b> 20 músicas incluídas para criar e baixar</p>
+        <p><b>✓</b> 20 créditos musicais</p>
+        <p><b>✓</b> 10 rodadas pagas</p>
+        <p><b>✓</b> Até 2 versões por rodada</p>
         <p><b>✓</b> Capa e tutorial de lançamento integrados</p>
         <p><b>✓</b> Biblioteca pessoal com player e download</p>
       </div>
@@ -324,7 +371,7 @@ export default function CheckoutClient() {
         </label>
         {error ? <p className="checkout-error">{error}</p> : null}
         <button className="checkout-primary" disabled={loading}>
-          {loading ? "Gerando seu Pix…" : "Entrar na plataforma + 20 músicas • R$49,97"}
+          {loading ? "Gerando seu Pix…" : "Liberar 20 créditos • R$ 49,97"}
         </button>
       </form>
       <small className="payment-note">

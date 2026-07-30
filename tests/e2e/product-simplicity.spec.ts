@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { mockPlatform } from "./support/mock-platform";
 
 const productRoutes = [
-  ["/", "A plataforma de geração de música"],
+  ["/", "Uma história sua."],
   ["/login/", "Abra seu estúdio."],
   ["/login/google/callback/", "Vamos tentar de novo."],
   ["/academia/", "Vamos criar a primeira?"],
@@ -17,7 +17,8 @@ const productRoutes = [
   ["/biblioteca/compositor/", "Dê uma vida para a música."],
   ["/biblioteca/creditos/", "Escolha como continuar."],
   ["/biblioteca/estilos-brasileiros/", "O Brasil não cabe"],
-  ["/checkout/", "Sua primeira música começa grátis."],
+  ["/checkout/", "Agora transforme a direção em música completa."],
+  ["/preview/", "Sua história começa a ganhar música aqui."],
   ["/obrigado/", "Vamos encontrar sua compra."],
   ["/pagamento-pendente/", "Estamos quase lá."],
   ["/pagamento-recusado/", "Vamos tentar de novo."],
@@ -49,12 +50,12 @@ test.describe("P0 e P1 — produto inteiro sem becos sem saída", () => {
     page,
   }) => {
     await page.goto("/");
-    const demoCta = page.locator(".br-product-demo-cta");
-    await expect(demoCta).toHaveAttribute("href", "/login?mode=register");
-    await expect(demoCta).toHaveAttribute("data-track-placement", "demo");
+    const demoCta = page.locator("a[data-track-placement='how_it_works']");
+    await expect(demoCta).toHaveAttribute("href", "/preview/");
+    await expect(demoCta).toHaveAttribute("data-track", "offer_cta");
     await demoCta.focus();
     await page.keyboard.press("Enter");
-    await expect(page).toHaveURL(/\/login\/?\?mode=register$/);
+    await expect(page).toHaveURL(/\/preview\/?$/);
   });
 
   test("a página inexistente oferece duas rotas de recuperação", async ({
@@ -122,7 +123,48 @@ test.describe("P0 e P1 — produto inteiro sem becos sem saída", () => {
     await expect(page.getByRole("status"))
       .toContainText("Sua história foi aplicada.");
     await expect(page.getByRole("heading", {
-      name: "Como essa música deve fazer alguém se sentir?",
+      name: "O que você quer sentir quando der o play?",
+    })).toBeVisible();
+  });
+
+  test("o clima é escolhido por uma intenção fácil de reconhecer", async ({
+    page,
+  }) => {
+    await page.goto("/biblioteca/gerador/");
+    const consent = page.getByRole("complementary", {
+      name: "Preferências de medição",
+    });
+    await expect(consent).toHaveAttribute("data-interactive", "true", {
+      timeout: 15_000,
+    });
+    await consent.getByRole("button", { name: "Somente essenciais" }).click();
+    await expect(page.locator(".express-flow"))
+      .toHaveAttribute("data-interactive", "true");
+
+    const continueButton = page.getByRole("button", { name: "Continuar →" });
+    await continueButton.click();
+    await page
+      .getByPlaceholder("Conte o momento mais importante dessa história…")
+      .fill("O dia em que minha família se reuniu para comemorar uma grande conquista.");
+    await continueButton.click();
+
+    await expect(page.getByRole("heading", {
+      name: "O que você quer sentir quando der o play?",
+    })).toBeVisible();
+    await expect(page.getByText(
+      "Escolha a frase que mais combina com a sua história.",
+      { exact: false },
+    )).toBeVisible();
+    await expect(page.locator(".emotion-grid button")).toHaveCount(6);
+
+    const choice = page.getByRole("button", {
+      name: /Quero lembrar com carinho/,
+    });
+    await choice.click();
+    await expect(choice).toHaveAttribute("aria-pressed", "true");
+    await continueButton.click();
+    await expect(page.getByRole("heading", {
+      name: "Qual estilo combina com a sua ideia?",
     })).toBeVisible();
   });
 
@@ -144,11 +186,11 @@ test.describe("P0 e P1 — produto inteiro sem becos sem saída", () => {
     await page.goto("/biblioteca/creditos/");
     await expect(page.getByRole("link", { name: "Ver opções de recarga ↓" }))
       .toBeVisible();
-    await expect(page.getByRole("button", { name: "Adicionar 20 músicas" }))
+    await expect(page.getByRole("button", { name: "Adicionar 20 créditos" }))
       .toBeVisible();
-    await expect(page.getByRole("button", { name: "Adicionar 50 músicas" }))
+    await expect(page.getByRole("button", { name: "Adicionar 50 créditos" }))
       .toBeVisible();
-    await expect(page.getByRole("button", { name: "Adicionar 100 músicas" }))
+    await expect(page.getByRole("button", { name: "Adicionar 100 créditos" }))
       .toBeVisible();
   });
 });

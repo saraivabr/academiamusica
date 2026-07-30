@@ -33,14 +33,14 @@ test("renders finished production metadata", async () => {
     /^text\/html\b/i,
   );
   const html = await response.text();
-  assert.match(html, /<title>Gerador de Música com IA Grátis \| musicacom\.ia<\/title>/i);
-  assert.match(html, /<meta[^>]+property=["']og:title["'][^>]+Gerador de Música com IA Grátis/i);
+  assert.match(html, /<title>Transforme sua história em música \| musicacom\.ia<\/title>/i);
+  assert.match(html, /<meta[^>]+property=["']og:title["'][^>]+Transforme sua história em música/i);
   assert.match(html, /<meta[^>]+property=["']og:image["'][^>]+musicacom\.ia\.br\/og-musicacom-ia\.jpg/i);
   assert.match(html, /Uma história sua\./i);
   assert.match(html, /DA SUA HISTÓRIA AO PLAY/i);
   assert.match(html, /O aprendizado acontece dentro da própria plataforma/i);
   assert.match(html, /"@type":"SoftwareApplication"/i);
-  assert.match(html, /"price":"0"/i);
+  assert.match(html, /"price":"49\.97"/i);
   assert.match(
     html,
     /<audio[^>]+academia-musica-ia-trap-jingle\.mp3[^>]+preload=["']none["']/i,
@@ -98,7 +98,7 @@ test("renders the single-route music creator without the conversational studio",
   assert.doesNotMatch(html, /Produtor IA está pensando/i);
 });
 
-test("renders the redesigned studio access with a clear free path", async () => {
+test("renders the redesigned studio access with the paid project context", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `login-${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
@@ -123,9 +123,9 @@ test("renders the redesigned studio access with a clear free path", async () => 
   assert.match(html, /Uma ideia hoje\./i);
   assert.match(html, /Uma música sua\./i);
   assert.match(html, /Abra seu estúdio\./i);
-  assert.match(html, /Criar minha conta grátis/i);
+  assert.match(html, /Criar minha conta/i);
   assert.match(html, /Continuar com Google/i);
-  assert.match(html, /Não precisa de cartão/i);
+  assert.match(html, /preservar sua direção criativa, acompanhar o pagamento e acessar suas músicas/i);
   assert.match(html, /Usar código do pedido/i);
   assert.match(html, /href=["']\/login\?mode=login["']/i);
 });

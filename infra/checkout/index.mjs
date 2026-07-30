@@ -36,7 +36,6 @@ const bedrock = new BedrockRuntimeClient({});
 const s3 = new S3Client({});
 const lambda = new LambdaClient({});
 const ssm = new SSMClient({});
-const ses = new SESv2Client({});
 
 const TABLE_NAME = process.env.TABLE_NAME;
 const EVENTS_TABLE_NAME = process.env.EVENTS_TABLE_NAME;
@@ -62,48 +61,81 @@ const IMAGE_MODEL = process.env.IMAGE_MODEL ?? "cx/gpt-5.5";
 const IMAGE_PROXY_KEY_PARAMETER = process.env.IMAGE_PROXY_KEY_PARAMETER;
 const EMAIL_FROM_ADDRESS = normalizeEmail(process.env.EMAIL_FROM_ADDRESS);
 const EMAIL_REPLY_TO_ADDRESS = normalizeEmail(process.env.EMAIL_REPLY_TO_ADDRESS);
+const EMAIL_CONFIGURATION_SET = safeString(process.env.EMAIL_CONFIGURATION_SET, 64);
+const SES_REGION = process.env.SES_REGION ?? AWS_REGION;
+const ses = new SESv2Client({ region: SES_REGION });
 const MUSIC_DOWNLOAD_LINK_DAYS = 7;
 const MUSIC_CONVERSATION_DAILY_LIMIT = 60;
 const MUSIC_COVER_DAILY_LIMIT = 10;
 const FREE_DAILY_ATTEMPT_LIMIT = 3;
+const CURRENT_OFFER_VERSION = "music_present_v1";
+const LEGACY_DAILY_FREE_END_AT = process.env.LEGACY_DAILY_FREE_END_AT ?? "";
 const MUSIC_CONVERSATION_TOOL = "deliver_music_plan";
 const SUNO_GENERATION_COST_ESTIMATE = 12;
 const MUSIC_MODEL = "V5";
+const COVER_BEATS = Object.freeze({
+  "beat-trap-01": Object.freeze({
+    uploadUrl: `${SITE_ORIGIN.replace(/\/$/, "")}/beats/beat-trap-01.mp3`,
+    title: "Minha música trap",
+    style: "Brazilian trap, melodic rap flow, deep 808, crisp hi-hats, intimate modern vocals",
+    negativeTags: "artist imitation, copied lyrics, aggressive shouting, rock guitars, foreign accent",
+  }),
+});
 const MUSIC_PRODUCTS = Object.freeze({
   starter_20: Object.freeze({
     id: "starter_20",
-    name: "Acesso musicacom.ia + 20 músicas",
+    offerVersion: "music_present_v1",
+    name: "Projeto Música Presente",
     type: "starter",
     value: 4_997,
     credits: 20,
+    creditsPerRound: 2,
+    paidRounds: 10,
+    versionsPerRound: 2,
   }),
   recharge_20: Object.freeze({
     id: "recharge_20",
-    name: "Recarga Essencial — 20 músicas",
+    offerVersion: "music_present_v1",
+    name: "Recarga Essencial — 20 créditos",
     type: "recharge",
     value: 4_997,
     credits: 20,
+    creditsPerRound: 2,
+    paidRounds: 10,
+    versionsPerRound: 2,
   }),
   recharge_50: Object.freeze({
     id: "recharge_50",
-    name: "Recarga Criador — 50 músicas",
+    offerVersion: "music_present_v1",
+    name: "Recarga Criador — 50 créditos",
     type: "recharge",
     value: 10_997,
     credits: 50,
+    creditsPerRound: 2,
+    paidRounds: 25,
+    versionsPerRound: 2,
   }),
   recharge_100: Object.freeze({
     id: "recharge_100",
-    name: "Recarga Estúdio — 100 músicas",
+    offerVersion: "music_present_v1",
+    name: "Recarga Estúdio — 100 créditos",
     type: "recharge",
     value: 19_997,
     credits: 100,
+    creditsPerRound: 2,
+    paidRounds: 50,
+    versionsPerRound: 2,
   }),
   club_60: Object.freeze({
     id: "club_60",
-    name: "Clube Criador — 60 músicas por mês",
+    offerVersion: "music_present_v1",
+    name: "Clube Criador — 60 créditos por mês",
     type: "subscription",
     value: 9_997,
     credits: 60,
+    creditsPerRound: 2,
+    paidRounds: 30,
+    versionsPerRound: 2,
   }),
 });
 const STARTER_PRODUCT = MUSIC_PRODUCTS.starter_20;
@@ -136,6 +168,8 @@ const ALLOWED_CLIENT_EVENTS = new Set([
   "offer_cta",
   "checkout_cta",
   "cta_start_free_clicked",
+  "story_started",
+  "preview_completed",
   "checkout_view",
   "checkout_started",
   "checkout_error",
@@ -157,7 +191,9 @@ const ALLOWED_CLIENT_EVENTS = new Set([
   "creator_step_viewed",
   "creator_step_completed",
   "music_generation_delivered",
+  "paid_generation_started",
   "music_result_played",
+  "music_downloaded",
   "cover_started",
   "cover_completed",
   "cover_downloaded",
@@ -282,6 +318,17 @@ function safeString(value, maxLength = 500) {
   return String(value ?? "").slice(0, maxLength);
 }
 
+function normalizeStarterPreview(value) {
+  if (!value || typeof value !== "object") return null;
+  const story = safeString(value.story, 500).trim();
+  const title = safeString(value.title, 100).trim();
+  const hook = safeString(value.hook, 160).trim();
+  const emotion = safeString(value.emotion, 80).trim();
+  const style = safeString(value.style, 80).trim();
+  if (story.length < 8 || !title || !emotion || !style) return null;
+  return { story, title, hook, emotion, style };
+}
+
 function decodeJwtPart(value) {
   try {
     return JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
@@ -316,6 +363,12 @@ function freeDailyAttemptId(accountId, day = saoPauloDay()) {
 }
 
 async function freeDailyState(order) {
+  if (!dailyFreeEligible(order)) {
+    return {
+      available: false,
+      attemptsRemaining: 0,
+    };
+  }
   const [marker, attempts] = await Promise.all([
     dynamo.send(new GetItemCommand({
       TableName: EVENTS_TABLE_NAME,
@@ -333,6 +386,14 @@ async function freeDailyState(order) {
     available: !marker.Item && attemptCount < FREE_DAILY_ATTEMPT_LIMIT,
     attemptsRemaining: Math.max(0, FREE_DAILY_ATTEMPT_LIMIT - attemptCount),
   };
+}
+
+function dailyFreeEligible(order, now = Date.now()) {
+  if (!order || order.offerVersion === CURRENT_OFFER_VERSION) return false;
+  const accountDeadline = Date.parse(order.dailyBenefitEndsAt ?? "");
+  if (Number.isFinite(accountDeadline)) return accountDeadline > now;
+  const legacyDeadline = Date.parse(LEGACY_DAILY_FREE_END_AT);
+  return Number.isFinite(legacyDeadline) && legacyDeadline > now;
 }
 
 function normalizeConversationId(value) {
@@ -577,24 +638,40 @@ function itemToOrder(item) {
     subscriptionStatus: item.subscriptionStatus?.S,
     activeSubscriptionOrderId: item.activeSubscriptionOrderId?.S,
     accountType: item.accountType?.S,
+    offerVersion: item.offerVersion?.S,
+    dailyBenefitEndsAt: item.dailyBenefitEndsAt?.S,
     cognitoSub: item.cognitoSub?.S,
     sessionId: item.sessionId?.S,
     source: item.source?.S,
     medium: item.medium?.S,
     campaign: item.campaign?.S,
+    starterPreview: item.previewStory?.S
+      ? {
+          story: item.previewStory.S,
+          title: item.previewTitle?.S ?? "",
+          hook: item.previewHook?.S ?? "",
+          emotion: item.previewEmotion?.S ?? "",
+          style: item.previewStyle?.S ?? "",
+        }
+      : null,
     sunoGenerationCount: Number(item.sunoGenerationCount?.N ?? "0"),
   };
 }
 
 function publicOrder(order) {
+  const product = MUSIC_PRODUCTS[order.productId] ?? STARTER_PRODUCT;
   return {
     id: order.id,
     status: order.status,
-    value: order.value || STARTER_PRODUCT.value,
-    productId: order.productId || STARTER_PRODUCT.id,
-    productName: order.productName || STARTER_PRODUCT.name,
+    value: order.value || product.value,
+    productId: order.productId || product.id,
+    productName: order.productName || product.name,
     purchaseType: order.purchaseType || "starter",
-    credits: order.credits || STARTER_PRODUCT.credits,
+    credits: order.credits || product.credits,
+    offerVersion: order.offerVersion || product.offerVersion,
+    creditsPerRound: product.creditsPerRound,
+    paidRounds: product.paidRounds,
+    versionsPerRound: product.versionsPerRound,
     brCode: order.brCode,
     qrCodeImage: order.qrCodeImage,
     paymentLinkUrl: order.paymentLinkUrl,
@@ -1120,6 +1197,7 @@ async function exchangeCognitoAccess(event) {
                 id: { S: accountId },
                 status: { S: "FREE" },
                 accountType: { S: "free" },
+                offerVersion: { S: CURRENT_OFFER_VERSION },
                 cognitoSub: { S: safeString(tokenPayload.sub, 80) },
                 email: { S: normalizeEmail(tokenPayload.email) },
                 name: { S: normalizeName(tokenPayload.name) || normalizeEmail(tokenPayload.email).split("@")[0] },
@@ -1188,6 +1266,10 @@ async function exchangeCognitoAccess(event) {
       name: account.name,
       email: account.email,
       plan: account.accountType || "free",
+      offerVersion: account.offerVersion || "legacy",
+      dailyBenefitEndsAt: account.dailyBenefitEndsAt || (
+        dailyFreeEligible(account) ? LEGACY_DAILY_FREE_END_AT : null
+      ),
     },
   });
 }
@@ -1442,6 +1524,7 @@ async function ensureMusicCreditBalance(order) {
 async function reserveSunoGeneration(inputOrder, reservationType) {
   const order = await ensureMusicCreditBalance(inputOrder);
   if (reservationType === "FREE_DAILY") {
+    if (!dailyFreeEligible(order)) return null;
     const dailyMarkerId = freeDailyMarkerId(order.id);
     const dailyAttemptId = freeDailyAttemptId(order.id);
     try {
@@ -2538,6 +2621,7 @@ async function getMusicLibrary(event) {
     let status = safeString(item.status?.S || "PENDING", 40);
     let tracks = tracksFromTaskItem(item);
     let error = safeString(item.errorMessage?.S, 240);
+    const trackLimit = Number(item.trackLimit?.N ?? MUSIC_TRACKS_PER_GENERATION);
 
     if (status !== "SUCCESS" && !SUNO_FAILED_STATUSES.has(status)) {
       try {
@@ -2553,7 +2637,7 @@ async function getMusicLibrary(event) {
         });
       }
     } else if (status === "SUCCESS") {
-      await recordSuccessfulSunoTask(order, taskId, item, tracks);
+      await recordSuccessfulSunoTask(order, taskId, item, tracks.slice(0, trackLimit));
     }
 
     return {
@@ -2562,7 +2646,7 @@ async function getMusicLibrary(event) {
       status,
       tracks: SUNO_FAILED_STATUSES.has(status)
         ? []
-        : tracks.slice(0, Number(item.trackLimit?.N ?? MUSIC_TRACKS_PER_GENERATION)),
+        : tracks.slice(0, trackLimit),
       error: error || null,
     };
   }));
@@ -2728,7 +2812,15 @@ async function sendMusicReadyEmail(order, taskId, tracks) {
   let claimToken = "";
   try {
     const claim = await claimMusicReadyEmail(taskId, order.id);
-    if (claim.alreadySent) return true;
+    if (claim.alreadySent) {
+      console.info(JSON.stringify({
+        event: "music_ready_email_skipped",
+        reason: "already_sent",
+        orderId: order.id,
+        taskId,
+      }));
+      return true;
+    }
     if (!claim.claimToken) return false;
     claimToken = claim.claimToken;
     const emailTracks = await Promise.all(downloadableTracks.map(async (track) => ({
@@ -2747,6 +2839,10 @@ async function sendMusicReadyEmail(order, taskId, tracks) {
       FromEmailAddress: `musicacom.ia <${EMAIL_FROM_ADDRESS}>`,
       Destination: { ToAddresses: [recipient] },
       ...(EMAIL_REPLY_TO_ADDRESS ? { ReplyToAddresses: [EMAIL_REPLY_TO_ADDRESS] } : {}),
+      ...(EMAIL_CONFIGURATION_SET ? { ConfigurationSetName: EMAIL_CONFIGURATION_SET } : {}),
+      EmailTags: [
+        { Name: "notification", Value: "music_ready" },
+      ],
       Content: {
         Simple: {
           Subject: { Data: email.subject, Charset: "UTF-8" },
@@ -2758,6 +2854,14 @@ async function sendMusicReadyEmail(order, taskId, tracks) {
       },
     }));
     await completeMusicReadyEmail(taskId, order.id, claimToken, result.MessageId);
+    console.info(JSON.stringify({
+      event: "music_ready_email_sent",
+      orderId: order.id,
+      taskId,
+      messageId: safeString(result.MessageId || "accepted", 240),
+      trackCount: downloadableTracks.length,
+      sesRegion: SES_REGION,
+    }));
     await recordMemberMusicEvent(
       order,
       "music_ready_email_sent",
@@ -2780,7 +2884,59 @@ async function sendMusicReadyEmail(order, taskId, tracks) {
   }
 }
 
+async function settleSuccessfulSunoCredits(order, taskId, task, tracks) {
+  if (task?.reservationType?.S !== "CREDITS") return 0;
+  const reservedCredits = Math.max(
+    0,
+    Number(task.trackLimit?.N ?? MUSIC_TRACKS_PER_GENERATION),
+  );
+  const deliveredTracks = Math.min(reservedCredits, Math.max(0, tracks.length));
+  const creditsToReturn = reservedCredits - deliveredTracks;
+  if (creditsToReturn === 0) return 0;
+
+  try {
+    const settledAt = new Date().toISOString();
+    await dynamo.send(new TransactWriteItemsCommand({
+      TransactItems: [
+        {
+          Update: {
+            TableName: EVENTS_TABLE_NAME,
+            Key: { id: { S: `suno_task_${taskId}` } },
+            UpdateExpression: "SET creditsSettledAt = :settledAt, deliveredTrackCount = :delivered, returnedCredits = :returned",
+            ConditionExpression: "orderId = :orderId AND attribute_not_exists(creditsSettledAt)",
+            ExpressionAttributeValues: {
+              ":orderId": { S: order.id },
+              ":settledAt": { S: settledAt },
+              ":delivered": { N: String(deliveredTracks) },
+              ":returned": { N: String(creditsToReturn) },
+            },
+          },
+        },
+        {
+          Update: {
+            TableName: TABLE_NAME,
+            Key: { id: { S: order.id } },
+            UpdateExpression: "ADD musicCreditsBalance :returned",
+            ConditionExpression: "attribute_exists(id)",
+            ExpressionAttributeValues: {
+              ":returned": { N: String(creditsToReturn) },
+            },
+          },
+        },
+      ],
+    }));
+    return creditsToReturn;
+  } catch (error) {
+    if (
+      error instanceof TransactionCanceledException
+      || error.name === "TransactionCanceledException"
+    ) return 0;
+    throw error;
+  }
+}
+
 async function recordSuccessfulSunoTask(order, taskId, task, tracks) {
+  const creditsReturned = await settleSuccessfulSunoCredits(order, taskId, task, tracks);
   const contextId = task?.contextId?.S;
   const contextItem = await sunoAnalyticsContextItem(contextId);
   const hasExactContext = contextItem?.orderId?.S === order.id
@@ -2820,7 +2976,10 @@ async function recordSuccessfulSunoTask(order, taskId, task, tracks) {
       });
     }
   }
-  return genericRecorded && activationRecorded;
+  return {
+    eventsRecorded: genericRecorded && activationRecorded,
+    creditsReturned,
+  };
 }
 
 async function reconcileSunoTask(taskId, task, order) {
@@ -2840,8 +2999,10 @@ async function reconcileSunoTask(taskId, task, order) {
   const refunded = failed
     ? await refundFailedSunoTask(taskId, order.id)
     : false;
+  let creditsReturned = 0;
   if (status === "SUCCESS") {
-    await recordSuccessfulSunoTask(order, taskId, task, tracks);
+    const success = await recordSuccessfulSunoTask(order, taskId, task, tracks);
+    creditsReturned = success.creditsReturned;
   } else if (failed && task.contextId?.S) {
     await deleteSunoAnalyticsContext(task.contextId.S);
   }
@@ -2851,6 +3012,7 @@ async function reconcileSunoTask(taskId, task, order) {
     tracks,
     errorMessage,
     refunded,
+    creditsReturned,
   };
 }
 
@@ -2936,7 +3098,12 @@ async function getSunoCredits(event) {
     songsPerGeneration: MUSIC_TRACKS_PER_GENERATION,
     dailyFreeAvailable: dailyState.available,
     freeDailyAttemptsRemaining: dailyState.attemptsRemaining,
-    freeSongsPerDay: 1,
+    freeSongsPerDay: dailyFreeEligible(order) ? 1 : 0,
+    offerVersion: order.offerVersion || "legacy",
+    dailyBenefitEndsAt: order.dailyBenefitEndsAt || (
+      dailyFreeEligible(order) ? LEGACY_DAILY_FREE_END_AT : null
+    ),
+    starterPreview: order.starterPreview,
   });
 }
 
@@ -2952,6 +3119,8 @@ async function createSunoGeneration(event) {
   }
   const prompt = safeString(body.brief ?? body.prompt, 501).trim();
   const instrumental = body.instrumental === true;
+  const coverBeatId = safeString(body.coverBeatId, 60).trim();
+  const coverBeat = COVER_BEATS[coverBeatId];
   const conversationId = normalizeConversationId(body.conversationId);
   const mode = body.mode === "refine" ? "refine" : "create";
   const analyticsContext = {
@@ -2963,6 +3132,12 @@ async function createSunoGeneration(event) {
   };
   if (prompt.length < 20 || prompt.length > 500) {
     return response(400, { error: "Descreva a música em 20 a 500 caracteres." });
+  }
+  if (coverBeatId && !coverBeat) {
+    return response(400, { error: "Escolha novamente o beat disponível." });
+  }
+  if (coverBeat && instrumental) {
+    return response(400, { error: "Este beat está disponível para covers com voz." });
   }
   if (!PUBLIC_API_URL?.startsWith("https://")) {
     throw new Error("Music callback URL is unavailable");
@@ -2980,7 +3155,7 @@ async function createSunoGeneration(event) {
   if (reservation === null) {
     return response(reservationType === "FREE_DAILY" ? 409 : 429, {
       error: reservationType === "FREE_DAILY"
-        ? "A música grátis de hoje não está mais disponível. Atualize a página para ver seu saldo."
+        ? "O benefício de transição não está mais disponível. Atualize a página para ver seu saldo."
         : "Seu saldo acabou. Faça uma recarga para continuar criando.",
     });
   }
@@ -3000,16 +3175,33 @@ async function createSunoGeneration(event) {
 
   let data;
   try {
-    data = await sunoRequest("/generate", {
-      method: "POST",
-      body: JSON.stringify({
-        customMode: false,
-        instrumental,
-        model: MUSIC_MODEL,
-        callBackUrl: `${PUBLIC_API_URL}/v1/suno/callback?token=${callbackToken}`,
-        prompt,
-      }),
-    });
+    const callbackUrl = `${PUBLIC_API_URL}/v1/suno/callback?token=${callbackToken}`;
+    data = coverBeat
+      ? await sunoRequest("/generate/add-vocals", {
+        method: "POST",
+        body: JSON.stringify({
+          prompt,
+          title: coverBeat.title,
+          negativeTags: coverBeat.negativeTags,
+          style: coverBeat.style,
+          uploadUrl: coverBeat.uploadUrl,
+          callBackUrl: callbackUrl,
+          audioWeight: 0.9,
+          styleWeight: 0.65,
+          weirdnessConstraint: 0.4,
+          model: MUSIC_MODEL,
+        }),
+      })
+      : await sunoRequest("/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          customMode: false,
+          instrumental,
+          model: MUSIC_MODEL,
+          callBackUrl: callbackUrl,
+          prompt,
+        }),
+      });
   } catch (error) {
     await cleanupFailedSunoSetup(order.id, reservation, contextId);
     throw error;
@@ -3063,6 +3255,7 @@ async function getSunoGeneration(event, taskId) {
     tracks,
     errorMessage,
     refunded,
+    creditsReturned,
   } = await reconcileSunoTask(taskId, task, order);
   const dailyStateAfterFailure = refunded && task.reservationType?.S === "FREE_DAILY"
     ? await freeDailyState(order)
@@ -3074,7 +3267,9 @@ async function getSunoGeneration(event, taskId) {
     error: errorMessage || null,
     remainingSongs: refunded
       ? accountCreditsBalance(order) + (task.reservationType?.S === "FREE_DAILY" ? 0 : MUSIC_TRACKS_PER_GENERATION)
-      : undefined,
+      : creditsReturned > 0
+        ? accountCreditsBalance(order) + creditsReturned
+        : undefined,
     dailyFreeAvailable: dailyStateAfterFailure?.available,
     freeDailyAttemptsRemaining: dailyStateAfterFailure?.attemptsRemaining,
   });
@@ -3314,6 +3509,7 @@ async function putCheckoutOrder({
   source,
   medium,
   campaign,
+  preview,
 }) {
   const now = new Date().toISOString();
   try {
@@ -3328,6 +3524,7 @@ async function putCheckoutOrder({
         providerType: { S: product.type === "subscription" ? "SUBSCRIPTION" : "CHARGE" },
         value: { N: String(product.value) },
         credits: { N: String(product.credits) },
+        offerVersion: { S: product.offerVersion || CURRENT_OFFER_VERSION },
         ...(accountOrderId ? { accountOrderId: { S: accountOrderId } } : {}),
         name: { S: name },
         email: { S: email },
@@ -3336,6 +3533,15 @@ async function putCheckoutOrder({
         ...(source ? { source: { S: source } } : {}),
         ...(medium ? { medium: { S: medium } } : {}),
         ...(campaign ? { campaign: { S: campaign } } : {}),
+        ...(preview
+          ? {
+              previewStory: { S: preview.story },
+              previewTitle: { S: preview.title },
+              previewHook: { S: preview.hook },
+              previewEmotion: { S: preview.emotion },
+              previewStyle: { S: preview.style },
+            }
+          : {}),
         ...(product.type === "starter"
           ? {
               musicCreditsGranted: { N: String(product.credits) },
@@ -3361,7 +3567,7 @@ async function createWooviCharge({ orderId, digest, product, name, email, phone 
       body: JSON.stringify({
         correlationID: orderId,
         value: product.value,
-        comment: `${product.credits} musicas - musicacom.ia`,
+        comment: `${product.credits} creditos musicais - ${product.paidRounds} rodadas - musicacom.ia`,
         expiresIn: 3600,
         customer: {
           name,
@@ -3425,6 +3631,7 @@ async function createCheckout(event) {
   const source = safeString(body.source, 100);
   const medium = safeString(body.medium, 100);
   const campaign = safeString(body.campaign, 140);
+  const preview = normalizeStarterPreview(body.preview);
 
   if (!product || !name || !email || !/^[a-zA-Z0-9_-]{16,100}$/.test(idempotencyKey)) {
     return response(400, { error: "Informe nome e e-mail válidos." });
@@ -3450,6 +3657,7 @@ async function createCheckout(event) {
     source,
     medium,
     campaign,
+    preview,
   });
 
   let charge;

@@ -1,6 +1,14 @@
 export type MusicStyle = {
   slug: string; name: string; region: string; family: string; mood: string;
   bpm: string; instruments: string; groove: string; vocal: string; prompt: string; exclude: string;
+  referenceTracks?: MusicReferenceTrack[];
+};
+
+export type MusicReferenceTrack = {
+  id: string;
+  label: string;
+  audioUrl: string;
+  direction: string;
 };
 
 export const musicStyles: MusicStyle[] = [
@@ -18,7 +26,25 @@ export const musicStyles: MusicStyle[] = [
   {slug:"bossa-nova",name:"Bossa nova",region:"Rio de Janeiro",family:"MPB",mood:"íntima, leve e noturna",bpm:"72–96",instruments:"violão nylon, baixo acústico, piano, bateria com vassourinhas",groove:"batida de bossa suave",vocal:"baixo, próximo e sem força excessiva",prompt:"Intimate Brazilian bossa nova, delicate nylon-string guitar syncopation, upright bass, brushed drums and sparse piano, warm late-night room, understated Brazilian Portuguese vocal, elegant harmony, subtle melodic phrasing, minimalist organic recording",exclude:"belting, big band explosiva, samba acelerado, synth bass, bateria eletrônica"},
   {slug:"funk-carioca",name:"Funk carioca",region:"Rio de Janeiro",family:"Funk brasileiro",mood:"ousado, urbano e corporal",bpm:"128–150",instruments:"tamborzão, subgrave, claps, synth curto",groove:"tamborzão sincopado",vocal:"rítmico, falado e de impacto",prompt:"Brazilian funk carioca, authentic tamborzão rhythm, heavy clean sub bass, sharp claps, sparse synthetic stabs, energetic baile atmosphere, rhythmic Brazilian Portuguese vocal, short punchlines, call and response, immediate viral hook, punchy club mix",exclude:"funk americano, reggaeton dembow, rock drums, piano romântico, arranjo orquestral"},
   {slug:"funk-melody",name:"Funk melody",region:"Rio de Janeiro",family:"Funk brasileiro",mood:"romântico, nostálgico e dançante",bpm:"118–132",instruments:"drum machine, synth pads, baixo eletrônico",groove:"funk com pulsação pop melódica",vocal:"melódico, doce e direto",prompt:"Brazilian funk melody, romantic electronic groove, classic drum-machine pulse, lush synth pads, melodic bass, nostalgic but modern atmosphere, emotional Brazilian Portuguese singing, simple verse, soaring memorable chorus, clean radio-ready production",exclude:"aggressive trap, metal guitars, acoustic folk, vocal rasgado, andamento muito rápido"},
-  {slug:"trap-brasileiro",name:"Trap brasileiro",region:"Brasil urbano",family:"Rap e trap",mood:"ambição, tensão e presença",bpm:"128–150 half-time",instruments:"808, hi-hats, synth sombrio, piano esparso",groove:"half-time com variações de flow",vocal:"flow brasileiro, refrão melódico",prompt:"Brazilian trap, deep controlled 808, crisp rolling hi-hats, sparse dark piano and atmospheric synth texture, confident half-time groove, natural Brazilian Portuguese rap flow, concise verses, melodic earworm hook, dramatic transitions, polished spacious mix",exclude:"boom bap old school, reggaeton, rock guitars, choir épico, sotaque estrangeiro"},
+  {
+    slug: "trap-brasileiro",
+    name: "Trap brasileiro",
+    region: "Brasil urbano",
+    family: "Rap e trap",
+    mood: "ambição, tensão e presença",
+    bpm: "128–150 half-time",
+    instruments: "808, hi-hats, synth sombrio, piano esparso",
+    groove: "half-time com variações de flow",
+    vocal: "flow brasileiro, refrão melódico",
+    prompt: "Brazilian trap, deep controlled 808, crisp rolling hi-hats, sparse dark piano and atmospheric synth texture, confident half-time groove, natural Brazilian Portuguese rap flow, concise verses, melodic earworm hook, dramatic transitions, polished spacious mix",
+    exclude: "boom bap old school, reggaeton, rock guitars, choir épico, sotaque estrangeiro",
+    referenceTracks: [{
+      id: "beat-trap-01",
+      label: "Beat Trap 01",
+      audioUrl: "/beats/beat-trap-01.mp3",
+      direction: "Trap brasileiro sombrio e espaçoso, 808 profundo, hi-hats nítidos, motivo melódico minimalista e flow em half-time.",
+    }],
+  },
   {slug:"boom-bap-br",name:"Boom bap brasileiro",region:"São Paulo",family:"Rap e trap",mood:"crítico, concreto e narrativo",bpm:"82–96",instruments:"drums secos, baixo sampleado, piano elétrico, scratches sutis",groove:"caixa marcada e pocket humano",vocal:"rima clara, cadência de rua",prompt:"Brazilian boom bap hip-hop, dusty punchy drums, warm sampled bass, sparse electric piano, subtle vinyl texture and occasional scratches, grounded São Paulo street atmosphere, articulate Brazilian Portuguese rap, dense storytelling verses, memorable spoken hook",exclude:"trap hi-hat rolls, autotune cantado, EDM synths, pop alegre, vocal em inglês"},
   {slug:"soul-brasileiro",name:"Soul brasileiro",region:"Brasil urbano",family:"Soul e R&B",mood:"quente, elegante e emocional",bpm:"72–98",instruments:"Rhodes, baixo elétrico, guitarra limpa, metais",groove:"pocket de soul com balanço brasileiro",vocal:"expressivo sem excesso de melismas",prompt:"Brazilian soul and contemporary R&B, warm Rhodes, expressive electric bass, clean guitar, subtle Brazilian percussion and tasteful horn accents, deep pocket, intimate Brazilian Portuguese vocal, emotional restraint, rich harmonies and a memorable soulful chorus",exclude:"excesso de melisma, trap dominante, EDM, rock pesado, coral gospel massivo"},
   {slug:"axé",name:"Axé",region:"Bahia",family:"Música baiana",mood:"solar, coletiva e explosiva",bpm:"124–146",instruments:"timbau, surdo, guitarra baiana, metais",groove:"percussão afro-baiana em camadas",vocal:"chamadas fortes e coro de multidão",prompt:"Brazilian Bahia axé, layered Afro-Brazilian percussion, timbau, surdo, bright guitarra baiana and festive brass, high-energy carnival groove, charismatic Brazilian Portuguese lead, powerful call and response, huge joyful chorus, vibrant live production",exclude:"trap, balada lenta, country, timbres sombrios, vocal sussurrado"},

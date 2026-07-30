@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import HomePage from "./components/HomePage";
 
-const title = "Gerador de Música com IA Grátis | musicacom.ia";
+const title = "Transforme sua história em música | musicacom.ia";
 const description =
-  "Crie música com IA em português, explore sertanejo, trap, forró, funk e outros ritmos brasileiros. Faça uma criação grátis por dia, sem cartão.";
+  "Crie gratuitamente a direção da sua música e libere as versões completas no Projeto Música Presente por R$ 49,97 via Pix.";
 
 export const metadata: Metadata = {
   title: {
@@ -79,10 +79,10 @@ const structuredData = {
       image: "https://musicacom.ia.br/og-musicacom-ia.jpg",
       offers: {
         "@type": "Offer",
-        price: "0",
+        price: "49.97",
         priceCurrency: "BRL",
-        description: "Uma criação de música grátis por dia, sem cartão.",
-        url: "https://musicacom.ia.br/login/?mode=register",
+        description: "Projeto Música Presente com 20 créditos musicais, 10 rodadas pagas e até 2 versões por rodada.",
+        url: "https://musicacom.ia.br/checkout/",
         availability: "https://schema.org/InStock",
       },
       publisher: {

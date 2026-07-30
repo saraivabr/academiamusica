@@ -20,9 +20,9 @@ const defaultNextPath = "/biblioteca/gerador/";
 
 const modeContent: Record<Mode, { eyebrow: string; title: string; description: string }> = {
   register: {
-    eyebrow: "COMECE SEM PAGAR",
+    eyebrow: "SALVE SEU PROJETO",
     title: "Abra seu estúdio.",
-    description: "Sua primeira criação está a poucos passos. Não precisa de cartão.",
+    description: "Entre para preservar sua direção criativa, acompanhar o pagamento e acessar suas músicas.",
   },
   login: {
     eyebrow: "BEM-VINDO DE VOLTA",
@@ -137,7 +137,7 @@ export default function AccessLogin() {
     { label: "um número", valid: /\d/.test(password) },
   ];
   const submitLabel = mode === "register"
-    ? "Criar minha conta grátis"
+    ? "Criar minha conta"
     : mode === "confirm"
       ? "Confirmar e começar"
       : mode === "forgot"
@@ -376,7 +376,7 @@ export default function AccessLogin() {
       ) : null}
 
       <p className={styles.privacyNote}>
-        Ao continuar, você concorda com o uso seguro do acesso para proteger sua conta e o benefício diário.
+        Ao continuar, você concorda com o uso seguro do acesso para proteger sua conta, seus créditos e seus projetos.
       </p>
     </div>
   );

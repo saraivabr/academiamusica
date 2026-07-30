@@ -29,6 +29,7 @@ type MusicPlan = {
   voice: string;
   hook: string;
   instrumental: boolean;
+  referenceTrackId: string;
 };
 
 type SavedStudio = {
@@ -57,12 +58,12 @@ const creationTypes = [
 ] as const;
 
 const emotions = [
-  ["Alegria", "Solar e celebrativa"],
-  ["Saudade", "Íntima e nostálgica"],
-  ["Esperança", "Emocional e crescente"],
-  ["Paixão", "Intensa e envolvente"],
-  ["Superação", "Forte e inspiradora"],
-  ["Festa", "Dançante e contagiante"],
+  { value: "Alegria", prompt: "Quero abrir um sorriso", detail: "Leve e luminosa" },
+  { value: "Saudade", prompt: "Quero lembrar com carinho", detail: "Íntima e nostálgica" },
+  { value: "Esperança", prompt: "Quero sentir que vai dar certo", detail: "Emocional e crescente" },
+  { value: "Paixão", prompt: "Quero sentir o coração bater", detail: "Intensa e envolvente" },
+  { value: "Superação", prompt: "Quero ganhar força", detail: "Forte e inspiradora" },
+  { value: "Festa", prompt: "Quero dançar e comemorar", detail: "Contagiante e cheia de energia" },
 ] as const;
 
 const voices = [
@@ -122,6 +123,7 @@ const defaultPlan: MusicPlan = {
   voice: "Masculina e próxima",
   hook: "",
   instrumental: false,
+  referenceTrackId: "",
 };
 
 function makeId(prefix: string) {
@@ -144,11 +146,13 @@ function findStyle(styleName: string) {
 
 function createBrief(plan: MusicPlan) {
   const style = findStyle(plan.style);
+  const referenceTrack = style?.referenceTracks?.find((item) => item.id === plan.referenceTrackId);
   const direction = style
     ? `Arranjo: ${style.instruments}; ${style.groove}; ${style.bpm} BPM.`
     : "Arranjo brasileiro coerente com o estilo, com melodia clara e produção natural.";
   const parts = [
     `Canção brasileira original em ${plan.style || "Pop brasileiro"}.`,
+    referenceTrack ? `Direção sonora escolhida: ${referenceTrack.direction}` : "",
     `Tema: ${plan.theme}.`,
     `Emoção: ${plan.emotion}.`,
     plan.instrumental ? "Somente instrumental, sem voz e sem letra." : `Voz: ${plan.voice}.`,
@@ -194,6 +198,10 @@ export default function Gerador() {
   const resultAudioRefs = useRef<Array<HTMLAudioElement | null>>([]);
 
   const selectedType = creationTypes.find((item) => item.id === creationType) ?? creationTypes[0];
+  const selectedStyle = findStyle(plan.style);
+  const selectedReferenceTrack = selectedStyle?.referenceTracks?.find(
+    (item) => item.id === plan.referenceTrackId,
+  );
   const isGenerating = generationStatus === "STARTING"
     || (!completedStatuses.has(generationStatus) && generationStatus !== "IDLE");
   const generationFailed = failedStatuses.has(generationStatus);
@@ -274,13 +282,18 @@ export default function Gerador() {
             ? nextPlan.instrumental ? 4 : 5
             : 2;
         setImportNotice(importedBusinessName
-          ? `${importedBusinessName} foi aplicado ao briefing. Agora escolha a emoção do jingle.`
+          ? `${importedBusinessName} foi aplicado ao briefing. Agora escolha o clima do jingle.`
           : importedIdea
-            ? "Sua história foi aplicada. Agora escolha a emoção."
+            ? "Sua história foi aplicada. Agora escolha o clima."
             : `${importedStyle?.name} foi aplicado. Continue sua direção.`);
         trackEvent("expert_direction_received", window.location.pathname, {
           placement: importSource || "direct",
         });
+        if (importedBusinessName) {
+          trackEvent("prospect_jingle_creator_opened", window.location.pathname, {
+            placement: "business-prospect",
+          });
+        }
         window.history.replaceState({}, "", window.location.pathname);
       }
 
@@ -304,6 +317,21 @@ export default function Gerador() {
         setProviderReady(Boolean(data.available));
         setRemainingSongs(Number(data.remainingSongs));
         setDailyFreeAvailable(Boolean(data.dailyFreeAvailable));
+        if (data.starterPreview?.story) {
+          setPlan((current) => current.theme.trim()
+            ? current
+            : {
+                ...current,
+                theme: String(data.starterPreview.story).slice(0, 400),
+                emotion: String(data.starterPreview.emotion || current.emotion).slice(0, 120),
+                style: String(data.starterPreview.style || current.style).slice(0, 120),
+                hook: String(data.starterPreview.hook || current.hook).slice(0, 120),
+                instrumental: false,
+              });
+          setCreationType("historia");
+          setFlowStep(6);
+          setImportNotice("Sua prévia foi recuperada. Revise a direção antes de usar os créditos.");
+        }
       })
       .catch((requestError) => {
         if (!active) return;
@@ -407,12 +435,19 @@ export default function Gerador() {
     setGenerationStatus("STARTING");
     setTracks([]);
     trackEvent("music_creator_plan_ready");
+    if (!dailyFreeAvailable) {
+      trackEvent("paid_generation_started", window.location.pathname, {
+        journey: "music_present_v1",
+        product: "starter_20",
+      });
+    }
     try {
       const data = await memberApi("/v1/music/generations", {
         method: "POST",
         body: JSON.stringify({
           brief: createBrief(selectedPlan),
           instrumental: selectedPlan.instrumental,
+          coverBeatId: selectedPlan.referenceTrackId,
           conversationId: makeId("express"),
           mode: selectedMode,
           reservationType: dailyFreeAvailable ? "FREE_DAILY" : "CREDITS",
@@ -589,18 +624,26 @@ export default function Gerador() {
               <section className="express-block">
                 <header>
                   <span>03</span>
-                  <div><small>DEFINA A SENSAÇÃO</small><h3>Como essa música deve fazer alguém se sentir?</h3></div>
+                  <div>
+                    <small>ESCOLHA PELO EFEITO</small>
+                    <h3>O que você quer sentir quando der o play?</h3>
+                    <p className="express-choice-hint">Não pense em estilo musical. Escolha a frase que mais combina com a sua história.</p>
+                  </div>
                 </header>
                 <div className="express-choice-grid emotion-grid">
-                  {emotions.map(([emotion, detail]) => (
+                  {emotions.map((emotion) => (
                     <button
                       type="button"
-                      key={emotion}
-                      className={plan.emotion === emotion ? "selected" : ""}
-                      aria-pressed={plan.emotion === emotion}
-                      onClick={() => updatePlan({ emotion })}
+                      key={emotion.value}
+                      className={plan.emotion === emotion.value ? "selected" : ""}
+                      aria-pressed={plan.emotion === emotion.value}
+                      onClick={() => updatePlan({ emotion: emotion.value })}
                     >
-                      <b>{emotion}</b><small>{detail}</small>
+                      <span className="emotion-copy">
+                        <b>{emotion.prompt}</b>
+                        <small>{emotion.detail}</small>
+                      </span>
+                      <em>{emotion.value}</em>
                     </button>
                   ))}
                 </div>
@@ -620,7 +663,7 @@ export default function Gerador() {
                       key={style.slug}
                       className={plan.style === style.name ? "selected" : ""}
                       aria-pressed={plan.style === style.name}
-                      onClick={() => updatePlan({ style: style.name })}
+                      onClick={() => updatePlan({ style: style.name, referenceTrackId: "" })}
                     >
                       <span>{style.family}</span>
                       <b>{style.name}</b>
@@ -631,6 +674,48 @@ export default function Gerador() {
                 <button className="express-more-styles" type="button" onClick={() => setShowAllStyles((current) => !current)}>
                   {showAllStyles ? "Mostrar estilos principais ↑" : `Ver todos os ${musicStyles.length} estilos brasileiros ↓`}
                 </button>
+                {!plan.instrumental && selectedStyle?.referenceTracks?.length ? (
+                  <section className="express-reference-picker" aria-labelledby="trap-reference-title">
+                    <header>
+                      <div>
+                        <small>BEATS LIBERADOS PARA COVER</small>
+                        <h4 id="trap-reference-title">Escolha o beat do seu trap</h4>
+                      </div>
+                      <span>Permitido para esta criação</span>
+                    </header>
+                    {selectedStyle.referenceTracks.map((reference) => {
+                      const selected = plan.referenceTrackId === reference.id;
+                      return (
+                        <article className={selected ? "selected" : ""} key={reference.id}>
+                          <div className="express-reference-art" aria-hidden="true">
+                            <span>TRAP</span>
+                            <i>01</i>
+                          </div>
+                          <div className="express-reference-copy">
+                            <small>BEAT DISPONÍVEL</small>
+                            <h5>{reference.label}</h5>
+                            <p>Ouça antes de escolher. Sua letra e sua voz serão criadas sobre este beat.</p>
+                            <audio controls preload="metadata" src={reference.audioUrl}>
+                              Seu navegador não conseguiu tocar este beat.
+                            </audio>
+                            <div className="express-reference-actions">
+                              <button
+                                type="button"
+                                className={selected ? "selected" : ""}
+                                aria-pressed={selected}
+                                onClick={() => updatePlan({
+                                  referenceTrackId: selected ? "" : reference.id,
+                                })}
+                              >
+                                {selected ? "✓ Beat escolhido" : "Usar este beat"}
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </section>
+                ) : null}
               </section>
             ) : null}
 
@@ -683,8 +768,11 @@ export default function Gerador() {
                   </header>
                   <dl>
                     <div><dt>Tipo</dt><dd>{selectedType.label}</dd></div>
-                    <div><dt>Emoção</dt><dd>{plan.emotion}</dd></div>
+                    <div><dt>Clima</dt><dd>{plan.emotion}</dd></div>
                     <div><dt>Estilo</dt><dd>{plan.style}</dd></div>
+                    {selectedReferenceTrack ? (
+                      <div><dt>Beat</dt><dd>{selectedReferenceTrack.label}</dd></div>
+                    ) : null}
                     <div><dt>Voz</dt><dd>{plan.instrumental ? "Instrumental" : plan.voice}</dd></div>
                     <div><dt>Refrão</dt><dd>{plan.instrumental ? "Sem letra" : plan.hook.trim() || "Criado para você"}</dd></div>
                   </dl>
@@ -693,16 +781,16 @@ export default function Gerador() {
                     <span>♫</span>
                     <div>
                       <b>{dailyFreeAvailable
-                        ? "1 música grátis disponível agora"
+                        ? "1 criação de transição disponível"
                         : remainingSongs === null
                           ? "Consultando saldo"
                           : remainingSongs === 0
-                            ? "Sua música grátis volta amanhã"
+                            ? "Você precisa de créditos para gerar"
                             : `${remainingSongs} créditos disponíveis`}</b>
                       <small>{dailyFreeAvailable
-                        ? "A criação de hoje entrega uma música e não usa créditos."
+                        ? "Este benefício temporário entrega uma versão sem usar créditos."
                         : remainingSongs === 0
-                          ? "Você pode esperar ou fazer uma recarga opcional."
+                          ? "Adicione créditos para liberar uma nova rodada."
                           : `Esta rodada usa ${creationCost} ${creationCost === 1 ? "crédito" : "créditos"}.`}</small>
                     </div>
                   </div>
@@ -727,11 +815,11 @@ export default function Gerador() {
                       onClick={() => void generateMusic()}
                     >
                       {dailyFreeAvailable
-                        ? "Criar 1 música grátis"
+                        ? "Usar criação de transição"
                         : creationCost === 1
                           ? "Criar 1 música"
                           : "Criar 2 versões"}
-                      <span>{creationCost === 0 ? "GRÁTIS HOJE" : `${creationCost} ${creationCost === 1 ? "CRÉDITO" : "CRÉDITOS"}`}</span>
+                      <span>{creationCost === 0 ? "TRANSIÇÃO" : `${creationCost} ${creationCost === 1 ? "CRÉDITO" : "CRÉDITOS"}`}</span>
                     </button>
                   )}
                   <p className="express-cost">
@@ -826,7 +914,19 @@ export default function Gerador() {
                     <Link className="primary" href={`/biblioteca/capa?track=${encodeURIComponent(track.id)}`}>
                       Escolher e criar capa
                     </Link>
-                    {track.audioUrl ? <a href={track.audioUrl} target="_blank" rel="noreferrer" download>Baixar áudio</a> : null}
+                    {track.audioUrl ? (
+                      <a
+                        href={track.audioUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                        onClick={() => trackEvent("music_downloaded", window.location.pathname, {
+                          placement: `result_${index + 1}`,
+                        })}
+                      >
+                        Baixar áudio
+                      </a>
+                    ) : null}
                   </div>
                 </article>
               );

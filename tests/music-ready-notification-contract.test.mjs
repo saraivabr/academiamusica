@@ -24,6 +24,10 @@ test("successful music generation sends one claimed notification", () => {
   );
   assert.match(backendSource, /emailNotificationStatus = :sent/);
   assert.match(backendSource, /music_ready_email_sent_/);
+  assert.match(
+    backendSource,
+    /recordSuccessfulSunoTask\(order, taskId, item, tracks\.slice\(0, trackLimit\)\)/,
+  );
 });
 
 test("email download links are signed, expiring, and refreshed before redirect", () => {
@@ -36,8 +40,35 @@ test("email download links are signed, expiring, and refreshed before redirect",
 
 test("AWS deployment packages the template and grants only verified sender identities", () => {
   assert.match(deploySource, /cp infra\/checkout\/music-ready-email\.mjs/);
+  assert.match(deploySource, /get-email-identity/);
+  assert.match(deploySource, /VerifiedForSendingStatus/);
   assert.match(deploySource, /"Action": "ses:SendEmail"/);
-  assert.match(deploySource, /identity\/escreve\.ai/);
-  assert.match(deploySource, /identity\/musicacom\.ia\.br/);
+  assert.match(
+    deploySource,
+    /"Action": "dynamodb:DeleteItem",\s+"Resource": "arn:aws:dynamodb:\$\{AWS_REGION\}:\$\{ACCOUNT_ID\}:table\/\$\{EVENTS_TABLE_NAME\}"/,
+  );
+  assert.match(deploySource, /identity\/\$\{MUSIC_EMAIL_IDENTITY\}/);
+  assert.doesNotMatch(deploySource, /identity\/musicacom\.ia\.br/);
+  assert.match(
+    deploySource,
+    /configuration-set\/\$\{MUSIC_EMAIL_CONFIGURATION_SET\}/,
+  );
+  assert.match(
+    deploySource,
+    /identity\/\$\{MUSIC_EMAIL_SANDBOX_RECIPIENT\}/,
+  );
+  assert.match(deploySource, /SES_REGION=\$\{SES_REGION\}/);
   assert.match(deploySource, /EMAIL_FROM_ADDRESS=\$\{MUSIC_EMAIL_FROM_ADDRESS\}/);
+  assert.match(
+    deploySource,
+    /EMAIL_REPLY_TO_ADDRESS=\$\{MUSIC_EMAIL_REPLY_TO_ADDRESS\}/,
+  );
+  assert.match(
+    deploySource,
+    /EMAIL_CONFIGURATION_SET=\$\{MUSIC_EMAIL_CONFIGURATION_SET\}/,
+  );
+  assert.match(deploySource, /get-configuration-set-event-destinations/);
+  assert.match(deploySource, /"MatchingEventTypes":\["SEND","DELIVERY"/);
+  assert.match(backendSource, /ConfigurationSetName: EMAIL_CONFIGURATION_SET/);
+  assert.match(backendSource, /event: "music_ready_email_sent"/);
 });

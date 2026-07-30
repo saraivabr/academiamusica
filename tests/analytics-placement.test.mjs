@@ -16,7 +16,7 @@ test("product analytics keeps CTA placement and journey-stage dimensions end to 
     "nav",
     "hero",
     "how_it_works",
-    "free_offer",
+    "paid_offer",
     "final",
   ]) {
     assert.match(home, new RegExp(`data-track-placement="${placement}"`));
@@ -24,10 +24,10 @@ test("product analytics keeps CTA placement and journey-stage dimensions end to 
 
   assert.match(client, /properties: AnalyticsProperties/);
   assert.match(client, /\.\.\.properties/);
-  assert.match(collector, /"cta_start_free_clicked"/);
+  assert.match(collector, /"offer_cta"/);
   assert.match(collector, /placement: body\.placement/);
   assert.match(collector, /step: body\.step/);
   assert.match(collector, /outcome: body\.outcome/);
-  assert.match(report, /CTA PARA COMEÇAR/);
+  assert.match(report, /CTA PARA PRÉVIA/);
   assert.match(report, /event\.placement === placement/);
 });

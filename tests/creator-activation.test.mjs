@@ -122,7 +122,10 @@ test("creator activation is recorded only after an idempotent successful reconci
   const libraryStart = backendSource.indexOf("async function getMusicLibrary");
   const librarySource = backendSource.slice(libraryStart, libraryStart + 3_000);
   assert.match(librarySource, /reconcileSunoTask\(taskId, item, order\)/);
-  assert.match(librarySource, /recordSuccessfulSunoTask\(order, taskId, item, tracks\)/);
+  assert.match(
+    librarySource,
+    /recordSuccessfulSunoTask\(order, taskId, item, tracks\.slice\(0, trackLimit\)\)/,
+  );
 
   const pollingSource = backendSource.slice(pollingStart, pollingStart + 1_500);
   assert.match(pollingSource, /reconcileSunoTask\(taskId, task, order\)/);

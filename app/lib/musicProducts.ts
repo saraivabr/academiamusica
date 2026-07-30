@@ -1,51 +1,70 @@
 export type MusicProduct = {
   id: string;
+  offerVersion: string;
   name: string;
   shortName: string;
   description: string;
   priceCents: number;
   credits: number;
+  creditsPerRound: number;
+  paidRounds: number;
+  versionsPerRound: number;
   type: "starter" | "recharge" | "subscription";
   badge?: string;
 };
 
 export const STARTER_PRODUCT: MusicProduct = {
   id: "starter_20",
-  name: "Acesso musicacom.ia + 20 músicas",
-  shortName: "Comece agora",
-  description: "Acesso permanente à plataforma com 20 músicas para criar e baixar.",
+  offerVersion: "music_present_v1",
+  name: "Projeto Música Presente",
+  shortName: "Música Presente",
+  description: "20 créditos musicais: 10 rodadas pagas, com até 2 versões por rodada.",
   priceCents: 4_997,
   credits: 20,
+  creditsPerRound: 2,
+  paidRounds: 10,
+  versionsPerRound: 2,
   type: "starter",
 };
 
 export const RECHARGE_PRODUCTS: MusicProduct[] = [
   {
     id: "recharge_20",
-    name: "Recarga Essencial — 20 músicas",
+    offerVersion: "music_present_v1",
+    name: "Recarga Essencial — 20 créditos",
     shortName: "Essencial",
-    description: "Para continuar criando no seu ritmo.",
+    description: "10 rodadas pagas, com até 2 versões por rodada.",
     priceCents: 4_997,
     credits: 20,
+    creditsPerRound: 2,
+    paidRounds: 10,
+    versionsPerRound: 2,
     type: "recharge",
   },
   {
     id: "recharge_50",
-    name: "Recarga Criador — 50 músicas",
+    offerVersion: "music_present_v1",
+    name: "Recarga Criador — 50 créditos",
     shortName: "Criador",
-    description: "Mais espaço para testar estilos e comparar versões.",
+    description: "25 rodadas pagas, com até 2 versões por rodada.",
     priceCents: 10_997,
     credits: 50,
+    creditsPerRound: 2,
+    paidRounds: 25,
+    versionsPerRound: 2,
     type: "recharge",
-    badge: "MAIS ESCOLHIDO",
   },
   {
     id: "recharge_100",
-    name: "Recarga Estúdio — 100 músicas",
+    offerVersion: "music_present_v1",
+    name: "Recarga Estúdio — 100 créditos",
     shortName: "Estúdio",
-    description: "Volume para repertório, clientes e lançamentos.",
+    description: "50 rodadas pagas, com até 2 versões por rodada.",
     priceCents: 19_997,
     credits: 100,
+    creditsPerRound: 2,
+    paidRounds: 50,
+    versionsPerRound: 2,
     type: "recharge",
   },
 ];
@@ -53,13 +72,17 @@ export const RECHARGE_PRODUCTS: MusicProduct[] = [
 export const SUBSCRIPTION_PRODUCTS: MusicProduct[] = [
   {
     id: "club_60",
-    name: "Clube Criador — 60 músicas por mês",
+    offerVersion: "music_present_v1",
+    name: "Clube Criador — 60 créditos por mês",
     shortName: "Clube Criador",
-    description: "60 músicas creditadas a cada mensalidade paga via Pix Automático.",
+    description: "30 rodadas pagas por mensalidade, com até 2 versões por rodada.",
     priceCents: 9_997,
     credits: 60,
+    creditsPerRound: 2,
+    paidRounds: 30,
+    versionsPerRound: 2,
     type: "subscription",
-    badge: "MELHOR CUSTO POR MÚSICA",
+    badge: "MELHOR CUSTO POR CRÉDITO",
   },
 ];
 

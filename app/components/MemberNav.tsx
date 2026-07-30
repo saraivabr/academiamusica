@@ -99,8 +99,8 @@ export default function MemberNav() {
 
       <Link className="academy-wallet" href="/biblioteca/creditos" aria-label="Saldo de criação e recarga">
         <div>
-          <small>{dailyFreeAvailable ? "GRÁTIS HOJE" : "SEU SALDO"}</small>
-          <b>{dailyFreeAvailable ? "1 música" : `${remainingSongs ?? "—"} créditos`}</b>
+          <small>{dailyFreeAvailable ? "BENEFÍCIO EM TRANSIÇÃO" : "SEU SALDO"}</small>
+          <b>{dailyFreeAvailable ? "1 criação" : `${remainingSongs ?? "—"} créditos`}</b>
         </div>
         <span>＋ PIX</span>
       </Link>

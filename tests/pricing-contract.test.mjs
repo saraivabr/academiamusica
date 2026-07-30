@@ -8,7 +8,7 @@ async function source(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-test("public checkout is free while optional starter credits stay aligned", async () => {
+test("public checkout sells the approved starter contract", async () => {
   const [frontend, backend, checkoutHtml] = await Promise.all([
     source("app/lib/musicProducts.ts"),
     source("infra/checkout/index.mjs"),
@@ -17,10 +17,11 @@ test("public checkout is free while optional starter credits stay aligned", asyn
 
   assert.match(frontend, /id: "starter_20"[\s\S]*?priceCents: 4_997[\s\S]*?credits: 20/);
   assert.match(backend, /starter_20:[\s\S]*?value: 4_997[\s\S]*?credits: 20/);
-  assert.match(checkoutHtml, /Uma música grátis todos os dias/);
-  assert.match(checkoutHtml, /R\$<\/small>0/);
-  assert.match(checkoutHtml, /Criar minha conta grátis/);
-  assert.doesNotMatch(checkoutHtml, /R\$49,97/);
+  assert.match(checkoutHtml, /Projeto Música Presente/);
+  assert.match(checkoutHtml, /20 créditos musicais/);
+  assert.match(checkoutHtml, /10 rodadas pagas/);
+  assert.match(checkoutHtml, /R\$<\/small>49,97/);
+  assert.doesNotMatch(checkoutHtml, /música grátis por dia/i);
   assert.doesNotMatch(checkoutHtml, /R\$197/);
 });
 
@@ -79,7 +80,7 @@ test("mobile purchase flow keeps checkout and four primary destinations usable",
   assert.match(confirmation, /history\.replaceState/);
 });
 
-test("free account uses verified email and privacy-safe abuse controls", async () => {
+test("Offer V2 account uses verified email and privacy-safe abuse controls", async () => {
   const [backend, access, homeHtml] = await Promise.all([
     source("infra/checkout/index.mjs"),
     source("app/lib/access.ts"),
@@ -91,15 +92,20 @@ test("free account uses verified email and privacy-safe abuse controls", async (
   assert.match(backend, /verifyCognitoIdToken/);
   assert.match(backend, /path === "\/v1\/auth\/exchange"/);
   assert.match(backend, /status: \{ S: "FREE" \}/);
+  assert.match(backend, /offerVersion: \{ S: CURRENT_OFFER_VERSION \}/);
   assert.match(backend, /free_account_device/);
   assert.match(backend, /free_account_ip_window/);
-  assert.match(homeHtml, /uma música grátis por dia/i);
+  assert.match(homeHtml, /Prévia criativa grátis/i);
+  assert.doesNotMatch(homeHtml, /música grátis por dia/i);
   assert.doesNotMatch(backend, /macAddress|rawIp/);
 });
 
-test("daily free generation exposes one track and does not spend credits", async () => {
+test("legacy daily benefit is time-boxed and Offer V2 uses paid credits", async () => {
   const backend = await source("infra/checkout/index.mjs");
 
+  assert.match(backend, /LEGACY_DAILY_FREE_END_AT/);
+  assert.match(backend, /function dailyFreeEligible\(order/);
+  assert.match(backend, /order\.offerVersion === CURRENT_OFFER_VERSION/);
   assert.match(backend, /name: \{ S: "free_daily_music" \}/);
   assert.match(backend, /":name": \{ S: "free_daily_attempt" \}/);
   assert.match(backend, /FREE_DAILY_ATTEMPT_LIMIT = 3/);

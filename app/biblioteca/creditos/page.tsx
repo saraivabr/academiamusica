@@ -82,7 +82,7 @@ export default function CreditosPage() {
   const pollingFailures = useRef(0);
   const selectedProductId = selected?.id;
 
-  const pricePerSong = useMemo(() => {
+  const pricePerCredit = useMemo(() => {
     if (!selected) return "";
     return formatProductPrice(Math.round(selected.priceCents / selected.credits));
   }, [selected]);
@@ -212,13 +212,13 @@ export default function CreditosPage() {
           <strong>{remainingSongs ?? "—"}</strong>
           <span>créditos disponíveis</span>
           <em>{dailyFreeAvailable
-            ? "+ 1 música grátis hoje"
-            : "Sua música grátis volta amanhã"}</em>
+            ? "Benefício diário de transição disponível"
+            : "Cada rodada paga usa 2 créditos"}</em>
         </div>
         <div>
           <h2>Escolha como continuar.</h2>
           <p>
-            Comprar é opcional: a música grátis volta todos os dias. A recarga
+            Cada rodada paga usa 2 créditos e entrega até 2 versões. A recarga
             não vence; no Clube, os créditos entram após cada mensalidade paga.
           </p>
           <a className="credits-hero-action" href="#recargas">Ver opções de recarga ↓</a>
@@ -239,12 +239,12 @@ export default function CreditosPage() {
             >
               {product.badge ? <em>{product.badge}</em> : null}
               <small>{product.shortName}</small>
-              <h3><strong>{product.credits}</strong> músicas</h3>
+              <h3><strong>{product.credits}</strong> créditos</h3>
               <p>{product.description}</p>
               <b>{formatProductPrice(product.priceCents)}</b>
-              <span>{formatProductPrice(Math.round(product.priceCents / product.credits))} por música</span>
+              <span>{formatProductPrice(Math.round(product.priceCents / product.credits))} por crédito</span>
               <button type="button" onClick={() => chooseProduct(product)}>
-                Adicionar {product.credits} músicas
+                Adicionar {product.credits} créditos
               </button>
             </article>
           ))}
@@ -265,10 +265,10 @@ export default function CreditosPage() {
             >
               {product.badge ? <em>{product.badge}</em> : null}
               <small>{product.shortName}</small>
-              <h3><strong>{product.credits}</strong> músicas/mês</h3>
+              <h3><strong>{product.credits}</strong> créditos/mês</h3>
               <p>{product.description}</p>
               <b>{formatProductPrice(product.priceCents)}<i>/mês</i></b>
-              <span>{formatProductPrice(Math.round(product.priceCents / product.credits))} por música</span>
+              <span>{formatProductPrice(Math.round(product.priceCents / product.credits))} por crédito</span>
               <button type="button" onClick={() => chooseProduct(product)}>
                 Assinar com Pix Automático
               </button>
@@ -278,7 +278,7 @@ export default function CreditosPage() {
             <b>Como funciona</b>
             <p>1. Você autoriza no aplicativo do banco.</p>
             <p>2. A primeira mensalidade é paga na aprovação.</p>
-            <p>3. Cada mensalidade confirmada libera 60 músicas.</p>
+            <p>3. Cada mensalidade confirmada libera 60 créditos, equivalentes a 30 rodadas.</p>
             <p>4. Cancele a qualquer momento no banco ou pelo suporte.</p>
           </aside>
         </div>
@@ -292,7 +292,7 @@ export default function CreditosPage() {
               <small>PAGAMENTO CONFIRMADO</small>
               <h2>Seu saldo já foi atualizado.</h2>
               <p>
-                {selected.credits} músicas foram adicionadas. Agora você tem{" "}
+                {selected.credits} créditos foram adicionados. Agora você tem{" "}
                 <strong>{remainingSongs ?? "novos"} créditos</strong> disponíveis.
               </p>
               <a href="/biblioteca/gerador">Criar uma música agora →</a>
@@ -327,7 +327,7 @@ export default function CreditosPage() {
                 </div>
                 <strong>{formatProductPrice(selected.priceCents)}</strong>
               </header>
-              <p className="credit-unit-price">{pricePerSong} por música</p>
+              <p className="credit-unit-price">{pricePerCredit} por crédito</p>
 
               <div className="credit-buyer-fields">
                 <label>Nome para o comprovante<input required autoComplete="name" value={billingName} onChange={(event) => setBillingName(event.target.value)} /></label>

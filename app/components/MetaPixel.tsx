@@ -43,9 +43,9 @@ function initializePixel() {
   window.fbq("track", "PageView");
   if (window.location.pathname.startsWith("/checkout")) {
     trackMetaEvent("ViewContent", {
-      content_name: "Conta grátis musicacom.ia",
+      content_name: "Projeto Música Presente",
       content_type: "product",
-      value: 0,
+      value: 49.97,
       currency: "BRL",
     });
   }

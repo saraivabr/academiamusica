@@ -86,12 +86,12 @@ export default function PurchaseConfirmation() {
   }
 
   if (state === "invalid") {
-    return <main className="status-page narrow"><span className="status-icon failed">×</span><div className="eyebrow">PEDIDO NÃO LOCALIZADO</div><h1>Vamos encontrar sua compra.</h1><p>Abra o link recebido após o pagamento ou fale com o atendimento usando o mesmo e-mail informado na compra.</p><div className="status-actions"><a className="portal-button" href="/suporte">Localizar com o suporte</a><a className="portal-button ghost" href="/login?mode=register">Criar conta grátis</a></div></main>;
+    return <main className="status-page narrow"><span className="status-icon failed">×</span><div className="eyebrow">PEDIDO NÃO LOCALIZADO</div><h1>Vamos encontrar sua compra.</h1><p>Abra o link recebido após o pagamento ou fale com o atendimento usando o mesmo e-mail informado na compra.</p><div className="status-actions"><a className="portal-button" href="/suporte">Localizar com o suporte</a><a className="portal-button ghost" href="/preview/">Voltar à minha prévia</a></div></main>;
   }
 
   if (state === "paid-access-error") {
     return <main className="status-page narrow"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO</div><h1>Sua compra está segura.</h1><p>Confirmamos o pedido <strong>{orderId}</strong>, mas não conseguimos autorizar este dispositivo automaticamente. Use esse código na página de entrada ou fale com o suporte.</p><div className="status-actions"><a className="portal-button" href="/login/">Liberar meu acesso</a><a className="portal-button ghost" href="/suporte/">Falar com suporte</a></div></main>;
   }
 
-  return <main className="status-page narrow"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO • CRÉDITOS LIBERADOS</div><h1>Agora transforme sua ideia em música.</h1><p>Seus {confirmedOrder?.credits ?? STARTER_PRODUCT.credits} créditos já estão disponíveis. Guarde o código <strong>{orderId}</strong> para recuperar o acesso em outro aparelho.</p><div className="status-actions"><a className="portal-button" href="/biblioteca/gerador/">Criar minha música</a><a className="portal-button ghost" href="/biblioteca/">Ver minhas músicas</a></div></main>;
+  return <main className="status-page narrow"><span className="status-icon success">✓</span><div className="eyebrow">PAGAMENTO CONFIRMADO • CRÉDITOS LIBERADOS</div><h1>Agora transforme sua prévia em música.</h1><p>Seus {confirmedOrder?.credits ?? STARTER_PRODUCT.credits} créditos já estão disponíveis: 10 rodadas pagas, com até 2 versões por rodada. Guarde o código <strong>{orderId}</strong> para recuperar o acesso em outro aparelho.</p><div className="status-actions"><a className="portal-button" href="/biblioteca/gerador/">Gerar minhas versões</a><a className="portal-button ghost" href="/biblioteca/">Ver minhas músicas</a></div></main>;
 }

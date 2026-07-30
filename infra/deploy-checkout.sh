@@ -2,6 +2,7 @@
 set -euo pipefail
 
 AWS_REGION="${AWS_REGION:-us-east-1}"
+SES_REGION="${SES_REGION:-$AWS_REGION}"
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 TABLE_NAME="academia-musica-orders"
 EVENTS_TABLE_NAME="academia-musica-events"
@@ -18,9 +19,92 @@ APIFY_API_TOKEN_PARAMETER="/academia-musica/prod/apify/api-token"
 COVERS_BUCKET="academia-musica-covers-${ACCOUNT_ID}-${AWS_REGION}"
 SITE_ORIGIN="https://musicacom.ia.br"
 MUSIC_EMAIL_FROM_ADDRESS="${MUSIC_EMAIL_FROM_ADDRESS:-musica@escreve.ai}"
+MUSIC_EMAIL_REPLY_TO_ADDRESS="${MUSIC_EMAIL_REPLY_TO_ADDRESS:-$MUSIC_EMAIL_FROM_ADDRESS}"
+MUSIC_EMAIL_CONFIGURATION_SET="${MUSIC_EMAIL_CONFIGURATION_SET:-musicacom-transactional}"
+MUSIC_EMAIL_SANDBOX_RECIPIENT="${MUSIC_EMAIL_SANDBOX_RECIPIENT:-fellipesaraivabarbosa@gmail.com}"
+LEGACY_DAILY_FREE_END_AT="${LEGACY_DAILY_FREE_END_AT:-2026-08-06T03:00:00.000Z}"
 COGNITO_POOL_NAME="academia-musica-users"
 COGNITO_CLIENT_NAME="academia-musica-web"
 EXPECTED_COGNITO_CLIENT_ID="${EXPECTED_COGNITO_CLIENT_ID:-375mcuenagmq50eellircoljq6}"
+
+validate_email_address() {
+  [[ "$1" =~ ^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$ ]]
+}
+
+validate_email_address "$MUSIC_EMAIL_FROM_ADDRESS" || {
+  echo "Invalid MUSIC_EMAIL_FROM_ADDRESS." >&2
+  exit 1
+}
+validate_email_address "$MUSIC_EMAIL_REPLY_TO_ADDRESS" || {
+  echo "Invalid MUSIC_EMAIL_REPLY_TO_ADDRESS." >&2
+  exit 1
+}
+
+MUSIC_EMAIL_FROM_DOMAIN="${MUSIC_EMAIL_FROM_ADDRESS##*@}"
+MUSIC_EMAIL_IDENTITY="$MUSIC_EMAIL_FROM_ADDRESS"
+if [[ "$(aws sesv2 get-email-identity \
+  --region "$SES_REGION" \
+  --email-identity "$MUSIC_EMAIL_IDENTITY" \
+  --query VerifiedForSendingStatus \
+  --output text 2>/dev/null || true)" != "True" ]]; then
+  MUSIC_EMAIL_IDENTITY="$MUSIC_EMAIL_FROM_DOMAIN"
+fi
+if [[ "$(aws sesv2 get-email-identity \
+  --region "$SES_REGION" \
+  --email-identity "$MUSIC_EMAIL_IDENTITY" \
+  --query VerifiedForSendingStatus \
+  --output text 2>/dev/null || true)" != "True" ]]; then
+  echo "SES sender is not verified: ${MUSIC_EMAIL_FROM_ADDRESS} (${SES_REGION})." >&2
+  exit 1
+fi
+
+SES_PRODUCTION_ACCESS="$(aws sesv2 get-account \
+  --region "$SES_REGION" \
+  --query ProductionAccessEnabled \
+  --output text)"
+if [[ "$SES_PRODUCTION_ACCESS" != "True" ]]; then
+  echo "Warning: SES ${SES_REGION} is in sandbox; only verified recipients can receive mail." >&2
+  validate_email_address "$MUSIC_EMAIL_SANDBOX_RECIPIENT" || {
+    echo "Invalid MUSIC_EMAIL_SANDBOX_RECIPIENT." >&2
+    exit 1
+  }
+  if [[ "$(aws sesv2 get-email-identity \
+    --region "$SES_REGION" \
+    --email-identity "$MUSIC_EMAIL_SANDBOX_RECIPIENT" \
+    --query VerifiedForSendingStatus \
+    --output text 2>/dev/null || true)" != "True" ]]; then
+    echo "SES sandbox recipient is not verified: ${MUSIC_EMAIL_SANDBOX_RECIPIENT}." >&2
+    exit 1
+  fi
+fi
+
+if ! aws sesv2 get-configuration-set \
+  --region "$SES_REGION" \
+  --configuration-set-name "$MUSIC_EMAIL_CONFIGURATION_SET" >/dev/null 2>&1; then
+  aws sesv2 create-configuration-set \
+    --region "$SES_REGION" \
+    --configuration-set-name "$MUSIC_EMAIL_CONFIGURATION_SET" >/dev/null
+fi
+
+MUSIC_EMAIL_EVENT_DESTINATION="cloudwatch-music-ready"
+MUSIC_EMAIL_EVENT_CONFIG='{"Enabled":true,"MatchingEventTypes":["SEND","DELIVERY","BOUNCE","COMPLAINT","REJECT","RENDERING_FAILURE"],"CloudWatchDestination":{"DimensionConfigurations":[{"DimensionName":"notification","DimensionValueSource":"MESSAGE_TAG","DefaultDimensionValue":"unknown"}]}}'
+if [[ "$(aws sesv2 get-configuration-set-event-destinations \
+  --region "$SES_REGION" \
+  --configuration-set-name "$MUSIC_EMAIL_CONFIGURATION_SET" \
+  --query "EventDestinations[?Name=='${MUSIC_EMAIL_EVENT_DESTINATION}'].Name | [0]" \
+  --output text)" == "None" ]]; then
+  aws sesv2 create-configuration-set-event-destination \
+    --region "$SES_REGION" \
+    --configuration-set-name "$MUSIC_EMAIL_CONFIGURATION_SET" \
+    --event-destination-name "$MUSIC_EMAIL_EVENT_DESTINATION" \
+    --event-destination "$MUSIC_EMAIL_EVENT_CONFIG" >/dev/null
+else
+  aws sesv2 update-configuration-set-event-destination \
+    --region "$SES_REGION" \
+    --configuration-set-name "$MUSIC_EMAIL_CONFIGURATION_SET" \
+    --event-destination-name "$MUSIC_EMAIL_EVENT_DESTINATION" \
+    --event-destination "$MUSIC_EMAIL_EVENT_CONFIG" >/dev/null
+fi
 
 COGNITO_USER_POOL_ID="$(aws cognito-idp list-user-pools \
   --region "$AWS_REGION" \
@@ -176,6 +260,11 @@ cat >"$PERMISSIONS_POLICY" <<JSON
     },
     {
       "Effect": "Allow",
+      "Action": "dynamodb:DeleteItem",
+      "Resource": "arn:aws:dynamodb:${AWS_REGION}:${ACCOUNT_ID}:table/${EVENTS_TABLE_NAME}"
+    },
+    {
+      "Effect": "Allow",
       "Action": "ssm:GetParameter",
       "Resource": [
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${WOOVI_PARAMETER}",
@@ -214,8 +303,9 @@ cat >"$PERMISSIONS_POLICY" <<JSON
       "Effect": "Allow",
       "Action": "ses:SendEmail",
       "Resource": [
-        "arn:aws:ses:${AWS_REGION}:${ACCOUNT_ID}:identity/escreve.ai",
-        "arn:aws:ses:${AWS_REGION}:${ACCOUNT_ID}:identity/musicacom.ia.br"
+        "arn:aws:ses:${SES_REGION}:${ACCOUNT_ID}:identity/${MUSIC_EMAIL_IDENTITY}",
+        "arn:aws:ses:${SES_REGION}:${ACCOUNT_ID}:configuration-set/${MUSIC_EMAIL_CONFIGURATION_SET}",
+        "arn:aws:ses:${SES_REGION}:${ACCOUNT_ID}:identity/${MUSIC_EMAIL_SANDBOX_RECIPIENT}"
       ]
     }
   ]
@@ -235,7 +325,7 @@ cp infra/checkout/music-ready-email.mjs "$PACKAGE_DIR/music-ready-email.mjs"
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
 # MUSIC_TRACKS_INCLUDED preserves the original 25-credit grant for legacy orders.
 # New purchases persist their product-specific balance directly in DynamoDB.
-ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},COVERS_BUCKET=${COVERS_BUCKET},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID},COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID},WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},IMAGE_PROXY_KEY_PARAMETER=${IMAGE_PROXY_KEY_PARAMETER},APIFY_API_TOKEN_PARAMETER=${APIFY_API_TOKEN_PARAMETER},IMAGE_API_URL=https://academiamusica-image-proxy.fellipesaraivabarbosa.workers.dev,IMAGE_MODEL=cx/gpt-5.5,MUSIC_TRACKS_INCLUDED=25,MUSIC_CONVERSATION_ENABLED=true,MUSIC_CONVERSATION_MODEL=us.amazon.nova-2-lite-v1:0,EMAIL_FROM_ADDRESS=${MUSIC_EMAIL_FROM_ADDRESS}}"
+ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},COVERS_BUCKET=${COVERS_BUCKET},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID},COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID},WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},IMAGE_PROXY_KEY_PARAMETER=${IMAGE_PROXY_KEY_PARAMETER},APIFY_API_TOKEN_PARAMETER=${APIFY_API_TOKEN_PARAMETER},IMAGE_API_URL=https://academiamusica-image-proxy.fellipesaraivabarbosa.workers.dev,IMAGE_MODEL=cx/gpt-5.5,MUSIC_TRACKS_INCLUDED=25,MUSIC_CONVERSATION_ENABLED=true,MUSIC_CONVERSATION_MODEL=us.amazon.nova-2-lite-v1:0,LEGACY_DAILY_FREE_END_AT=${LEGACY_DAILY_FREE_END_AT},SES_REGION=${SES_REGION},EMAIL_FROM_ADDRESS=${MUSIC_EMAIL_FROM_ADDRESS},EMAIL_REPLY_TO_ADDRESS=${MUSIC_EMAIL_REPLY_TO_ADDRESS},EMAIL_CONFIGURATION_SET=${MUSIC_EMAIL_CONFIGURATION_SET}}"
 
 if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAME" >/dev/null 2>&1; then
   aws lambda wait function-active-v2 --region "$AWS_REGION" --function-name "$FUNCTION_NAME"

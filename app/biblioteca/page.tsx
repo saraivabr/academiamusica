@@ -4,6 +4,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { AcademyShell } from "../components/Portal";
 import { memberApi } from "../lib/access";
+import { trackEvent } from "../lib/analytics";
 import {
   playInAcademyPlayer,
   playableTrackUrl,
@@ -80,8 +81,8 @@ export default function Biblioteca() {
           <small>SUA PRIMEIRA MÚSICA</small>
           <h2>Seu repertório começa com uma ideia.</h2>
           <p>
-            Conte o essencial, escolha a direção e use a criação grátis de hoje.
-            Sua música aparecerá aqui automaticamente.
+            Conte o essencial, escolha a direção e use seus créditos para gerar
+            as versões completas. Sua música aparecerá aqui automaticamente.
           </p>
           <Link
             href="/biblioteca/gerador"
@@ -130,7 +131,7 @@ export default function Biblioteca() {
           </button>
           <Link href="/biblioteca/gerador">＋ Nova música</Link>
           <span>{dailyFreeAvailable
-            ? "1 música grátis disponível hoje"
+            ? "1 criação de transição disponível"
             : `${remainingSongs ?? "—"} créditos disponíveis`}</span>
         </div>
 
@@ -183,7 +184,19 @@ export default function Biblioteca() {
                     <Link href={`/biblioteca/capa?track=${encodeURIComponent(track.id)}`}>
                       {track.hasCustomCover ? "Trocar capa" : "Criar capa"}
                     </Link>
-                    {track.audioUrl ? <a href={track.audioUrl} target="_blank" rel="noreferrer" download>Baixar</a> : null}
+                    {track.audioUrl ? (
+                      <a
+                        href={track.audioUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        download
+                        onClick={() => trackEvent("music_downloaded", window.location.pathname, {
+                          placement: "library",
+                        })}
+                      >
+                        Baixar
+                      </a>
+                    ) : null}
                   </div>
                 </article>
               );
