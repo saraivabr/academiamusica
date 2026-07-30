@@ -13,9 +13,9 @@ fi
 aws dynamodb scan \
   --region "$AWS_REGION" \
   --table-name academia-musica-events \
-  --projection-expression "id,#eventName,sessionId,#source,#value,createdAt,#placement,#journey,#step,#outcome,#product" \
+  --projection-expression "id,#eventName,sessionId,#source,#value,createdAt,#placement,#journey,#step,#outcome,#product,#experiment,#variant" \
   --filter-expression "createdAt >= :since" \
-  --expression-attribute-names '{"#eventName":"name","#source":"source","#value":"value","#placement":"placement","#journey":"journey","#step":"step","#outcome":"outcome","#product":"product"}' \
+  --expression-attribute-names '{"#eventName":"name","#source":"source","#value":"value","#placement":"placement","#journey":"journey","#step":"step","#outcome":"outcome","#product":"product","#experiment":"experiment","#variant":"variant"}' \
   --expression-attribute-values "{\":since\":{\"S\":\"${SINCE}\"}}" \
   --output json |
   node infra/funnel-report.mjs "$DAYS"

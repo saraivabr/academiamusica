@@ -1,6 +1,7 @@
 "use client";
 
 import { getOrCreateAnalyticsSession } from "./analyticsSession";
+import { getConversionExperimentContext } from "./conversionExperiment";
 
 const ANALYTICS_API = "https://fb9323mkb2.execute-api.us-east-1.amazonaws.com";
 const ATTRIBUTION_KEY = "academia-musica-attribution";
@@ -19,6 +20,8 @@ export type AnalyticsProperties = {
   outcome?: string;
   product?: string;
   next_step?: string;
+  experiment?: string;
+  variant?: string;
 };
 
 function randomId(prefix: string) {
@@ -70,6 +73,7 @@ export function getAnalyticsContext() {
   return {
     sessionId: getSessionId(),
     ...getAttribution(),
+    ...getConversionExperimentContext(),
   };
 }
 

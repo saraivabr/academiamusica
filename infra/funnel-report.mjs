@@ -15,11 +15,16 @@ const events = (payload.Items ?? []).map((item) => ({
   step: item.step?.S ?? "",
   outcome: item.outcome?.S ?? "",
   product: item.product?.S ?? "",
+  experiment: item.experiment?.S ?? "",
+  variant: item.variant?.S ?? "",
   value: Number(item.value?.N ?? 0),
 }));
 
 const DECISION_SESSION_MINIMUM = 100;
 const SOURCE_SESSION_MINIMUM = 30;
+const HOME_EXPERIMENT = "home_story_start_v1";
+const HOME_VARIANTS = ["control", "gift_first", "example_first"];
+const HOME_VARIANT_MINIMUM = 30;
 
 const apifyJingleStages = [
   {
@@ -146,6 +151,95 @@ function rateCell(value, base) {
   return `${value} · ${percent(value, base)}`;
 }
 
+function wilsonInterval(successes, total, z = 1.96) {
+  if (total === 0) return { lower: 0, upper: 1 };
+  const rate = successes / total;
+  const denominator = 1 + (z ** 2 / total);
+  const center = rate + (z ** 2 / (2 * total));
+  const margin = z * Math.sqrt(
+    (rate * (1 - rate) / total) + (z ** 2 / (4 * total ** 2)),
+  );
+  return {
+    lower: (center - margin) / denominator,
+    upper: (center + margin) / denominator,
+  };
+}
+
+function experimentSessionSet(eventName, variant) {
+  return new Set(
+    events
+      .filter((event) => (
+        event.name === eventName
+        && event.experiment === HOME_EXPERIMENT
+        && event.variant === variant
+        && validSession(event)
+      ))
+      .map((event) => event.sessionId),
+  );
+}
+
+function linkedExperimentSessions(eventName, variant, landingSessions) {
+  const reached = experimentSessionSet(eventName, variant);
+  return new Set(
+    [...reached].filter((sessionId) => landingSessions.has(sessionId)),
+  ).size;
+}
+
+function printHomeExperiment() {
+  const rows = HOME_VARIANTS.map((variant) => {
+    const landingSessions = experimentSessionSet("landing_view", variant);
+    const visits = landingSessions.size;
+    const stories = linkedExperimentSessions("story_started", variant, landingSessions);
+    const previews = linkedExperimentSessions("preview_completed", variant, landingSessions);
+    const checkouts = linkedExperimentSessions("checkout_started", variant, landingSessions);
+    const pix = linkedExperimentSessions("pix_created", variant, landingSessions);
+    const sales = linkedExperimentSessions("purchase_confirmed", variant, landingSessions);
+    return {
+      variant,
+      visits,
+      stories,
+      previews,
+      checkouts,
+      pix,
+      sales,
+      rate: visits > 0 ? stories / visits : 0,
+      interval: wilsonInterval(stories, visits),
+    };
+  });
+  const totalVisits = rows.reduce((sum, row) => sum + row.visits, 0);
+  const sampleReady = rows.every((row) => row.visits >= HOME_VARIANT_MINIMUM);
+  const ranked = [...rows].sort((left, right) => (
+    right.rate - left.rate || right.stories - left.stories
+  ));
+  const [best, runnerUp] = ranked;
+  const confidentWinner = sampleReady
+    && best.rate >= runnerUp.rate * 1.2
+    && best.interval.lower > runnerUp.interval.upper;
+
+  console.log("EXPERIMENTO — MENSAGEM DA HOME");
+  console.log(`Teste: ${HOME_EXPERIMENT} · métrica principal: história iniciada`);
+  console.log("");
+  console.log(
+    `${"VARIANTE".padEnd(18)}  ${"VISITAS".padStart(7)}  ${"HISTÓRIA".padStart(12)}  ${"PRÉVIA".padStart(7)}  ${"CHECKOUT".padStart(8)}  ${"PIX".padStart(3)}  ${"VENDAS".padStart(6)}`,
+  );
+  for (const row of rows) {
+    console.log(
+      `${row.variant.padEnd(18)}  ${String(row.visits).padStart(7)}  ${rateCell(row.stories, row.visits).padStart(12)}  ${String(row.previews).padStart(7)}  ${String(row.checkouts).padStart(8)}  ${String(row.pix).padStart(3)}  ${String(row.sales).padStart(6)}`,
+    );
+  }
+  console.log("");
+  if (confidentWinner) {
+    console.log(
+      `DECISÃO DO TESTE: ${best.variant} venceu com ${percent(best.stories, best.visits)} de início de história.`,
+    );
+  } else if (!sampleReady) {
+    const progress = rows.map((row) => `${row.variant} ${row.visits}/${HOME_VARIANT_MINIMUM}`).join(" · ");
+    console.log(`DECISÃO DO TESTE: coleta em andamento (${progress}; total ${totalVisits}).`);
+  } else {
+    console.log("DECISÃO DO TESTE: amostra mínima atingida, mas ainda sem diferença confiável. Continue coletando.");
+  }
+}
+
 function printApifyJingleJourney() {
   const journeys = buildLinkedJourney(events);
   const counts = journeyCounts(journeys);
@@ -224,6 +318,8 @@ const rows = stages.map((stage) => {
 
 const width = Math.max(...rows.map((row) => row.label.length), 18);
 console.log(`RELATÓRIO DE FUNIL MUSICACOM.IA — últimos ${process.argv[2] ?? "14"} dias`);
+console.log("");
+printHomeExperiment();
 console.log("");
 printApifyJingleJourney();
 console.log("");

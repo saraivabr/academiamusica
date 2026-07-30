@@ -1,9 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import type { FormEvent } from "react";
 import "../home-brasil.css";
 import BrandLogo from "./BrandLogo";
+import {
+  getHomeStoryVariant,
+  HOME_STORY_EXPERIMENT,
+  type HomeStoryVariant,
+} from "../lib/conversionExperiment";
 
 const Arrow = () => <span aria-hidden="true">↗</span>;
 const Check = () => <span aria-hidden="true">✓</span>;
@@ -50,6 +55,47 @@ const ideaStarters = [
   ["Jingle", "Um jingle marcante para apresentar o meu negócio"],
 ];
 
+const heroMessages: Record<HomeStoryVariant, {
+  kicker: string;
+  title: string;
+  emphasis: string;
+  description: string;
+  label: string;
+  placeholder: string;
+  cta: string;
+}> = {
+  control: {
+    kicker: "DA SUA HISTÓRIA AO PLAY",
+    title: "Uma história sua.",
+    emphasis: "Uma música impossível de esquecer.",
+    description: "Conte uma lembrança, uma homenagem ou uma ideia do seu jeito. Você escolhe a emoção e o ritmo. A musicacom.ia transforma em som.",
+    label: "Que história você quer transformar em música?",
+    placeholder: "Ex.: uma homenagem para minha mãe, com saudade e esperança...",
+    cta: "Começar minha prévia grátis",
+  },
+  gift_first: {
+    kicker: "UM PRESENTE QUE TEM A SUA HISTÓRIA",
+    title: "Tem gente que merece",
+    emphasis: "virar música.",
+    description: "Conte quem marcou sua vida e o que vocês viveram. A musicacom.ia transforma essa lembrança em uma homenagem que ninguém encontra pronta.",
+    label: "Para quem você quer criar essa homenagem?",
+    placeholder: "Ex.: para minha mãe, que nunca soltou minha mão...",
+    cta: "Criar minha homenagem em música",
+  },
+  example_first: {
+    kicker: "COMECE COM UMA LEMBRANÇA",
+    title: "Uma frase sua.",
+    emphasis: "O começo de uma música.",
+    description: "Não precisa escrever letra nem saber explicar o estilo. Conte uma lembrança simples e veja título, refrão e direção musical antes de decidir.",
+    label: "Qual lembrança veio à sua cabeça agora?",
+    placeholder: "Ex.: o dia em que a gente se conheceu na praça...",
+    cta: "Transformar minha lembrança",
+  },
+};
+
+const subscribeHomeStoryVariant = () => () => {};
+const getServerHomeStoryVariant = (): HomeStoryVariant => "control";
+
 function formatTime(value: number) {
   if (!Number.isFinite(value)) return "0:00";
   const minutes = Math.floor(value / 60);
@@ -64,6 +110,12 @@ export default function Home() {
   const [duration, setDuration] = useState(188.64);
   const [openFaq, setOpenFaq] = useState(0);
   const [idea, setIdea] = useState("");
+  const heroVariant = useSyncExternalStore(
+    subscribeHomeStoryVariant,
+    getHomeStoryVariant,
+    getServerHomeStoryVariant,
+  );
+  const heroMessage = heroMessages[heroVariant];
 
   const toggleAudio = async () => {
     const audio = audioRef.current;
@@ -141,22 +193,23 @@ export default function Home() {
           </span>
         </button>
 
-        <div className="br-hero-center">
-          <div className="br-kicker">DA SUA HISTÓRIA AO PLAY</div>
-          <h1>Uma história sua.<br /><em>Uma música impossível de esquecer.</em></h1>
-          <p>
-            Conte uma lembrança, uma homenagem ou uma ideia do seu jeito.
-            Você escolhe a emoção e o ritmo. A musicacom.ia transforma em som.
-          </p>
+        <div
+          className="br-hero-center"
+          data-experiment={HOME_STORY_EXPERIMENT}
+          data-variant={heroVariant}
+        >
+          <div className="br-kicker">{heroMessage.kicker}</div>
+          <h1>{heroMessage.title}<br /><em>{heroMessage.emphasis}</em></h1>
+          <p>{heroMessage.description}</p>
 
           <form className="br-idea-form" onSubmit={startWithIdea}>
-            <label htmlFor="hero-idea">Que história você quer transformar em música?</label>
+            <label htmlFor="hero-idea">{heroMessage.label}</label>
             <textarea
               id="hero-idea"
               name="idea"
               value={idea}
               onChange={(event) => setIdea(event.target.value)}
-              placeholder="Ex.: uma homenagem para minha mãe, com saudade e esperança..."
+              placeholder={heroMessage.placeholder}
               maxLength={280}
               rows={2}
               required
@@ -176,7 +229,7 @@ export default function Home() {
                 data-track="story_started"
                 data-track-placement="hero"
               >
-                Começar minha prévia grátis
+                {heroMessage.cta}
               </button>
             </div>
           </form>

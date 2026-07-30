@@ -202,6 +202,9 @@ const ALLOWED_CLIENT_EVENTS = new Set([
   "prospect_search_started",
   "prospect_search_completed",
   "prospect_jingle_started",
+  "style_jingle_played",
+  "music_version_selected",
+  "music_next_step_selected",
 ]);
 
 let cachedSecrets;
@@ -645,6 +648,8 @@ function itemToOrder(item) {
     source: item.source?.S,
     medium: item.medium?.S,
     campaign: item.campaign?.S,
+    experiment: item.experiment?.S,
+    variant: item.variant?.S,
     starterPreview: item.previewStory?.S
       ? {
           story: item.previewStory.S,
@@ -726,6 +731,8 @@ async function recordFunnelEvent({
   step,
   outcome,
   product,
+  experiment,
+  variant,
 }) {
   if (!EVENTS_TABLE_NAME) return false;
   const now = new Date().toISOString();
@@ -747,6 +754,8 @@ async function recordFunnelEvent({
     ...(step ? { step: { S: safeString(step, 40) } } : {}),
     ...(outcome ? { outcome: { S: safeString(outcome, 100) } } : {}),
     ...(product ? { product: { S: safeString(product, 100) } } : {}),
+    ...(experiment ? { experiment: { S: safeString(experiment, 100) } } : {}),
+    ...(variant ? { variant: { S: safeString(variant, 100) } } : {}),
   };
   try {
     await dynamo.send(new PutItemCommand({
@@ -778,6 +787,8 @@ async function recordMemberMusicEvent(order, name, id, value, context = {}) {
     medium: context.medium || order.medium,
     campaign: context.campaign || order.campaign,
     referrer: context.referrer,
+    experiment: context.experiment || order.experiment,
+    variant: context.variant || order.variant,
     orderId: order.id,
     value,
   });
@@ -946,6 +957,8 @@ async function ingestClientEvent(event) {
     step: body.step,
     outcome: body.outcome,
     product: body.product,
+    experiment: body.experiment,
+    variant: body.variant,
   });
   return response(202, { accepted: true });
 }
@@ -1916,6 +1929,8 @@ async function rememberSunoAnalyticsContext(callbackToken, orderId, context = {}
       ...(context.medium ? { medium: { S: safeString(context.medium, 100) } } : {}),
       ...(context.campaign ? { campaign: { S: safeString(context.campaign, 140) } } : {}),
       ...(context.referrer ? { referrer: { S: safeString(context.referrer, 140) } } : {}),
+      ...(context.experiment ? { experiment: { S: safeString(context.experiment, 100) } } : {}),
+      ...(context.variant ? { variant: { S: safeString(context.variant, 100) } } : {}),
       createdAt: { S: new Date().toISOString() },
       ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 48) },
     },
@@ -1976,6 +1991,8 @@ function analyticsContextFromItem(item) {
     medium: item.medium?.S,
     campaign: item.campaign?.S,
     referrer: item.referrer?.S,
+    experiment: item.experiment?.S,
+    variant: item.variant?.S,
   };
 }
 
@@ -3139,6 +3156,8 @@ async function createSunoGeneration(event) {
     medium: body.medium,
     campaign: body.campaign,
     referrer: body.referrer,
+    experiment: body.experiment,
+    variant: body.variant,
   };
   if (prompt.length < 20 || prompt.length > 500) {
     return response(400, { error: "Descreva a música em 20 a 500 caracteres." });
@@ -3519,6 +3538,8 @@ async function putCheckoutOrder({
   source,
   medium,
   campaign,
+  experiment,
+  variant,
   preview,
 }) {
   const now = new Date().toISOString();
@@ -3543,6 +3564,8 @@ async function putCheckoutOrder({
         ...(source ? { source: { S: source } } : {}),
         ...(medium ? { medium: { S: medium } } : {}),
         ...(campaign ? { campaign: { S: campaign } } : {}),
+        ...(experiment ? { experiment: { S: experiment } } : {}),
+        ...(variant ? { variant: { S: variant } } : {}),
         ...(preview
           ? {
               previewStory: { S: preview.story },
@@ -3641,6 +3664,8 @@ async function createCheckout(event) {
   const source = safeString(body.source, 100);
   const medium = safeString(body.medium, 100);
   const campaign = safeString(body.campaign, 140);
+  const experiment = safeString(body.experiment, 100);
+  const variant = safeString(body.variant, 100);
   const preview = normalizeStarterPreview(body.preview);
 
   if (!product || !name || !email || !/^[a-zA-Z0-9_-]{16,100}$/.test(idempotencyKey)) {
@@ -3667,6 +3692,8 @@ async function createCheckout(event) {
     source,
     medium,
     campaign,
+    experiment,
+    variant,
     preview,
   });
 
@@ -3695,6 +3722,8 @@ async function createCheckout(event) {
     campaign,
     orderId,
     value: product.value,
+    experiment,
+    variant,
   });
   return response(201, { order: publicOrder(order) });
 }
@@ -4045,6 +4074,8 @@ async function markPaid(orderId, charge) {
     source: order?.source,
     medium: order?.medium,
     campaign: order?.campaign,
+    experiment: order?.experiment,
+    variant: order?.variant,
     orderId,
     value: order.value,
   });
