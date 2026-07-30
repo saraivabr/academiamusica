@@ -60,7 +60,11 @@ async function exchangeCognitoToken(idToken: string) {
   const response = await fetch(`${CHECKOUT_API}/v1/auth/exchange`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ idToken, deviceId: getDeviceId() }),
+    body: JSON.stringify({
+      idToken,
+      deviceId: getDeviceId(),
+      offerVersion: "music_present_v1",
+    }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || !data.access?.token) {

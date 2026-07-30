@@ -59,15 +59,19 @@ test("public acquisition sells a free creative preview, not a free full song", a
   assert.doesNotMatch(publicOffer, /20 músicas incluídas/i);
 });
 
-test("new accounts use Offer V2 while legacy daily benefit is time-boxed", async () => {
-  const [backend, deploy] = await Promise.all([
+test("new frontend negotiates Offer V2 while the public legacy frontend stays compatible", async () => {
+  const [access, backend, deploy] = await Promise.all([
+    source("app/lib/access.ts"),
     source("infra/checkout/index.mjs"),
     source("infra/deploy-checkout.sh"),
   ]);
 
   assert.match(backend, /LEGACY_DAILY_FREE_END_AT/);
+  assert.match(access, /offerVersion: "music_present_v1"/);
+  assert.match(backend, /const requestedOfferVersion = body\.offerVersion === CURRENT_OFFER_VERSION/);
   assert.match(backend, /offerVersion: item\.offerVersion\?\.S/);
   assert.match(backend, /offerVersion: \{ S: CURRENT_OFFER_VERSION \}/);
+  assert.match(backend, /dailyBenefitEndsAt: \{ S: LEGACY_DAILY_FREE_END_AT \}/);
   assert.match(backend, /function dailyFreeEligible\(order/);
   assert.match(backend, /order\.offerVersion === CURRENT_OFFER_VERSION/);
   assert.match(backend, /if \(!dailyFreeEligible\(order\)\)/);

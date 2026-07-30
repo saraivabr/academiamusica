@@ -1160,6 +1160,9 @@ async function exchangeCognitoAccess(event) {
     return response(400, { error: "Dados de acesso inválidos." });
   }
   const deviceId = safeString(body.deviceId, 80).trim();
+  const requestedOfferVersion = body.offerVersion === CURRENT_OFFER_VERSION
+    ? CURRENT_OFFER_VERSION
+    : "";
   if (!/^[a-zA-Z0-9_-]{24,80}$/.test(deviceId)) {
     return response(400, { error: "Não foi possível validar este dispositivo." });
   }
@@ -1197,7 +1200,11 @@ async function exchangeCognitoAccess(event) {
                 id: { S: accountId },
                 status: { S: "FREE" },
                 accountType: { S: "free" },
-                offerVersion: { S: CURRENT_OFFER_VERSION },
+                ...(requestedOfferVersion
+                  ? { offerVersion: { S: CURRENT_OFFER_VERSION } }
+                  : LEGACY_DAILY_FREE_END_AT
+                    ? { dailyBenefitEndsAt: { S: LEGACY_DAILY_FREE_END_AT } }
+                    : {}),
                 cognitoSub: { S: safeString(tokenPayload.sub, 80) },
                 email: { S: normalizeEmail(tokenPayload.email) },
                 name: { S: normalizeName(tokenPayload.name) || normalizeEmail(tokenPayload.email).split("@")[0] },
