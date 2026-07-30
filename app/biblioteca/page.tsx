@@ -20,7 +20,7 @@ import {
 
 const tools = [
   ["LETRA", "Roteiro de composição", "Aprofunde uma história e descubra como construir uma letra mais humana.", "/biblioteca/compositor"],
-  ["24 ESTILOS", "Mapa musical do Brasil", "Entenda ritmo, instrumentos e energia antes de pedir outra direção.", "/biblioteca/estilos-brasileiros"],
+  ["25 ESTILOS", "Mapa musical do Brasil", "Entenda ritmo, instrumentos e energia antes de pedir outra direção.", "/biblioteca/estilos-brasileiros"],
   ["MÉTODO", "Como escolher a melhor versão", "Compare emoção, refrão e arranjo para decidir com mais segurança.", "/academia/musica"],
 ];
 

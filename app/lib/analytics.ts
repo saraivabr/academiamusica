@@ -18,6 +18,7 @@ export type AnalyticsProperties = {
   step?: string;
   outcome?: string;
   product?: string;
+  next_step?: string;
 };
 
 function randomId(prefix: string) {
