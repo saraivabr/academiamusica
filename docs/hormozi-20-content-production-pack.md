@@ -22,19 +22,21 @@ Diretório dos criativos:
 Todos os arquivos principais têm 941 × 1672 pixels, proporção aproximada de
 9:16, prontos para Stories e Reels.
 
-## Layout V2 recomendado
+## ImageGen V3 recomendado
 
-Uma segunda direção visual foi produzida sem sobrescrever os arquivos
-originais. Ela usa fotografia limpa gerada pelo ImageGen, tipografia real,
-marca oficial e componentes vetoriais.
+Uma terceira direção visual foi produzida sem sobrescrever os arquivos
+anteriores. Nela, cada um dos 20 anúncios é uma saída final completa do
+ImageGen integrado do Codex. Não há composição final em SVG, HTML, Canvas ou
+Sharp.
 
-- prancha: `public/ads/hormozi-v2-20/layout-v2/contact-sheet-v2.jpg`;
-- finais: `public/ads/hormozi-v2-20/layout-v2/final/`;
-- sistema: `docs/hormozi-layout-v2-design-system.md`;
-- renderizador: `scripts/render-hormozi-layout-v2.mjs`.
+- prancha: `public/ads/hormozi-v2-20/imagegen-v3/contact-sheet-imagegen-v3.jpg`;
+- finais: `public/ads/hormozi-v2-20/imagegen-v3/`;
+- prompts e auditoria: `docs/hormozi-imagegen-v3.md`.
 
-Os arquivos V2 têm 1080 × 1920 pixels e passam a ser a versão recomendada para
-publicação e teste.
+Os 20 arquivos V3 têm 941 × 1672 pixels e passam a ser a versão recomendada
+para publicação e teste. A V2 permanece disponível em
+`public/ads/hormozi-v2-20/layout-v2/` apenas como histórico da direção
+determinística anterior.
 
 ## Índice dos 20 criativos
 
