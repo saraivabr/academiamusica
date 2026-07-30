@@ -10,6 +10,10 @@ import {
   createBusinessJingleIdea,
   isBusinessProspect,
 } from "../../lib/businessProspects";
+import {
+  clearAcademyPlayerSelection,
+  playInAcademyPlayer,
+} from "../../lib/musicPlatform";
 import { musicStyles } from "../../lib/musicStyles";
 
 type GeneratedTrack = {
@@ -193,6 +197,7 @@ export default function Gerador() {
   const [showAllStyles, setShowAllStyles] = useState(false);
   const [flowStep, setFlowStep] = useState<CreatorStep>(1);
   const [importNotice, setImportNotice] = useState("");
+  const [selectedTrackId, setSelectedTrackId] = useState("");
   const generationLockRef = useRef(false);
   const resultRef = useRef<HTMLDivElement | null>(null);
   const resultAudioRefs = useRef<Array<HTMLAudioElement | null>>([]);
@@ -208,6 +213,7 @@ export default function Gerador() {
   const ready = planIsReady(plan);
   const creationCost = dailyFreeAvailable ? 0 : remainingSongs === 1 ? 1 : 2;
   const canCreate = dailyFreeAvailable || Boolean(remainingSongs);
+  const selectedTrack = tracks.find((track) => track.id === selectedTrackId) ?? tracks[0];
   const styleOptions = useMemo(() => (
     showAllStyles
       ? musicStyles
@@ -471,6 +477,7 @@ export default function Gerador() {
     setMode("refine");
     setFlowStep(6);
     setTracks([]);
+    setSelectedTrackId("");
     setTaskId("");
     setGenerationStatus("IDLE");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -483,6 +490,7 @@ export default function Gerador() {
     setTaskId("");
     setGenerationStatus("IDLE");
     setTracks([]);
+    setSelectedTrackId("");
     setMode("create");
     setFlowStep(1);
     setError("");
@@ -882,12 +890,32 @@ export default function Gerador() {
             {tracks.map((track, index) => {
               const playableUrl = track.audioUrl || track.streamAudioUrl;
               return (
-                <article key={track.id || index}>
+                <article
+                  key={track.id || index}
+                  className={selectedTrack?.id === track.id ? "selected" : ""}
+                >
                   <div
                     className="express-track-cover"
                     style={track.imageUrl ? { backgroundImage: `url("${track.imageUrl}")` } : {}}
                   >
                     <span>{tracks.length === 1 ? "SUA MÚSICA" : `VERSÃO ${index + 1}`}</span>
+                    {playableUrl ? (
+                      <button
+                        type="button"
+                        aria-label={`Ouvir ${track.title} no player`}
+                        onClick={() => {
+                          keepSingleResultPlaying(-1);
+                          playInAcademyPlayer(track, tracks.length === 1
+                            ? "Sua música"
+                            : `Comparando versão ${index + 1}`);
+                          trackEvent("music_result_played", window.location.pathname, {
+                            placement: `persistent_player_${index + 1}`,
+                          });
+                        }}
+                      >
+                        ▶
+                      </button>
+                    ) : null}
                   </div>
                   <div className="express-track-copy">
                     <small>{plan.style}</small>
@@ -902,6 +930,7 @@ export default function Gerador() {
                         preload="metadata"
                         src={playableUrl}
                         onPlay={() => {
+                          clearAcademyPlayerSelection();
                           keepSingleResultPlaying(index);
                           trackEvent("music_result_played", window.location.pathname, {
                             placement: `result_${index + 1}`,
@@ -911,9 +940,19 @@ export default function Gerador() {
                     ) : null}
                   </div>
                   <div className="express-track-actions">
-                    <Link className="primary" href={`/biblioteca/capa?track=${encodeURIComponent(track.id)}`}>
-                      Escolher e criar capa
-                    </Link>
+                    <button
+                      type="button"
+                      className={selectedTrack?.id === track.id ? "selected" : ""}
+                      aria-pressed={selectedTrack?.id === track.id}
+                      onClick={() => {
+                        setSelectedTrackId(track.id);
+                        trackEvent("music_version_selected", window.location.pathname, {
+                          placement: `result_${index + 1}`,
+                        });
+                      }}
+                    >
+                      {selectedTrack?.id === track.id ? "✓ Minha escolhida" : "Escolher esta versão"}
+                    </button>
                     {track.audioUrl ? (
                       <a
                         href={track.audioUrl}
@@ -932,6 +971,50 @@ export default function Gerador() {
               );
             })}
           </div>
+          {selectedTrack ? (
+            <section className="express-project-next" aria-label="Próximos passos da música escolhida">
+              <div
+                className="express-project-next-cover"
+                style={selectedTrack.imageUrl
+                  ? { backgroundImage: `url("${selectedTrack.imageUrl}")` }
+                  : {}}
+                aria-hidden="true"
+              />
+              <div className="express-project-next-copy">
+                <small>MÚSICA ESCOLHIDA • PROJETO EM ANDAMENTO</small>
+                <h3>Leve “{selectedTrack.title}” adiante.</h3>
+                <p>Agora você pode criar a identidade visual, baixar o áudio ou pedir uma nova interpretação sem recomeçar a história.</p>
+              </div>
+              <div className="express-project-next-actions">
+                <Link
+                  className="primary"
+                  href={`/biblioteca/capa?track=${encodeURIComponent(selectedTrack.id)}`}
+                  onClick={() => trackEvent("music_next_step_selected", window.location.pathname, {
+                    placement: "result_project",
+                    next_step: "cover",
+                  })}
+                >
+                  Criar capa
+                </Link>
+                {selectedTrack.audioUrl ? (
+                  <a
+                    href={selectedTrack.audioUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    download
+                    onClick={() => trackEvent("music_downloaded", window.location.pathname, {
+                      placement: "result_project",
+                    })}
+                  >
+                    Baixar áudio
+                  </a>
+                ) : null}
+                <button type="button" onClick={() => startRefinement({})}>
+                  Nova interpretação
+                </button>
+              </div>
+            </section>
+          ) : null}
           <div className="express-refine">
             <div><small>NOVA DIREÇÃO • CONFIRMAÇÃO ANTES DO SALDO</small><h3>Quer tentar outra interpretação?</h3></div>
             <button type="button" onClick={() => startRefinement({ emotion: "Festa" })}>Mais animada</button>

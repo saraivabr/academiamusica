@@ -149,6 +149,19 @@ test("creator activation is recorded only after an idempotent successful reconci
   assert.match(cleanupSource, /catch \(error\)/);
 });
 
+test("delivered music stays in a visible choose, play, and continue loop", async () => {
+  const creatorSource = await readFile(
+    new URL("../app/biblioteca/gerador/page.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(creatorSource, /music_version_selected/);
+  assert.match(creatorSource, /playInAcademyPlayer\(track/);
+  assert.match(creatorSource, /MÚSICA ESCOLHIDA • PROJETO EM ANDAMENTO/);
+  assert.match(creatorSource, /Criar capa/);
+  assert.match(creatorSource, /Nova interpretação/);
+});
+
 test("creator report becomes decision-ready at exactly 100 valid sessions", () => {
   const items = Array.from({ length: 100 }, (_, index) => (
     event(`open_${index}`, "music_route_unique_opened", `session_${String(index).padStart(12, "0")}`)
