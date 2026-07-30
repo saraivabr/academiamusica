@@ -53,9 +53,12 @@ const mobileNavigation = [
 const previousNavigationTarget = new Map<string, string>();
 
 function isCurrentPath(pathname: string, href: string, exact = false) {
+  const normalizedPathname = pathname.replace(/\/+$/, "") || "/";
+  const normalizedHref = href.replace(/\/+$/, "") || "/";
   return exact
-    ? pathname === href
-    : pathname === href || pathname.startsWith(`${href}/`);
+    ? normalizedPathname === normalizedHref
+    : normalizedPathname === normalizedHref
+      || normalizedPathname.startsWith(`${normalizedHref}/`);
 }
 
 function useActiveNavigationMotion(

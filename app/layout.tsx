@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import FunnelAnalytics from "./components/FunnelAnalytics";
+import GlobalMotion from "./components/GlobalMotion";
 import MetaPixel from "./components/MetaPixel";
 import MemberPlayerBoundary from "./components/MemberPlayerBoundary";
 import "./globals.css";
@@ -31,7 +32,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body>{children}<MemberPlayerBoundary /><FunnelAnalytics /><MetaPixel /></body>
+      <body>
+        {children}
+        <GlobalMotion />
+        <MemberPlayerBoundary />
+        <FunnelAnalytics />
+        <MetaPixel />
+      </body>
     </html>
   );
 }
