@@ -111,3 +111,27 @@ test("Offer V2 funnel measures preview through delivered music", async () => {
     assert.match(`${backend}\n${analytics}\n${report}`, new RegExp(event));
   }
 });
+
+test("Offer V2 keeps the one-time Pix payment inside musicacom.ia", async () => {
+  const [checkoutClient, creditsPage, backend] = await Promise.all([
+    source("app/checkout/CheckoutClient.tsx"),
+    source("app/biblioteca/creditos/page.tsx"),
+    source("infra/checkout/index.mjs"),
+  ]);
+
+  assert.match(checkoutClient, /PIX GERADO NA MÚSICA\.COM\.IA/);
+  assert.match(checkoutClient, /Escaneie o QR Code/);
+  assert.match(checkoutClient, /Copiar código Pix/);
+  assert.match(checkoutClient, /Aguardando confirmação/);
+  assert.doesNotMatch(checkoutClient, /paymentLinkUrl/);
+  assert.doesNotMatch(checkoutClient, /href=\{order\.paymentLinkUrl\}/);
+  assert.doesNotMatch(checkoutClient, /abrir a página segura da Woovi/i);
+  assert.match(
+    backend,
+    /purchaseType === "subscription" && order\.paymentLinkUrl/,
+  );
+  assert.match(
+    creditsPage,
+    /order\.purchaseType === "subscription" && order\.paymentLinkUrl/,
+  );
+});

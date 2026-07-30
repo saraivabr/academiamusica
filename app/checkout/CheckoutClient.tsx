@@ -12,7 +12,6 @@ type Order = {
   value: number;
   brCode?: string;
   qrCodeImage?: string;
-  paymentLinkUrl?: string;
   expiresAt?: string;
 };
 
@@ -235,10 +234,12 @@ export default function CheckoutClient() {
   if (order) {
     return (
       <section className="checkout-card pix-card" aria-live="polite">
-        <div className="pix-status"><span /> PIX GERADO COM SEGURANÇA</div>
+        <div className="pix-status"><span /> PIX GERADO NA MÚSICA.COM.IA</div>
         <h2>Agora é só pagar.</h2>
         <p className="pix-instruction">
-          Abra o aplicativo do seu banco, escolha Pix Copia e Cola e use o código abaixo.
+          Escaneie o QR Code ou abra o aplicativo do seu banco, escolha Pix
+          Copia e Cola e use o código abaixo. Você continua nesta página
+          enquanto confirmamos o pagamento.
         </p>
         {order.qrCodeImage ? (
           <img className="pix-qr" src={order.qrCodeImage} alt="QR Code Pix da inscrição" />
@@ -254,11 +255,6 @@ export default function CheckoutClient() {
               {copied ? "Código copiado ✓" : "Copiar código Pix"}
             </button>
           </>
-        ) : null}
-        {order.paymentLinkUrl ? (
-          <a className="payment-link" href={order.paymentLinkUrl} target="_blank" rel="noreferrer" onClick={() => trackEvent("woovi_opened")}>
-            Prefiro abrir a página segura da Woovi ↗
-          </a>
         ) : null}
         <div className="payment-waiting">
           <span className="payment-loader" aria-hidden="true" />

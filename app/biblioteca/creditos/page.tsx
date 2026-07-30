@@ -308,11 +308,9 @@ export default function CreditosPage() {
                   {copied ? "Código copiado ✓" : "Copiar código Pix"}
                 </button>
               ) : null}
-              {order.paymentLinkUrl ? (
+              {order.purchaseType === "subscription" && order.paymentLinkUrl ? (
                 <a href={order.paymentLinkUrl} target="_blank" rel="noreferrer">
-                  {order.purchaseType === "subscription"
-                    ? "Abrir e autorizar Pix Automático ↗"
-                    : "Abrir pagamento seguro ↗"}
+                  Abrir e autorizar Pix Automático ↗
                 </a>
               ) : null}
               <p><i /> Aguardando confirmação automática…</p>

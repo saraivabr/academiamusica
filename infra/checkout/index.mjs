@@ -660,13 +660,14 @@ function itemToOrder(item) {
 
 function publicOrder(order) {
   const product = MUSIC_PRODUCTS[order.productId] ?? STARTER_PRODUCT;
+  const purchaseType = order.purchaseType || "starter";
   return {
     id: order.id,
     status: order.status,
     value: order.value || product.value,
     productId: order.productId || product.id,
     productName: order.productName || product.name,
-    purchaseType: order.purchaseType || "starter",
+    purchaseType,
     credits: order.credits || product.credits,
     offerVersion: order.offerVersion || product.offerVersion,
     creditsPerRound: product.creditsPerRound,
@@ -674,7 +675,9 @@ function publicOrder(order) {
     versionsPerRound: product.versionsPerRound,
     brCode: order.brCode,
     qrCodeImage: order.qrCodeImage,
-    paymentLinkUrl: order.paymentLinkUrl,
+    ...(purchaseType === "subscription" && order.paymentLinkUrl
+      ? { paymentLinkUrl: order.paymentLinkUrl }
+      : {}),
     expiresAt: order.expiresAt,
     paidAt: order.paidAt,
   };
