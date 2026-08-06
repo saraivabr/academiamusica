@@ -100,8 +100,6 @@ test("keeps account workspaces isolated and the persistent player on listening r
   assert.match(accessSource, /transitionMemberWorkspace\(access\.token\)/);
   assert.match(accessSource, /transitionMemberWorkspace\(\)/);
   assert.match(boundarySource, /pathname\.replace\(\/\\\/\+\$\/, ""\) \|\| "\/"/);
-  assert.match(boundarySource, /normalizedPathname === "\/academia"/);
-  assert.match(boundarySource, /normalizedPathname\.startsWith\("\/academia\/"\)/);
   assert.match(boundarySource, /normalizedPathname === "\/biblioteca"/);
   assert.match(boundarySource, /normalizedPathname\.startsWith\("\/biblioteca\/"\)/);
   assert.doesNotMatch(portalSource, /href=["']#["']/);

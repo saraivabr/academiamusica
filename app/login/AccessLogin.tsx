@@ -55,9 +55,7 @@ function safeNextPath(value: string | null) {
   if (!value) return defaultNextPath;
   try {
     const destination = new URL(value, window.location.origin);
-    const allowed = destination.pathname === "/academia"
-      || destination.pathname.startsWith("/academia/")
-      || destination.pathname === "/biblioteca"
+    const allowed = destination.pathname === "/biblioteca"
       || destination.pathname.startsWith("/biblioteca/");
     return destination.origin === window.location.origin && allowed
       ? `${destination.pathname}${destination.search}${destination.hash}`

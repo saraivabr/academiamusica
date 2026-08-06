@@ -15,7 +15,6 @@ WEBHOOK_PARAMETER="/academia-musica/prod/woovi/webhook-secret"
 ACCESS_PARAMETER="/academia-musica/prod/access-secret"
 SUNO_API_KEY_PARAMETER="/academia-musica/prod/suno/api-key"
 IMAGE_PROXY_KEY_PARAMETER="/academia-musica/prod/image-proxy-key"
-APIFY_API_TOKEN_PARAMETER="/academia-musica/prod/apify/api-token"
 COVERS_BUCKET="academia-musica-covers-${ACCOUNT_ID}-${AWS_REGION}"
 SITE_ORIGIN="https://musicacom.ia.br"
 MUSIC_EMAIL_FROM_ADDRESS="${MUSIC_EMAIL_FROM_ADDRESS:-musica@escreve.ai}"
@@ -270,8 +269,7 @@ cat >"$PERMISSIONS_POLICY" <<JSON
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${WEBHOOK_PARAMETER}",
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${ACCESS_PARAMETER}",
         "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${SUNO_API_KEY_PARAMETER}",
-        "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${IMAGE_PROXY_KEY_PARAMETER}",
-        "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${APIFY_API_TOKEN_PARAMETER}"
+        "arn:aws:ssm:${AWS_REGION}:${ACCOUNT_ID}:parameter${IMAGE_PROXY_KEY_PARAMETER}"
       ]
     },
     {
@@ -306,14 +304,13 @@ aws iam put-role-policy \
   --policy-document "file://$PERMISSIONS_POLICY"
 
 cp infra/checkout/index.mjs "$PACKAGE_DIR/index.mjs"
-cp infra/checkout/business-prospects.mjs "$PACKAGE_DIR/business-prospects.mjs"
 cp infra/checkout/music-ready-email.mjs "$PACKAGE_DIR/music-ready-email.mjs"
-(cd "$PACKAGE_DIR" && zip -q function.zip index.mjs business-prospects.mjs music-ready-email.mjs)
+(cd "$PACKAGE_DIR" && zip -q function.zip index.mjs music-ready-email.mjs)
 
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
 # MUSIC_TRACKS_INCLUDED preserves the original 25-credit grant for legacy orders.
 # New purchases persist their product-specific balance directly in DynamoDB.
-ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},COVERS_BUCKET=${COVERS_BUCKET},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID},COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID},WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},IMAGE_PROXY_KEY_PARAMETER=${IMAGE_PROXY_KEY_PARAMETER},APIFY_API_TOKEN_PARAMETER=${APIFY_API_TOKEN_PARAMETER},IMAGE_API_URL=https://academiamusica-image-proxy.fellipesaraivabarbosa.workers.dev,IMAGE_MODEL=cx/gpt-5.5,MUSIC_TRACKS_INCLUDED=25,SES_REGION=${SES_REGION},EMAIL_FROM_ADDRESS=${MUSIC_EMAIL_FROM_ADDRESS},EMAIL_REPLY_TO_ADDRESS=${MUSIC_EMAIL_REPLY_TO_ADDRESS},EMAIL_CONFIGURATION_SET=${MUSIC_EMAIL_CONFIGURATION_SET}}"
+ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},COVERS_BUCKET=${COVERS_BUCKET},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID},COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID},WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},IMAGE_PROXY_KEY_PARAMETER=${IMAGE_PROXY_KEY_PARAMETER},IMAGE_API_URL=https://academiamusica-image-proxy.fellipesaraivabarbosa.workers.dev,IMAGE_MODEL=cx/gpt-5.5,MUSIC_TRACKS_INCLUDED=25,SES_REGION=${SES_REGION},EMAIL_FROM_ADDRESS=${MUSIC_EMAIL_FROM_ADDRESS},EMAIL_REPLY_TO_ADDRESS=${MUSIC_EMAIL_REPLY_TO_ADDRESS},EMAIL_CONFIGURATION_SET=${MUSIC_EMAIL_CONFIGURATION_SET}}"
 
 if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAME" >/dev/null 2>&1; then
   aws lambda wait function-active-v2 --region "$AWS_REGION" --function-name "$FUNCTION_NAME"

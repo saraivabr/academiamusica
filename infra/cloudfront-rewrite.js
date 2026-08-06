@@ -1,6 +1,6 @@
 var crypto = require("crypto");
 var ACCESS_SECRET = "__ACCESS_SECRET__";
-var PROTECTED_PREFIXES = ["/academia", "/biblioteca", "/comunidade"];
+var PROTECTED_PREFIXES = ["/biblioteca"];
 
 function isProtected(uri) {
   for (var index = 0; index < PROTECTED_PREFIXES.length; index += 1) {

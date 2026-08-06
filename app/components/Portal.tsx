@@ -46,7 +46,7 @@ export function AcademyShell({
   return (
     <div className={`academy-shell ${className}`.trim()}>
       <aside className="academy-sidebar">
-        <Logo href="/academia" />
+        <Logo href="/biblioteca" />
         <Link href="/biblioteca/gerador" className="academy-new-session">
           <span aria-hidden="true"><Plus /></span>
           Nova criação

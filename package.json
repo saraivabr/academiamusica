@@ -13,6 +13,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report playwright-report/e2e",
     "deploy:aws": "bash infra/deploy-site.sh",
+    "deploy:ads": "bash infra/deploy-ads.sh",
     "deploy:checkout": "bash infra/deploy-checkout.sh",
     "orders": "bash infra/orders.sh",
     "funnel": "bash infra/funnel.sh",

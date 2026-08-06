@@ -19,12 +19,6 @@ import {
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import { SendEmailCommand, SESv2Client } from "@aws-sdk/client-sesv2";
 import { GetParameterCommand, SSMClient } from "@aws-sdk/client-ssm";
-import {
-  buildGoogleMapsActorInput,
-  businessProspectConfig,
-  normalizeBusinessProspect,
-  normalizeBusinessSearch,
-} from "./business-prospects.mjs";
 import { buildMusicReadyEmail } from "./music-ready-email.mjs";
 
 const dynamo = new DynamoDBClient({});
@@ -35,8 +29,6 @@ const ssm = new SSMClient({});
 const TABLE_NAME = process.env.TABLE_NAME;
 const EVENTS_TABLE_NAME = process.env.EVENTS_TABLE_NAME;
 const SITE_ORIGIN = process.env.SITE_ORIGIN ?? "https://musicacom.ia.br";
-const APIFY_BASE_URL = "https://api.apify.com/v2";
-const APIFY_API_TOKEN_PARAMETER = process.env.APIFY_API_TOKEN_PARAMETER;
 const WOOVI_BASE_URL = "https://api.woovi.com/api/v1";
 const SUNO_BASE_URL = "https://api.sunoapi.org/api/v1";
 const PUBLIC_API_URL = process.env.PUBLIC_API_URL;
@@ -187,9 +179,6 @@ const ALLOWED_CLIENT_EVENTS = new Set([
   "cover_downloaded",
   "credits_offer_selected",
   "credits_checkout_started",
-  "prospect_search_started",
-  "prospect_search_completed",
-  "prospect_jingle_started",
   "style_jingle_played",
   "music_version_selected",
   "music_next_step_selected",
@@ -198,7 +187,6 @@ const ALLOWED_CLIENT_EVENTS = new Set([
 let cachedSecrets;
 let cachedSunoApiKey;
 let cachedImageProxyKey;
-let cachedApifyApiToken;
 let cachedCognitoJwks;
 let cachedCognitoJwksFetchedAt = 0;
 let cachedCognitoJwksForcedRefreshAt = 0;
@@ -535,59 +523,6 @@ async function recordMemberMusicEvent(order, name, id, value, context = {}) {
   });
 }
 
-async function reserveBusinessSearch(orderId) {
-  if (!EVENTS_TABLE_NAME) return true;
-  const day = saoPauloDay();
-  try {
-    await dynamo.send(new UpdateItemCommand({
-      TableName: EVENTS_TABLE_NAME,
-      Key: { id: { S: `business_search_limit_${orderId}_${day}` } },
-      UpdateExpression: "SET #name = :name, orderId = :orderId, updatedAt = :updatedAt, #ttl = :ttl ADD searchCount :one",
-      ConditionExpression: "attribute_not_exists(searchCount) OR searchCount < :limit",
-      ExpressionAttributeNames: {
-        "#name": "name",
-        "#ttl": "ttl",
-      },
-      ExpressionAttributeValues: {
-        ":name": { S: "business_search_rate_limit" },
-        ":orderId": { S: orderId },
-        ":updatedAt": { S: new Date().toISOString() },
-        ":ttl": { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 48) },
-        ":one": { N: "1" },
-        ":limit": { N: String(businessProspectConfig.dailySearchLimit) },
-      },
-    }));
-    return true;
-  } catch (error) {
-    if (error instanceof ConditionalCheckFailedException) return false;
-    throw error;
-  }
-}
-
-async function releaseBusinessSearch(orderId) {
-  if (!EVENTS_TABLE_NAME) return;
-  const day = saoPauloDay();
-  try {
-    await dynamo.send(new UpdateItemCommand({
-      TableName: EVENTS_TABLE_NAME,
-      Key: { id: { S: `business_search_limit_${orderId}_${day}` } },
-      UpdateExpression: "ADD searchCount :minusOne",
-      ConditionExpression: "searchCount > :zero",
-      ExpressionAttributeValues: {
-        ":minusOne": { N: "-1" },
-        ":zero": { N: "0" },
-      },
-    }));
-  } catch (error) {
-    if (!(error instanceof ConditionalCheckFailedException)) {
-      console.error("Unable to release business search reservation", {
-        orderId,
-        message: error.message,
-      });
-    }
-  }
-}
-
 async function reserveCoverGeneration(orderId) {
   if (!EVENTS_TABLE_NAME) return true;
   const day = new Date().toISOString().slice(0, 10);
@@ -723,62 +658,6 @@ async function getImageProxyKey() {
   cachedImageProxyKey = result.Parameter?.Value;
   if (!cachedImageProxyKey) throw new Error("Image proxy key is unavailable");
   return cachedImageProxyKey;
-}
-
-async function getApifyApiToken() {
-  if (cachedApifyApiToken) return cachedApifyApiToken;
-  if (!APIFY_API_TOKEN_PARAMETER) {
-    const error = new Error("A busca de negócios ainda não está configurada.");
-    error.statusCode = 503;
-    throw error;
-  }
-  try {
-    const result = await ssm.send(new GetParameterCommand({
-      Name: APIFY_API_TOKEN_PARAMETER,
-      WithDecryption: true,
-    }));
-    cachedApifyApiToken = result.Parameter?.Value;
-  } catch (cause) {
-    console.error("Unable to load Apify API token", {
-      name: cause.name,
-      message: cause.message,
-    });
-  }
-  if (!cachedApifyApiToken) {
-    const error = new Error("A busca de negócios ainda não está configurada.");
-    error.statusCode = 503;
-    throw error;
-  }
-  return cachedApifyApiToken;
-}
-
-async function apifyRequest(path, init = {}) {
-  const token = await getApifyApiToken();
-  const headers = new Headers(init.headers);
-  headers.set("accept", "application/json");
-  headers.set("authorization", `Bearer ${token}`);
-  if (init.body) headers.set("content-type", "application/json");
-  const result = await fetch(`${APIFY_BASE_URL}${path}`, {
-    ...init,
-    headers,
-    signal: AbortSignal.timeout(20_000),
-  });
-  const data = await result.json().catch(() => ({}));
-  if (!result.ok) {
-    console.error("Apify request failed", {
-      path,
-      status: result.status,
-      errorType: data?.error?.type,
-    });
-    const error = new Error(
-      result.status === 402
-        ? "A cota do Apify precisa ser renovada para continuar a busca."
-        : "A busca externa está temporariamente indisponível.",
-    );
-    error.statusCode = result.status === 429 ? 429 : 502;
-    throw error;
-  }
-  return data.data ?? data;
 }
 
 function memberToken(event) {
@@ -1032,144 +911,6 @@ async function authorizeMember(event) {
   return order && ["FREE", "PAID", "OWNER"].includes(order.status)
     ? order
     : null;
-}
-
-function businessSearchRecordId(runId) {
-  return `business_search_${runId}`;
-}
-
-async function createBusinessSearch(event) {
-  const order = await authorizeMember(event);
-  if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
-
-  let body;
-  try {
-    body = readBody(event);
-  } catch {
-    return response(400, { error: "Não consegui ler os dados da busca." });
-  }
-  const search = normalizeBusinessSearch(body);
-  if (!search) {
-    return response(400, {
-      error: "Informe o tipo de negócio e a cidade onde deseja procurar.",
-    });
-  }
-  if (!(await reserveBusinessSearch(order.id))) {
-    return response(429, {
-      error: "Você chegou ao limite de 5 buscas de hoje. Tente novamente amanhã.",
-    });
-  }
-
-  try {
-    const params = new URLSearchParams({
-      maxItems: String(search.limit),
-      maxTotalChargeUsd: String(businessProspectConfig.maxTotalChargeUsd),
-    });
-    const run = await apifyRequest(
-      `/actors/${businessProspectConfig.actorId}/runs?${params}`,
-      {
-        method: "POST",
-        body: JSON.stringify(buildGoogleMapsActorInput(search)),
-      },
-    );
-    const runId = safeString(run.id, 80);
-    const datasetId = safeString(run.defaultDatasetId, 80);
-    if (!/^[a-zA-Z0-9]{10,40}$/.test(runId) || !/^[a-zA-Z0-9]{10,40}$/.test(datasetId)) {
-      throw new Error("Apify returned an invalid search run");
-    }
-
-    await dynamo.send(new PutItemCommand({
-      TableName: EVENTS_TABLE_NAME,
-      Item: {
-        id: { S: businessSearchRecordId(runId) },
-        name: { S: "business_search" },
-        orderId: { S: order.id },
-        actorRunId: { S: runId },
-        datasetId: { S: datasetId },
-        query: { S: search.query },
-        location: { S: search.location },
-        resultLimit: { N: String(search.limit) },
-        createdAt: { S: new Date().toISOString() },
-        ttl: { N: String(Math.floor(Date.now() / 1000) + 60 * 60 * 24) },
-      },
-      ConditionExpression: "attribute_not_exists(id)",
-    }));
-
-    return response(202, {
-      searchId: runId,
-      status: safeString(run.status, 40) || "RUNNING",
-      query: search.query,
-      location: search.location,
-    });
-  } catch (error) {
-    await releaseBusinessSearch(order.id);
-    if (error.statusCode) throw error;
-    console.error("Unable to start business search", {
-      orderId: order.id,
-      name: error.name,
-      message: error.message,
-    });
-    return response(502, {
-      error: "Não consegui iniciar a busca agora. Tente novamente em alguns instantes.",
-    });
-  }
-}
-
-async function getBusinessSearch(event, runId) {
-  const order = await authorizeMember(event);
-  if (!order) return response(401, { error: "Sua sessão expirou. Entre novamente." });
-  if (!/^[a-zA-Z0-9]{10,40}$/.test(runId)) {
-    return response(404, { error: "Busca não encontrada." });
-  }
-  const stored = await dynamo.send(new GetItemCommand({
-    TableName: EVENTS_TABLE_NAME,
-    Key: { id: { S: businessSearchRecordId(runId) } },
-    ConsistentRead: true,
-  }));
-  const search = stored.Item;
-  if (!search || search.orderId?.S !== order.id) {
-    return response(404, { error: "Busca não encontrada." });
-  }
-
-  const run = await apifyRequest(`/actor-runs/${runId}`);
-  const status = safeString(run.status, 40);
-  if (status !== "SUCCEEDED") {
-    if (["FAILED", "ABORTED", "TIMED-OUT"].includes(status)) {
-      return response(502, {
-        status,
-        error: "A busca não terminou corretamente. Você pode iniciar uma nova pesquisa.",
-      });
-    }
-    return response(202, {
-      searchId: runId,
-      status: status || "RUNNING",
-    });
-  }
-
-  const datasetId = safeString(run.defaultDatasetId || search.datasetId?.S, 80);
-  if (!/^[a-zA-Z0-9]{10,40}$/.test(datasetId)) {
-    return response(502, { error: "O resultado da busca não foi localizado." });
-  }
-  const resultLimit = Math.min(10, Math.max(1, Number(search.resultLimit?.N ?? "10")));
-  const items = await apifyRequest(
-    `/datasets/${datasetId}/items?clean=1&format=json&limit=${resultLimit}`,
-  );
-  const prospects = [];
-  const seen = new Set();
-  for (const item of Array.isArray(items) ? items : []) {
-    const prospect = normalizeBusinessProspect(item);
-    if (!prospect || seen.has(prospect.id)) continue;
-    seen.add(prospect.id);
-    prospects.push(prospect);
-  }
-
-  return response(200, {
-    searchId: runId,
-    status,
-    query: search.query?.S ?? "",
-    location: search.location?.S ?? "",
-    prospects,
-  });
 }
 
 function normalizeSunoTrack(track) {
@@ -3713,19 +3454,10 @@ export const handler = async (event) => {
     }
     if (
       method === "GET"
-      && (path === "/v1/music/availability" || path === "/v1/suno/credits")
+      && path === "/v1/music/availability"
     ) return await getSunoCredits(event);
     if (method === "GET" && path === "/v1/music/library") {
       return await getMusicLibrary(event);
-    }
-    if (method === "POST" && path === "/v1/prospects/search") {
-      return await createBusinessSearch(event);
-    }
-    if (method === "GET" && path.startsWith("/v1/prospects/search/")) {
-      return await getBusinessSearch(
-        event,
-        decodeURIComponent(path.slice("/v1/prospects/search/".length)),
-      );
     }
     if (method === "POST" && path === "/v1/music/covers/prepare") {
       return await prepareMusicCover(event);
@@ -3754,7 +3486,7 @@ export const handler = async (event) => {
     }
     if (
       method === "POST"
-      && (path === "/v1/music/generations" || path === "/v1/suno/generations")
+      && path === "/v1/music/generations"
     ) {
       return await createSunoGeneration(event);
     }
@@ -3762,12 +3494,6 @@ export const handler = async (event) => {
       return await getSunoGeneration(
         event,
         decodeURIComponent(path.slice("/v1/music/generations/".length)),
-      );
-    }
-    if (method === "GET" && path.startsWith("/v1/suno/generations/")) {
-      return await getSunoGeneration(
-        event,
-        decodeURIComponent(path.slice("/v1/suno/generations/".length)),
       );
     }
     if (method === "POST" && path === "/v1/suno/callback") {

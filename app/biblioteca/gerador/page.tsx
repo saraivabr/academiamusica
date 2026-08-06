@@ -6,11 +6,6 @@ import { AcademyShell } from "../../components/Portal";
 import { memberApi } from "../../lib/access";
 import { getAnalyticsContext, trackEvent } from "../../lib/analytics";
 import {
-  businessProspectStorageKey,
-  createBusinessJingleIdea,
-  isBusinessProspect,
-} from "../../lib/businessProspects";
-import {
   clearAcademyPlayerSelection,
   playInAcademyPlayer,
 } from "../../lib/musicPlatform";
@@ -225,23 +220,7 @@ export default function Gerador() {
     const timer = window.setTimeout(() => {
       const params = new URLSearchParams(window.location.search);
       const importSource = params.get("source") || "";
-      let importedBusinessName = "";
-      let importedIdea = params.get("idea")?.trim().slice(0, 500) || "";
-      if (importSource === "business-prospect") {
-        try {
-          const storedProspect = JSON.parse(
-            window.sessionStorage.getItem(businessProspectStorageKey) || "null",
-          );
-          if (isBusinessProspect(storedProspect)) {
-            importedIdea = createBusinessJingleIdea(storedProspect);
-            importedBusinessName = storedProspect.name;
-          }
-        } catch {
-          // A malformed browser draft must not prevent the creator from opening.
-        } finally {
-          window.sessionStorage.removeItem(businessProspectStorageKey);
-        }
-      }
+      const importedIdea = params.get("idea")?.trim().slice(0, 500) || "";
       const importedStyle = findStyle(params.get("style") || "");
       let nextPlan = defaultPlan;
       let nextCreationType = "historia";
@@ -274,9 +253,7 @@ export default function Gerador() {
           ...(importedIdea ? { theme: importedIdea, instrumental: false } : {}),
           ...(importedStyle ? { style: importedStyle.name } : {}),
         };
-        nextCreationType = importedBusinessName
-          ? "jingle"
-          : importedIdea ? "historia" : nextCreationType;
+        nextCreationType = importedIdea ? "historia" : nextCreationType;
         nextTaskId = "";
         nextGenerationStatus = "IDLE";
         nextTracks = [];
@@ -286,19 +263,12 @@ export default function Gerador() {
           : nextPlan.theme.trim().length >= 8
             ? nextPlan.instrumental ? 4 : 5
             : 2;
-        setImportNotice(importedBusinessName
-          ? `${importedBusinessName} foi aplicado ao briefing. Agora escolha o clima do jingle.`
-          : importedIdea
-            ? "Sua história foi aplicada. Agora escolha o clima."
-            : `${importedStyle?.name} foi aplicado. Continue sua direção.`);
+        setImportNotice(importedIdea
+          ? "Sua história foi aplicada. Agora escolha o clima."
+          : `${importedStyle?.name} foi aplicado. Continue sua direção.`);
         trackEvent("expert_direction_received", window.location.pathname, {
           placement: importSource || "direct",
         });
-        if (importedBusinessName) {
-          trackEvent("prospect_jingle_creator_opened", window.location.pathname, {
-            placement: "business-prospect",
-          });
-        }
         window.history.replaceState({}, "", window.location.pathname);
       }
 
@@ -607,16 +577,6 @@ export default function Gerador() {
                   <b>Exemplo</b>
                   <p>“Quero homenagear minha mãe, que criou três filhos sozinha e nunca deixou faltar amor.”</p>
                 </div>
-                {creationType === "jingle" ? (
-                  <Link className="express-business-search" href="/biblioteca/negocios">
-                    <span>⌖</span>
-                    <div>
-                      <b>Ainda não escolheu uma empresa?</b>
-                      <small>Busque negócios reais com o Apify e volte com o briefing preenchido.</small>
-                    </div>
-                    <em>Buscar negócios →</em>
-                  </Link>
-                ) : null}
               </section>
             ) : null}
 

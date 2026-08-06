@@ -6,8 +6,13 @@ DISTRIBUTION_ID="${DISTRIBUTION_ID:-E7L2G8OQTXQNS}"
 
 ./node_modules/.bin/next build
 
+# Os criativos de campanha em public/ads/ ficam fora do deploy do site: são
+# 122 MB que nenhuma página referencia. O --exclude também protege do --delete,
+# então os anúncios já publicados continuam servidos pela CDN.
+# Para publicar um criativo novo: npm run deploy:ads
 aws s3 sync out "s3://${BUCKET_NAME}" \
   --delete \
+  --exclude "ads/*" \
   --cache-control "public,max-age=0,must-revalidate" \
   --only-show-errors
 
@@ -19,6 +24,7 @@ aws s3 cp out/_next/static "s3://${BUCKET_NAME}/_next/static" \
 aws s3 cp out "s3://${BUCKET_NAME}" \
   --recursive \
   --exclude "*" \
+  --exclude "ads/*" \
   --include "*.webp" \
   --include "*.png" \
   --include "*.jpg" \

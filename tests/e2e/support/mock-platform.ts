@@ -26,7 +26,6 @@ async function json(route: Route, body: unknown, status = 200) {
 
 export async function mockPlatform(page: Page, options: MockOptions = {}) {
   let registrationAttempts = 0;
-  let businessSearchPolls = 0;
 
   await page.addInitScript(() => {
     document.cookie = "academia_access=v1.2000000000.e2e-user.signature; Path=/; SameSite=Strict";
@@ -146,42 +145,6 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
             }]
           : [],
       });
-      return;
-    }
-
-    if (url.pathname === "/v1/prospects/search" && request.method() === "POST") {
-      await json(route, {
-        searchId: "e2eBusinessRun01",
-        status: "READY",
-        query: "cafeterias",
-        location: "Salvador, BA",
-      }, 202);
-      return;
-    }
-
-    if (url.pathname === "/v1/prospects/search/e2eBusinessRun01") {
-      businessSearchPolls += 1;
-      await json(route, businessSearchPolls > 0
-        ? {
-            searchId: "e2eBusinessRun01",
-            status: "SUCCEEDED",
-            prospects: [{
-              id: "ChIJ-e2e",
-              name: "Café da Praça",
-              category: "Cafeteria",
-              address: "Salvador, BA",
-              phone: "(71) 99999-0000",
-              website: "https://cafe.example.test/",
-              mapsUrl: "https://maps.google.com/example",
-              imageUrl: "",
-              rating: 4.8,
-              reviewsCount: 234,
-            }],
-          }
-        : {
-            searchId: "e2eBusinessRun01",
-            status: "RUNNING",
-          });
       return;
     }
 

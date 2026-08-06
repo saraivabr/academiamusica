@@ -19,7 +19,7 @@ export default function AcademyTopBar({
           <Sparkles aria-hidden="true" />
           Criar música
         </Link>
-        <Link href="/academia" className="avatar" title="Início do estúdio" aria-label="Ir para o início do estúdio">
+        <Link href="/biblioteca" className="avatar" title="Início do estúdio" aria-label="Ir para o início do estúdio">
           <UserRound aria-hidden="true" />
         </Link>
       </div>

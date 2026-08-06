@@ -23,13 +23,12 @@ backend é uma Lambda única atrás do API Gateway.
 Next (output: export) ──> S3 ──> CloudFront ──> musicacom.ia.br
                                       │
                                       └── CloudFront Function valida o cookie
-                                          assinado em /academia e /biblioteca
+                                          assinado em /biblioteca
 
 Browser ──> API Gateway ──> Lambda (infra/checkout/index.mjs)
                               ├── Woovi ......... Pix avulso e Pix Automático
                               ├── Cognito ....... conta, e-mail e Google (PKCE)
                               ├── Suno .......... geração musical
-                              ├── Apify ......... prospecção de negócios
                               ├── S3 + proxy .... criação de capas
                               ├── SES ........... e-mail de música pronta
                               └── DynamoDB ...... pedidos e eventos
@@ -52,6 +51,7 @@ Segredos vivem em `/academia-musica/prod/` no SSM e nunca no repositório.
 | `npm run test:e2e` | jornadas em desktop e celular sobre o `out/` |
 | `npm run lint` | ESLint |
 | `npm run deploy:aws` | publica o site e invalida a CDN |
+| `npm run deploy:ads` | publica só os criativos de `public/ads/`, que ficam fora do deploy do site |
 | `npm run deploy:checkout` | atualiza a Lambda, a API e as permissões |
 | `npm run orders` | lista pedidos e pagamentos |
 | `npm run funnel` | funil dos últimos 14 dias, por origem |

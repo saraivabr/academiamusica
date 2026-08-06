@@ -1,18 +1,5 @@
 /* Diretor de Capa — identidade visual da faixa */
 
-.module-intro-action {
-  display: inline-flex;
-  min-height: 46px;
-  align-items: center;
-  margin-top: 12px;
-  padding: 0 20px;
-  border-radius: 10px;
-  background: #28d86c;
-  color: #07130b;
-  font-size: 13px;
-  font-weight: 800;
-}
-
 .cover-academy {
   background:
     radial-gradient(circle at 82% 8%, rgba(232, 189, 114, .08), transparent 26%),

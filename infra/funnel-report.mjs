@@ -21,45 +21,9 @@ const events = (payload.Items ?? []).map((item) => ({
 }));
 
 const DECISION_SESSION_MINIMUM = 100;
-const SOURCE_SESSION_MINIMUM = 30;
 const HOME_EXPERIMENT = "home_story_start_v1";
 const HOME_VARIANTS = ["control", "gift_first", "example_first"];
 const HOME_VARIANT_MINIMUM = 30;
-
-const apifyJingleStages = [
-  {
-    label: "Apify com resultados",
-    matches: (event) => (
-      event.name === "prospect_search_completed"
-      && event.outcome === "results"
-    ),
-  },
-  {
-    label: "Negócio escolhido",
-    matches: (event) => event.name === "prospect_jingle_started",
-  },
-  {
-    label: "Criador de jingle",
-    matches: (event) => (
-      event.name === "prospect_jingle_creator_opened"
-      || (
-        event.name === "expert_direction_received"
-        && event.placement === "business-prospect"
-      )
-    ),
-  },
-  {
-    label: "Música entregue",
-    matches: (event) => (
-      event.name === "music_generation_completed"
-      || event.name === "music_generation_delivered"
-    ),
-  },
-  {
-    label: "Primeira escuta",
-    matches: (event) => event.name === "music_result_played",
-  },
-];
 
 const stages = [
   { name: "landing_view", label: "Visitas" },
@@ -97,55 +61,6 @@ const invalidSessionEvents = (name) => events.filter((event) => (
 
 const percent = (value, base) => base > 0 ? `${((value / base) * 100).toFixed(1)}%` : "—";
 const validSession = (event) => event.sessionId && event.sessionId !== "server";
-
-function eventTimestamp(event) {
-  const timestamp = Date.parse(event.createdAt);
-  return Number.isFinite(timestamp) ? timestamp : null;
-}
-
-function buildLinkedJourney(sourceEvents) {
-  const bySession = new Map();
-  for (const event of sourceEvents) {
-    if (!validSession(event) || eventTimestamp(event) === null) continue;
-    const sessionEvents = bySession.get(event.sessionId) ?? [];
-    sessionEvents.push(event);
-    bySession.set(event.sessionId, sessionEvents);
-  }
-
-  const journeys = [];
-  for (const sessionEvents of bySession.values()) {
-    let after = Number.NEGATIVE_INFINITY;
-    const reached = [];
-    for (const stage of apifyJingleStages) {
-      const match = sessionEvents
-        .filter((event) => (
-          stage.matches(event)
-          && eventTimestamp(event) >= after
-        ))
-        .sort((left, right) => eventTimestamp(left) - eventTimestamp(right))[0];
-      if (!match) break;
-      reached.push(match);
-      after = eventTimestamp(match);
-    }
-    if (reached.length) {
-      journeys.push({
-        source: reached[0].source || "unknown",
-        reached,
-      });
-    }
-  }
-  return journeys;
-}
-
-function journeyCounts(journeys) {
-  return apifyJingleStages.map((_, index) => (
-    journeys.filter((journey) => journey.reached.length > index).length
-  ));
-}
-
-function sampleStatus(sessions, minimum) {
-  return sessions >= minimum ? "pronta" : `${sessions}/${minimum}`;
-}
 
 function rateCell(value, base) {
   return `${value} · ${percent(value, base)}`;
@@ -240,76 +155,6 @@ function printHomeExperiment() {
   }
 }
 
-function printApifyJingleJourney() {
-  const journeys = buildLinkedJourney(events);
-  const counts = journeyCounts(journeys);
-  const emptySearchSessions = new Set(
-    events
-      .filter((event) => (
-        validSession(event)
-        && event.name === "prospect_search_completed"
-        && event.outcome === "empty"
-      ))
-      .map((event) => event.sessionId),
-  ).size;
-  const invalidEvents = events.filter((event) => (
-    !validSession(event)
-    && apifyJingleStages.some((stage) => stage.matches(event))
-  )).length;
-
-  console.log("JORNADA APIFY → PRIMEIRA ESCUTA");
-  console.log("Sessões únicas e vinculadas na ordem da jornada.");
-  console.log("");
-  console.log(
-    `${"ETAPA".padEnd(24)}  ${"SESSÕES".padStart(7)}  ${"TAXA ANTERIOR".padStart(13)}  ${"TAXA APIFY".padStart(10)}`,
-  );
-  for (const [index, stage] of apifyJingleStages.entries()) {
-    const previous = index === 0 ? 0 : counts[index - 1];
-    console.log(
-      `${stage.label.padEnd(24)}  ${String(counts[index]).padStart(7)}  ${(
-        index === 0 ? "—" : percent(counts[index], previous)
-      ).padStart(13)}  ${percent(counts[index], counts[0]).padStart(10)}`,
-    );
-  }
-
-  console.log("");
-  if (counts[0] >= DECISION_SESSION_MINIMUM) {
-    console.log(
-      `DECISÃO: amostra geral pronta (${counts[0]} sessões Apify; mínimo ${DECISION_SESSION_MINIMUM}).`,
-    );
-  } else {
-    console.log(
-      `DECISÃO: aguarde mais volume (${counts[0]}/${DECISION_SESSION_MINIMUM} sessões Apify).`,
-    );
-  }
-  console.log(`Sessões com ao menos uma busca sem resultado: ${emptySearchSessions}.`);
-  console.log(`Eventos da jornada sem sessão válida: ${invalidEvents}.`);
-
-  const origins = [...new Set(journeys.map((journey) => journey.source))]
-    .map((source) => {
-      const sourceJourneys = journeys.filter((journey) => journey.source === source);
-      return { source, counts: journeyCounts(sourceJourneys) };
-    })
-    .sort((left, right) => (
-      right.counts[0] - left.counts[0]
-      || left.source.localeCompare(right.source, "pt-BR")
-    ));
-
-  if (!origins.length) return;
-  console.log("");
-  console.log(`POR ORIGEM — mínimo ${SOURCE_SESSION_MINIMUM} sessões Apify por origem`);
-  console.log("Cada taxa compara com a etapa anterior; FINAL = primeira escuta ÷ Apify.");
-  console.log(
-    `${"ORIGEM".padEnd(22)}  ${"APIFY".padStart(5)}  ${"ESCOLHA".padStart(12)}  ${"CRIADOR".padStart(12)}  ${"ENTREGA".padStart(12)}  ${"ESCUTA".padStart(12)}  ${"FINAL".padStart(7)}  ${"AMOSTRA".padStart(8)}`,
-  );
-  for (const origin of origins) {
-    const [apify, business, creator, delivered, listened] = origin.counts;
-    console.log(
-      `${origin.source.slice(0, 22).padEnd(22)}  ${String(apify).padStart(5)}  ${rateCell(business, apify).padStart(12)}  ${rateCell(creator, business).padStart(12)}  ${rateCell(delivered, creator).padStart(12)}  ${rateCell(listened, delivered).padStart(12)}  ${percent(listened, apify).padStart(7)}  ${sampleStatus(apify, SOURCE_SESSION_MINIMUM).padStart(8)}`,
-    );
-  }
-}
-
 const rows = stages.map((stage) => {
   const sessions = uniqueSessions(stage.name);
   const base = stage.base ? uniqueSessions(stage.base) : 0;
@@ -321,7 +166,6 @@ console.log(`RELATÓRIO DE FUNIL MUSICACOM.IA — últimos ${process.argv[2] ?? 
 console.log("");
 printHomeExperiment();
 console.log("");
-printApifyJingleJourney();
 console.log("");
 console.log("AQUISIÇÃO, PAGAMENTO E ACESSO");
 console.log("");

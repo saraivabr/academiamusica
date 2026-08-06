@@ -3,7 +3,6 @@ export const authenticatedWorkspaceOwnerKey = "academia_authenticated_workspace_
 export const authenticatedWorkspaceKeys = [
   "academia_express_studio_v1",
   "academia-musica:pending-cover",
-  "academia_business_jingle_prospect_v1",
 ];
 
 export function memberIdentityFromToken(token) {

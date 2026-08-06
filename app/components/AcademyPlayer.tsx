@@ -126,7 +126,7 @@ export default function AcademyPlayer() {
   }, [selection]);
 
   const playableUrl = selection ? playableTrackUrl(selection.track) : "";
-  const visible = pathname.startsWith("/academia") || pathname.startsWith("/biblioteca");
+  const visible = pathname.startsWith("/biblioteca");
 
   useGSAP(() => {
     if (!visible || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;

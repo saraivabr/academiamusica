@@ -52,7 +52,6 @@ test("nested library routes mount an audio element before the user presses play"
   ]);
 
   assert.match(boundarySource, /normalizedPathname\.startsWith\("\/biblioteca\/"\)/);
-  assert.match(boundarySource, /normalizedPathname\.startsWith\("\/academia\/"\)/);
   assert.match(playerSource, /const audio = audioRef\.current;/);
   assert.match(playerSource, /audio\.src = nextUrl;/);
   assert.match(playerSource, /void audio\.play\(\)/);

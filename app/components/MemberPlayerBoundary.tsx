@@ -10,9 +10,7 @@ const AcademyPlayer = dynamic(() => import("./AcademyPlayer"), {
 export default function MemberPlayerBoundary() {
   const pathname = usePathname();
   const normalizedPathname = pathname.replace(/\/+$/, "") || "/";
-  const isListeningRoute = normalizedPathname === "/academia"
-    || normalizedPathname.startsWith("/academia/")
-    || normalizedPathname === "/biblioteca"
+  const isListeningRoute = normalizedPathname === "/biblioteca"
     || normalizedPathname.startsWith("/biblioteca/");
 
   if (!isListeningRoute) return null;

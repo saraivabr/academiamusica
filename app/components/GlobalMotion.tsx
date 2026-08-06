@@ -23,7 +23,6 @@ const dynamicSelector = [
   "[role='status']",
   ".express-scene",
   ".express-results",
-  ".prospect-results",
   ".credit-checkout",
   ".pix-card",
 ].join(",");

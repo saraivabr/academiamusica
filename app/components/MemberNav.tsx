@@ -4,16 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  ChevronRight,
-  CircleHelp,
   Coins,
-  Home,
   LibraryBig,
   LogOut,
   Music2,
   Plus,
   Sparkles,
-  Store,
   type LucideIcon,
 } from "lucide-react";
 import { clearMemberAccess, memberApi } from "../lib/access";
@@ -26,9 +22,7 @@ import {
 import { Flip, gsap, useGSAP } from "../lib/gsap";
 
 const primaryNavigation = [
-  { href: "/academia", label: "Início", icon: Home, exact: true },
   { href: "/biblioteca/gerador", label: "Criar", icon: Sparkles, featured: true },
-  { href: "/biblioteca/negocios", label: "Buscar negócios", icon: Store },
   { href: "/biblioteca", label: "Suas músicas", icon: LibraryBig, exact: true },
 ] satisfies Array<{
   href: string;
@@ -39,7 +33,6 @@ const primaryNavigation = [
 }>;
 
 const mobileNavigation = [
-  { href: "/academia", label: "Início", icon: Home, exact: true },
   { href: "/biblioteca/gerador", label: "Criar", icon: Sparkles },
   { href: "/biblioteca", label: "Músicas", icon: LibraryBig, exact: true },
   { href: "/biblioteca/creditos", label: "Créditos", icon: Coins },
@@ -213,12 +206,6 @@ export default function MemberNav() {
           <b>{`${remainingSongs ?? "—"} créditos`}</b>
         </div>
         <span><Plus aria-hidden="true" /> PIX</span>
-      </Link>
-
-      <Link className="academy-course-link" href="/academia/comecar">
-        <span aria-hidden="true"><CircleHelp /></span>
-        <div><small>AJUDA CONTEXTUAL</small><b>Como funciona</b></div>
-        <em aria-hidden="true"><ChevronRight /></em>
       </Link>
 
       <button
