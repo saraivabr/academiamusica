@@ -100,7 +100,7 @@ test("Offer V2 account uses verified email and privacy-safe abuse controls", asy
   assert.doesNotMatch(backend, /macAddress|rawIp/);
 });
 
-test("every generation is paid in credits, with no daily free benefit left", async () => {
+test("no new generation can be reserved for free", async () => {
   const [backend, creator, deploy] = await Promise.all([
     source("infra/checkout/index.mjs"),
     source("app/biblioteca/gerador/page.tsx"),
@@ -111,7 +111,25 @@ test("every generation is paid in credits, with no daily free benefit left", asy
   assert.match(backend, /reservationType !== "CREDITS"/);
   assert.match(backend, /allTracks\.slice\(0, trackLimit\)/);
   assert.match(creator, /reservationType: "CREDITS"/);
-  assert.doesNotMatch(surface, /FREE_DAILY|free_daily|dailyFree|freeDaily|LEGACY_DAILY_FREE_END_AT|dailyBenefitEndsAt/);
+  // O benefício em si acabou: nada concede, avalia ou anuncia crédito grátis.
+  assert.doesNotMatch(surface, /dailyFreeEligible|freeDailyState|free_daily_music|free_daily_attempt|LEGACY_DAILY_FREE_END_AT|dailyBenefitEndsAt|dailyFreeAvailable/);
+});
+
+test("refunding a legacy free generation never mints paid credits", async () => {
+  const backend = await source("infra/checkout/index.mjs");
+  const refund = backend.slice(
+    backend.indexOf("async function refundFailedSunoTask"),
+    backend.indexOf("async function getSunoCredits"),
+  );
+
+  // Reservas FREE_DAILY históricas nunca debitaram saldo, então devolver
+  // crédito por elas criaria saldo do nada.
+  assert.match(refund, /reservationType\?\.S !== "FREE_DAILY"/);
+  assert.match(refund, /debitedCredits\s*\?\s*\n?\s*"ADD sunoGenerationCount :minusOne, musicCreditsBalance :tracks"/);
+  assert.match(refund, /:\s*"ADD sunoGenerationCount :minusOne"/);
+  assert.match(refund, /return debitedCredits \? MUSIC_TRACKS_PER_GENERATION : 0;/);
+  // O saldo informado ao cliente segue o que foi de fato reposto.
+  assert.match(backend, /accountCreditsBalance\(order\) \+ refundedCredits/);
 });
 
 test("login redirect and Cognito key rotation are hardened", async () => {

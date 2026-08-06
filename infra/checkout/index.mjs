@@ -2449,9 +2449,10 @@ async function reconcileSunoTask(taskId, task, order) {
     ? safeString(data?.errorMessage || "A geração falhou. Ajuste a direção e tente novamente.", 240)
     : "";
   await rememberSunoTaskSnapshot(taskId, order.id, status, allTracks, errorMessage);
-  const refunded = failed
-    ? await refundFailedSunoTask(taskId, order.id)
-    : false;
+  const refundedCredits = failed
+    ? await refundFailedSunoTask(taskId, order.id, task)
+    : null;
+  const refunded = refundedCredits !== null;
   let creditsReturned = 0;
   if (status === "SUCCESS") {
     const success = await recordSuccessfulSunoTask(order, taskId, task, tracks);
@@ -2465,11 +2466,16 @@ async function reconcileSunoTask(taskId, task, order) {
     tracks,
     errorMessage,
     refunded,
+    refundedCredits: refundedCredits ?? 0,
     creditsReturned,
   };
 }
 
-async function refundFailedSunoTask(taskId, orderId) {
+async function refundFailedSunoTask(taskId, orderId, task) {
+  // A oferta gratuita não existe mais, mas o histórico dela continua no
+  // DynamoDB. Uma reserva antiga nunca debitou saldo, então devolver crédito
+  // por ela criaria saldo do nada.
+  const debitedCredits = task?.reservationType?.S !== "FREE_DAILY";
   try {
     const refundedAt = new Date().toISOString();
     await dynamo.send(new TransactWriteItemsCommand({
@@ -2490,24 +2496,28 @@ async function refundFailedSunoTask(taskId, orderId) {
           Update: {
             TableName: TABLE_NAME,
             Key: { id: { S: orderId } },
-            UpdateExpression: "ADD sunoGenerationCount :minusOne, musicCreditsBalance :tracks",
+            UpdateExpression: debitedCredits
+              ? "ADD sunoGenerationCount :minusOne, musicCreditsBalance :tracks"
+              : "ADD sunoGenerationCount :minusOne",
             ConditionExpression: "attribute_exists(id) AND sunoGenerationCount >= :one",
             ExpressionAttributeValues: {
               ":minusOne": { N: "-1" },
               ":one": { N: "1" },
-              ":tracks": { N: String(MUSIC_TRACKS_PER_GENERATION) },
+              ...(debitedCredits
+                ? { ":tracks": { N: String(MUSIC_TRACKS_PER_GENERATION) } }
+                : {}),
             },
           },
         },
       ],
     }));
-    return true;
+    return debitedCredits ? MUSIC_TRACKS_PER_GENERATION : 0;
   } catch (error) {
     if (
       error instanceof ConditionalCheckFailedException
       || error instanceof TransactionCanceledException
       || error.name === "TransactionCanceledException"
-    ) return false;
+    ) return null;
     throw error;
   }
 }
@@ -2679,6 +2689,7 @@ async function getSunoGeneration(event, taskId) {
     tracks,
     errorMessage,
     refunded,
+    refundedCredits,
     creditsReturned,
   } = await reconcileSunoTask(taskId, task, order);
   return response(200, {
@@ -2687,7 +2698,7 @@ async function getSunoGeneration(event, taskId) {
     tracks,
     error: errorMessage || null,
     remainingSongs: refunded
-      ? accountCreditsBalance(order) + MUSIC_TRACKS_PER_GENERATION
+      ? accountCreditsBalance(order) + refundedCredits
       : creditsReturned > 0
         ? accountCreditsBalance(order) + creditsReturned
         : undefined,
