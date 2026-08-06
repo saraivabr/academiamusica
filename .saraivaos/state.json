@@ -2,7 +2,7 @@
   "framework": "SaraivaOS",
   "version": "1.0.0",
   "createdAt": "2026-07-26T10:17:11.124Z",
-  "updatedAt": "2026-07-28T00:30:12.176Z",
+  "updatedAt": "2026-07-30T17:19:03.552Z",
   "project": {
     "id": "project-20260726101711-bd39b7b6",
     "name": "musicacom.ia",
@@ -10,12 +10,12 @@
     "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
   },
   "cycle": {
-    "currentStage": "validacao",
+    "currentStage": "aprendizado",
     "completedStages": []
   },
   "navigation": {
-    "currentRoute": "Rota Única publicada; medir abertura do criador até geração concluída nas primeiras 100 sessões válidas.",
-    "nextArtifact": "Resultado do experimento de ativação em 100 sessões, com taxa, inválidos e decisão supported/refuted/inconclusive.",
+    "currentRoute": "Manter a criação guiada brasileira como assimetria e transformar cada áudio entregue em um projeto contínuo: escolher versão, ouvir no player, criar capa, baixar ou gerar nova interpretação.",
+    "nextArtifact": "Medir escolha de versão e avanço para capa nas próximas 100 sessões válidas",
     "blocker": ""
   },
   "identity": {
@@ -25,8 +25,8 @@
     "objective": "Transformar o site em um sistema comercial mensurável que converte visitas em pagamentos e pagamentos em acesso entregue"
   },
   "evidenceSummary": {
-    "observed": 14,
-    "provided": 2,
+    "observed": 25,
+    "provided": 3,
     "inferred": 0,
     "hypothesis": 0,
     "unknown": 2
@@ -34,8 +34,9 @@
   "methods": {
     "active": [
       "saraiva-os",
-      "hyperframes",
-      "first-party-analytics"
+      "first-principles",
+      "jobs-minimalismo",
+      "tdd"
     ],
     "considered": []
   },
@@ -75,6 +76,24 @@
       "metric": "music_route_unique_confirmed / music_route_unique_opened; inválidos <=5%",
       "status": "pending",
       "createdAt": "2026-07-28T00:30:12.175Z"
+    },
+    {
+      "id": "action-20260730011146-e1cd97b4",
+      "title": "Publicar Oferta V2 em janela controlada e executar smoke test de compra",
+      "owner": "Saraiva + Codex",
+      "deadline": "2026-07-30",
+      "metric": "landing, prévia, Pix, pagamento, acesso e saldo de 20 créditos funcionando no domínio público",
+      "status": "pending",
+      "createdAt": "2026-07-30T01:11:46.499Z"
+    },
+    {
+      "id": "action-20260730171903-d5a2dbcc",
+      "title": "Coletar 30 sessões por variante da mensagem da home",
+      "owner": "Codex + tráfego do site",
+      "deadline": "",
+      "metric": "story_started / landing_view por variante; Pix e compra como guardrails",
+      "status": "pending",
+      "createdAt": "2026-07-30T17:19:03.551Z"
     }
   ],
   "experiments": [
@@ -109,6 +128,28 @@
       "target": ">=40.0% em 100 sessões válidas; telemetria inválida <=5%",
       "status": "active",
       "createdAt": "2026-07-28T00:29:30.537Z",
+      "result": null
+    },
+    {
+      "id": "exp-20260730151212-09a3d23f",
+      "name": "Resultado como projeto contínuo",
+      "hypothesis": "Explicitar a música escolhida e os próximos passos aumenta a passagem do áudio entregue para criação de capa.",
+      "metric": "music_next_step_selected cover dividido por music_generation_delivered",
+      "baseline": "coleta inicial",
+      "target": "30% ou mais em 100 entregas",
+      "status": "active",
+      "createdAt": "2026-07-30T15:12:12.059Z",
+      "result": null
+    },
+    {
+      "id": "exp-20260730171903-041e9d51",
+      "name": "Mensagem da home: história versus presente versus lembrança",
+      "hypothesis": "Se adaptarmos a primeira dobra ao motivo real de compra sem aumentar o atrito, então mais visitantes iniciarão uma história porque o valor ficará concreto antes de exigir esforço.",
+      "metric": "story_started dividido por landing_view, por variante, com Pix e compra como guardrails",
+      "baseline": "4,5% (2 histórias iniciadas em 44 visitas nos últimos 14 dias)",
+      "target": ">=20% de ganho relativo com 30 sessões por variante e intervalo de 95% sem sobreposição",
+      "status": "active",
+      "createdAt": "2026-07-30T17:19:03.453Z",
       "result": null
     }
   ],
@@ -154,6 +195,55 @@
       "type": "isolamento de workspace",
       "proof": "Teste comportamental preserva a mesma conta e limpa troca de conta ou logout",
       "createdAt": "2026-07-28T00:07:31.290Z"
+    },
+    {
+      "id": "artifact-20260728052517-48dc3218",
+      "path": "docs/brand-system.md",
+      "type": "sistema de marca",
+      "proof": "tokens, regras de uso e kit de ativos implementados",
+      "createdAt": "2026-07-28T05:25:17.372Z"
+    },
+    {
+      "id": "artifact-20260728052517-3a5fa61b",
+      "path": ".saraivaos/artifacts/brand-refresh-2026-07-28.md",
+      "type": "relatório multimodal",
+      "proof": "comparação visual e screenshots locais de landing, login, academia e QG Ads",
+      "createdAt": "2026-07-28T05:25:17.440Z"
+    },
+    {
+      "id": "artifact-20260730005052-91f145bf",
+      "path": "docs/saraivaos-plano-oferta-v2.md",
+      "type": "blueprint",
+      "proof": "Plano inspecionado com sinais, rota, arquitetura, fases, testes, critérios de aceite e experimento de R$ 500",
+      "createdAt": "2026-07-30T00:50:52.635Z"
+    },
+    {
+      "id": "artifact-20260730011146-f626bf6d",
+      "path": "app/preview/page.tsx",
+      "type": "product",
+      "proof": "Prévia criativa sem áudio implementada e validada em desktop e mobile",
+      "createdAt": "2026-07-30T01:11:46.353Z"
+    },
+    {
+      "id": "artifact-20260730011146-5a3a8774",
+      "path": "tests/offer-v2-contract.test.mjs",
+      "type": "proof",
+      "proof": "Contrato Oferta V2, transição legada e devolução idempotente de créditos cobertos por testes",
+      "createdAt": "2026-07-30T01:11:46.390Z"
+    },
+    {
+      "id": "artifact-20260730151207-ec6b0af5",
+      "path": "app/biblioteca/gerador/page.tsx",
+      "type": "product-loop",
+      "proof": "Seleção explícita de versão, player persistente e painel de continuidade com capa, download e nova interpretação; build validado e 42 testes aprovados.",
+      "createdAt": "2026-07-30T15:12:07.379Z"
+    },
+    {
+      "id": "artifact-20260730171903-c1d061d8",
+      "path": "app/lib/conversionExperiment.ts",
+      "type": "motor de experimentos de conversão",
+      "proof": "três variantes persistentes, atribuição até pagamento, build validado e 48 testes aprovados",
+      "createdAt": "2026-07-30T17:19:03.503Z"
     }
   ],
   "sessions": [
@@ -163,6 +253,20 @@
       "objective": "Simplificar a criação musical, reduzir a navegação e preparar monetização recorrente por créditos Pix",
       "status": "active",
       "startedAt": "2026-07-26T18:02:54.391Z"
+    },
+    {
+      "id": "session-20260730005440-e3fa6bd1",
+      "mode": "text",
+      "objective": "Implementar a Oferta V2 aprovada sem publicar antes da validação ponta a ponta",
+      "status": "active",
+      "startedAt": "2026-07-30T00:54:40.904Z"
+    },
+    {
+      "id": "session-20260730151133-198e1956",
+      "mode": "multimodal",
+      "objective": "Observar líderes de música por IA e transformar o pós-geração do musicacom.ia em um projeto contínuo e mensurável",
+      "status": "active",
+      "startedAt": "2026-07-30T15:11:33.457Z"
     }
   ],
   "learnings": [
@@ -177,6 +281,12 @@
       "statement": "A direção musical estruturada pode ser enviada diretamente ao endpoint de geração; o chat é uma camada opcional de interface, não uma dependência do motor",
       "evidence": "auditoria de app/biblioteca/gerador/page.tsx e build validado",
       "createdAt": "2026-07-26T18:10:15.243Z"
+    },
+    {
+      "id": "learning-20260730151216-35f099df",
+      "statement": "Quando a entrada já reduz complexidade melhor que os líderes, a maior alavanca não é adicionar controles; é tornar explícita a continuidade após o primeiro resultado.",
+      "evidence": "Suno e Udio usam player, versões e remix para retenção; musicacom.ia já vence na direção guiada em português e ganhou um loop pós-geração mensurável.",
+      "createdAt": "2026-07-30T15:12:16.135Z"
     }
   ]
 }

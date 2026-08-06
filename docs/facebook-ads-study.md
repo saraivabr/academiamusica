@@ -6,7 +6,658 @@
 
 **Data do estudo:** 27 de julho de 2026
 
+**Atualização do plano de mídia:** 29 de julho de 2026
+
 **Status:** estratégia e preparação; nenhuma campanha publicada e nenhum orçamento ativado.
+
+## Plano executivo para os R$ 500
+
+Os R$ 500 devem ser tratados como **verba de validação**, não como verba de
+escala. O teste precisa responder três perguntas:
+
+1. qual promessa traz uma conta realmente confirmada;
+2. qual promessa leva a pessoa a concluir a primeira música;
+3. quantos desses usuários iniciam ou confirmam uma compra.
+
+### Verdade atual do funil
+
+Leitura de produção dos últimos 30 dias em 29/07/2026:
+
+| Sinal | Sessões únicas |
+| --- | ---: |
+| Visitas à landing | 38 |
+| Cliques em “começar” | 2 |
+| Aberturas do login | 19 |
+| Aberturas do criador | 7 |
+| Confirmações vinculadas da rota de criação | 3 |
+| Checkouts abertos | 4 |
+| Pix gerados | 1 |
+| Compras confirmadas | 0 |
+| Receita confirmada | R$ 0 |
+
+Há 10 visitas com referência de Facebook, mas nenhuma venda atribuída. A
+amostra ainda não permite calcular CAC, ROAS ou taxa de compra confiáveis.
+
+### Estrutura recomendada
+
+```text
+Campanha: META_SALES_BR_FREE_DAILY_TESTE_R500_2026Q3
+Objetivo: Vendas
+Conversão: site
+Orçamento vitalício: R$ 500
+Duração: 7 dias
+Conjunto: Brasil | 18+ | Advantage+ Audience | Advantage+ Placements
+Anúncio 1: Homenagem — “Uma história de vocês pode virar música”
+Anúncio 2: Demonstração — “De uma frase ao play”
+Anúncio 3: Composição — “Sua música não precisa ficar só na ideia”
+```
+
+O orçamento vitalício protege o teto de R$ 500. A média equivalente é de
+R$ 71,43 por dia, mas a Meta poderá distribuir valores diferentes entre os dias
+conforme as oportunidades de entrega. Não dividir em três conjuntos nem
+reservar verba para retargeting neste primeiro ciclo: o volume atual é pequeno
+demais e a fragmentação reduziria a aprendizagem.
+
+O evento inicial de otimização deve ser `CompleteRegistration`. Depois que
+`first_music_created` acumular volume e estiver validado, ele passa a ser a
+conversão principal. `Purchase` só deve assumir a otimização quando houver
+compras confirmadas suficientes e consistentes.
+
+### Distribuição lógica do teste
+
+Não haverá divisão manual de dinheiro entre anúncios; os três criativos ficam
+no mesmo conjunto para a Meta distribuir a entrega. O controle ocorre por
+marcos cumulativos:
+
+| Gasto acumulado | O que precisa ser verdade | Decisão |
+| ---: | --- | --- |
+| Antes de R$ 1 | Pixel, `CompleteRegistration`, UTMs e destino validados | não publicar se qualquer elo falhar |
+| R$ 150 | existe ao menos um cadastro confirmado atribuído | se for zero, pausar e corrigir anúncio/landing |
+| R$ 250 | existe ao menos uma primeira música atribuída | se for zero, pausar e corrigir ativação |
+| R$ 350 | existem sinais posteriores: retorno, checkout ou Pix | se forem zero, não tratar o teste como candidato a escala |
+| R$ 500 | calcular custo por cadastro, ativado e compra | decidir novo ciclo; não renovar automaticamente |
+
+Esses marcos são **travas de desperdício**, não benchmarks de mercado. Um único
+cadastro ou uma única música não prova sucesso; apenas evita continuar gastando
+quando o caminho está completamente quebrado.
+
+### Matemática do retorno
+
+A entrada custa R$ 49,97. Para recuperar R$ 500 apenas em faturamento bruto,
+seriam necessárias 11 compras:
+
+```text
+11 × R$ 49,97 = R$ 549,67
+```
+
+Dez compras gerariam R$ 499,70 e ainda não cobririam a mídia. O ponto de
+equilíbrio real é mais alto porque cada compra possui custo de geração, taxa do
+Pix, impostos, reembolsos e suporte.
+
+| Margem de contribuição hipotética | Contribuição por compra | Compras para cobrir R$ 500 |
+| ---: | ---: | ---: |
+| 70% | R$ 34,98 | 15 |
+| 50% | R$ 24,99 | 21 |
+| 30% | R$ 14,99 | 34 |
+
+Os percentuais acima são cenários matemáticos, não a margem observada do
+produto. A margem real precisa ser medida antes de qualquer escala.
+
+### Placar que decide o próximo investimento
+
+```text
+Custo por cadastro confirmado =
+gasto / cadastros confirmados atribuídos
+```
+
+```text
+Custo por usuário ativado =
+gasto / contas que concluíram a primeira música
+```
+
+```text
+CAC de compra =
+gasto / compras confirmadas atribuídas
+```
+
+```text
+ROAS confirmado =
+receita confirmada no backend / gasto
+```
+
+O criativo vencedor é o que produz mais **primeiras músicas e contribuição
+confirmada**, não o que gera mais curtidas, visualizações ou CTR isoladamente.
+
+### Condição para colocar no ar
+
+O teste de R$ 500 fica liberado quando:
+
+- `CompleteRegistration` aparece corretamente no Events Manager;
+- origem, campanha e criativo acompanham a conta confirmada;
+- a primeira música é identificável e atribuível;
+- `Purchase` é enviado somente depois da confirmação do Pix;
+- os três vídeos usam áudio real autorizado e possuem versões 9:16 e 4:5;
+- a jornada completa funciona no celular;
+- o limite vitalício de R$ 500 e a data final estão configurados.
+
+Até essas condições serem provadas, o orçamento permanece intacto.
+
+## Estudo de expectativa agressiva — R$ 500
+
+### A expectativa que vamos perseguir
+
+O alvo agressivo do primeiro ciclo é:
+
+| Resultado | Meta em 7 dias |
+| --- | ---: |
+| Impressões | 30.000–45.000 |
+| Cliques no site | 450–550 |
+| Cadastros confirmados | 60–75 |
+| Primeiras músicas concluídas | 35–45 |
+| Compras confirmadas até o dia 14 | 5–7 |
+| Compras acumuladas até o dia 30 | 9–12 |
+| Receita bruta esperada em 30 dias | R$ 449,73–R$ 599,64 |
+
+Esta é uma **meta de execução**, não uma promessa. Ela exige criativo forte,
+landing coerente, cadastro funcionando, música entregue e recuperação ativa de
+quem criou e ainda não comprou.
+
+Como referência externa, um painel de benchmarks brasileiros de junho de 2026
+apresenta mediana geral de CTR de 1,05%, CPC de R$ 1,50 e CPM de R$ 15,75. O
+produto precisa superar a mediana em CTR e CPC porque oferece entrada gratuita
+e possui uma demonstração visual/emocional forte. Benchmarks são direção, não
+previsão do resultado da musicacom.ia.
+
+### Quatro cenários
+
+Os cenários abaixo partem de R$ 500 de mídia, preço inicial de R$ 49,97 e compra
+medida até 14 dias após o clique.
+
+| Cenário | CPC | Clique → cadastro | Cadastro → 1ª música | Ativado → compra | Cliques | Cadastros | Ativados | Compras | Receita | ROAS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Piso ruim | R$ 2,50 | 8% | 40% | 5% | 200 | 16 | 6 | 0–1 | R$ 0–49,97 | 0–0,10 |
+| Expectativa provável | R$ 1,50 | 10% | 50% | 10% | 333 | 33 | 17 | 2 | R$ 99,94 | 0,20 |
+| Meta agressiva | R$ 1,00 | 15% | 60% | 15% | 500 | 75 | 45 | 7 | R$ 349,79 | 0,70 |
+| Ruptura | R$ 0,75 | 20% | 70% | 20% | 667 | 133 | 93 | 19 | R$ 949,43 | 1,90 |
+
+O cenário provável representa o que pode acontecer se apenas colocarmos mídia
+na proposta atual. A meta agressiva pressupõe as correções de promessa, prova,
+mensuração e recuperação descritas neste estudo. Ruptura significa que o
+criativo virou um vencedor fora da curva e o funil manteve essa qualidade até a
+compra.
+
+### Expectativa por tempo
+
+#### Durante os 7 dias de mídia
+
+Meta agressiva:
+
+- CTR de saída igual ou superior a 1,5%;
+- CPC igual ou inferior a R$ 1,00;
+- 75 cadastros confirmados;
+- 45 primeiras músicas;
+- 3–5 compras já confirmadas.
+
+#### Até 14 dias após o início
+
+- 5–7 compras acumuladas;
+- faturamento entre R$ 249,85 e R$ 349,79;
+- CAC entre R$ 71,43 e R$ 100;
+- ROAS bruto entre 0,50 e 0,70.
+
+Esse resultado ainda não paga a mídia, mas prova que existe uma cadeia
+`anúncio → experiência → compra` e cria uma coorte que pode retornar.
+
+#### Até 30 dias
+
+Com e-mail, retorno ao repertório e oferta apresentada no momento certo:
+
+- alvo: 9–12 compras acumuladas;
+- faturamento: R$ 449,73–R$ 599,64;
+- ROAS bruto: 0,90–1,20;
+- CAC final: R$ 41,67–R$ 55,56.
+
+Sem recuperação pós-criação, a expectativa permanece próxima do resultado de 14
+dias. O dinheiro não está apenas no anúncio; está em trazer de volta quem já
+ouviu a própria música.
+
+### Meta econômica
+
+| Marco | Compras | Receita bruta | CAC | Leitura |
+| --- | ---: | ---: | ---: | --- |
+| Tração | 5 | R$ 249,85 | R$ 100 | há compra, mas o funil ainda perde dinheiro |
+| Meta agressiva D14 | 7 | R$ 349,79 | R$ 71,43 | sinal comercial; ainda não é escala |
+| Equilíbrio bruto | 11 | R$ 549,67 | R$ 45,45 | recupera a mídia antes dos custos do produto |
+| Sinal de escala | 15 | R$ 749,55 | R$ 33,33 | ROAS 1,50; validar margem antes de aumentar |
+| Máquina forte | 21 | R$ 1.049,37 | R$ 23,81 | ROAS 2,10; pode pagar mídia com margem próxima de 50% |
+
+O alvo de verdade não é sete vendas. Sete vendas validam desejo. **Quinze
+vendas sinalizam escala. Vinte e uma vendas sinalizam uma possível máquina
+economicamente saudável**, desde que custo de geração, Pix, impostos, suporte e
+reembolso caibam nos R$ 26,16 restantes por pedido.
+
+### Semáforo do primeiro R$ 500
+
+| Resultado final | Diagnóstico | Próxima decisão |
+| --- | --- | --- |
+| 0–1 compra | proposta/funil não validado | não reinvestir; corrigir oferta e ativação |
+| 2–4 compras | existe curiosidade, não economia | manter orgânico e refazer criativo/upsell |
+| 5–7 compras | desejo comercial validado | rodar recuperação por 30 dias antes de escalar |
+| 8–10 compras | forte sinal de mercado | preparar segundo ciclo controlado |
+| 11–14 compras | equilíbrio bruto alcançado | reinvestir com margem e coorte acompanhadas |
+| 15+ compras | anúncio e oferta vencedores | iniciar escala e produzir variações do vencedor |
+
+### Operação agressiva necessária
+
+Para buscar o cenário agressivo, a campanha não pode terminar no cadastro:
+
+1. **Criativo abre com o resultado.** Nos primeiros dois segundos, ouvir o
+   refrão e ver a reação antes de explicar a ferramenta.
+2. **Landing repete a mesma história.** Anúncio de Homenagem abre uma experiência
+   de Homenagem, com exemplo emocional e ideia pré-preenchida.
+3. **Primeira música vira venda.** Após a entrega, apresentar:
+
+   > Gostou da direção? Libere 20 créditos por R$ 49,97: são 10 rodadas pagas,
+   > com até duas versões em cada.
+
+4. **Recuperação em 24 e 72 horas.** Lembrar a pessoa da música, convidar para
+   ouvi-la novamente e mostrar a continuidade, respeitando consentimento.
+5. **Prova específica.** Uma Homenagem real, um resultado “frase ao play” e uma
+   composição guardada no bloco de notas.
+6. **Mensuração até o dinheiro.** Cadastro, primeira música, checkout, Pix e
+   compra precisam carregar campanha e criativo.
+
+### Métricas de ataque
+
+| Métrica | Vermelho | Aceitável | Meta agressiva | Ruptura |
+| --- | ---: | ---: | ---: | ---: |
+| CTR de saída | < 1% | 1%–1,49% | 1,5%–2,49% | ≥ 2,5% |
+| CPC | > R$ 2,50 | R$ 1,01–2,50 | ≤ R$ 1,00 | ≤ R$ 0,75 |
+| Clique → cadastro | < 8% | 8%–14,9% | ≥ 15% | ≥ 20% |
+| Cadastro → 1ª música | < 40% | 40%–59,9% | ≥ 60% | ≥ 70% |
+| Ativado → compra D14 | < 5% | 5%–14,9% | ≥ 15% | ≥ 20% |
+
+### Regras de corte
+
+- Com R$ 100 gastos: se CTR estiver abaixo de 1% e CPC acima de R$ 2,50, o
+  criativo não merece o restante do orçamento.
+- Com R$ 200 gastos: se houver menos de 10 cadastros confirmados, pausar o
+  conjunto e corrigir promessa/landing.
+- Com R$ 300 gastos: se houver menos de 10 primeiras músicas, pausar e corrigir
+  cadastro/onboarding/entrega.
+- Com R$ 500 gastos: não renovar automaticamente. Esperar a janela de 14 dias e
+  classificar pelo semáforo.
+
+Não fazer pequenas edições diárias. As regras acima existem para interromper
+falha clara, não para reagir a cada oscilação.
+
+## Se retirarmos a primeira música grátis
+
+### Decisão recomendada
+
+Retirar o áudio gratuito pode melhorar a economia e filtrar curiosos, mas não
+devemos retirar todo o valor antes do pagamento.
+
+> **Retirar a música grátis. Manter uma prévia criativa grátis. Cobrar para
+> ouvir, baixar e continuar o projeto.**
+
+O visitante conta a história e recebe gratuitamente:
+
+- sugestão de título;
+- trecho de refrão;
+- emoção principal;
+- direção de ritmo e voz;
+- resumo do que será criado.
+
+Essa prévia utiliza texto e não precisa consumir uma geração musical completa.
+Ela cria envolvimento e permite que a pessoa veja a própria história tomando
+forma antes do checkout.
+
+### Funil proposto
+
+```text
+Anúncio emocional
+→ pessoa conta a história
+→ prévia criativa gratuita
+→ oferta do Projeto Música Presente
+→ Pix
+→ duas primeiras versões
+→ capa e download
+→ repertório e novas criações
+```
+
+O anúncio continua vendendo a transformação, não a tecnologia:
+
+> **Conte uma história. Veja como ela pode virar música.**
+
+Depois da prévia:
+
+> **Sua música está pronta para ganhar voz.**
+>
+> Receba a primeira rodada com até duas versões completas, escolha a sua
+> preferida, crie a capa e faça o download. O pacote inclui 20 créditos: 10
+> rodadas pagas, com até duas versões em cada.
+>
+> **Pagamento único de R$ 49,97 via Pix.**
+
+### Produto recomendado
+
+**Nome:** Projeto Música Presente
+
+**Preço inicial:** R$ 49,97, pagamento único.
+
+**Entrega comunicada:**
+
+- primeira rodada com até duas versões completas da história;
+- 20 créditos musicais no total;
+- 10 rodadas pagas, consumindo dois créditos por rodada;
+- até duas versões por rodada, totalizando até 20 músicas;
+- escolhas de emoção, ritmo e voz;
+- repertório com player;
+- criação de capa;
+- download;
+- acesso permanente à plataforma;
+- novas tentativas quando uma geração falhar antes da entrega, conforme os
+  termos.
+
+O consumidor emocional compra a chance de chegar à música certa. A promessa
+principal deve vender esse resultado, mas a mecânica precisa ficar explícita:
+20 créditos, 10 rodadas pagas e até duas versões por rodada.
+
+### Expectativa com R$ 500
+
+#### Modelo com prévia gratuita e áudio pago
+
+| Cenário | CPC | Visitas | Prévia concluída | Checkout iniciado | Compras | Receita | ROAS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fraco | R$ 2,50 | 200 | 30 | 5 | 1 | R$ 49,97 | 0,10 |
+| Provável | R$ 1,50 | 333 | 67 | 10 | 3 | R$ 149,91 | 0,30 |
+| Meta agressiva | R$ 1,00 | 500 | 150 | 30 | 11 | R$ 549,67 | 1,10 |
+| Ruptura | R$ 0,75 | 667 | 233 | 58 | 23 | R$ 1.149,31 | 2,30 |
+
+Hipóteses do cenário agressivo:
+
+- 30% das visitas concluem a prévia;
+- 20% das prévias iniciam checkout;
+- 35% dos checkouts confirmam o Pix.
+
+Com esse desenho, **11 compras representam o primeiro equilíbrio bruto**. O
+resultado líquido ainda depende do custo das músicas, Pix, impostos, suporte e
+reembolso.
+
+### Por que não vender a primeira música por R$ 9,90
+
+Com R$ 500 de mídia seriam necessárias 51 vendas apenas para recuperar o
+investimento bruto. Mesmo com 500 cliques, isso exige conversão superior a 10%.
+A entrada barata aumenta compradores, mas não resolve o custo de aquisição.
+
+| Preço | Compras para recuperar R$ 500 | Conversão necessária com 500 visitas |
+| ---: | ---: | ---: |
+| R$ 9,90 | 51 | 10,2% |
+| R$ 19,90 | 26 | 5,2% |
+| R$ 29,90 | 17 | 3,4% |
+| R$ 39,90 | 13 | 2,6% |
+| R$ 49,97 | 11 | 2,2% |
+
+R$ 49,97 é o melhor ponto inicial para testar porque já corresponde ao produto
+existente, mantém espaço econômico e continua abaixo de ofertas públicas que
+vendem uma única música personalizada por valor maior. Isso não prova que o
+preço converterá; apenas torna o teste economicamente possível.
+
+### Alternativa mais simples: venda direta
+
+Também é possível levar o anúncio diretamente ao checkout de R$ 49,97:
+
+```text
+Anúncio
+→ landing com exemplo e oferta
+→ Pix
+→ cadastro
+→ criação
+```
+
+Vantagem: menos etapas.
+
+Desvantagem: exige prova emocional muito forte para convencer tráfego frio sem
+qualquer personalização antes do pagamento.
+
+Com CPC de R$ 1,00, os R$ 500 gerariam cerca de 500 visitas. Seriam necessárias
+11 compras, ou conversão de 2,2%, apenas para o equilíbrio bruto. É possível,
+mas mais arriscado que a prévia personalizada.
+
+### Oferta e copy
+
+**Anúncio:**
+
+> Eu contei uma história sobre alguém que mudou a minha vida. Foi isso que
+> voltou em forma de música.
+>
+> Conte a sua história e veja gratuitamente o refrão e a direção que ela pode
+> ganhar.
+
+**CTA:** Criar minha prévia
+
+**Depois da prévia:**
+
+> Você já tem a história, o refrão e a direção.
+>
+> Agora transforme tudo em duas músicas completas.
+
+**Botão:** Ouvir minha história por R$ 49,97
+
+### Garantia recomendada
+
+Não prometer que toda pessoa amará o resultado artístico. Prometer o que a
+operação consegue controlar:
+
+- pagamento confirmado libera o saldo;
+- tentativa que falha antes da entrega devolve o saldo reservado;
+- suporte acompanha falhas técnicas;
+- condições de reembolso ficam visíveis antes do pagamento;
+- nenhuma cobrança recorrente no Projeto Música Presente.
+
+### Campanha sem gratuidade musical
+
+```text
+Campanha: META_SALES_BR_MUSICA_PRESENTE_R500_2026Q3
+Objetivo: Vendas
+Conversão: site
+Evento: Purchase
+Orçamento vitalício: R$ 500
+Duração: 7 dias
+Conjunto: Brasil | 18+ | Advantage+ | placements automáticos
+Anúncios: Homenagem | Frase ao refrão | História no bloco de notas
+```
+
+Mesmo sem volume para sair da aprendizagem, a campanha deve otimizar para
+`Purchase`, porque cadastro ou prévia deixou de ser o resultado econômico
+principal. `PreviewCreated` e `InitiateCheckout` permanecem como eventos de
+diagnóstico.
+
+### Veredito
+
+> **Se removermos a primeira música grátis, eu escolheria prévia criativa grátis
+> + Projeto Música Presente por R$ 49,97.**
+
+Esse modelo:
+
+- reduz o custo de servir curiosos;
+- mantém reciprocidade antes do pagamento;
+- personaliza a venda;
+- transforma o checkout em continuação natural da história;
+- permite buscar equilíbrio bruto com 11 vendas em vez de depender de uma
+  monetização tardia da conta gratuita.
+
+## Validação da proposta comercial
+
+### Veredito
+
+> **A proposta é boa e tem apelo real, mas ainda não está pronta para receber
+> tráfego pago sem ajustes. Nota atual: 6,5/10.**
+
+A força está na transformação emocional e fácil de experimentar:
+
+> **Conte uma história. Escute essa história virar música. Comece grátis.**
+
+O problema não é falta de produto. É que a página mistura promessas,
+quantidades e públicos diferentes, reduzindo a confiança justamente antes do
+cadastro.
+
+### Placar da proposta
+
+| Critério | Nota | Leitura |
+| --- | ---: | --- |
+| Desejo | 8/10 | transformar uma história em música é emocional, demonstrável e compartilhável |
+| Clareza | 6/10 | a ideia central é entendida, mas “uma” e “duas músicas” aparecem como se fossem o mesmo benefício |
+| Diferenciação | 6/10 | português e ritmos brasileiros ajudam, porém já aparecem em concorrentes |
+| Prova | 5/10 | existe um áudio real, mas o exemplo de Trap/Jingle não prova a principal promessa de Homenagem |
+| Redução de risco | 9/10 | grátis, sem cartão e sem prazo de teste removem a objeção inicial |
+| Confiança comercial | 5/10 | faltam exemplos por intenção, usuários reais e regras claras de direitos de uso |
+| Monetização | 4/10 | o visitante entende que existem recargas, mas não vê preço nem o que poderá comprar depois |
+| Prontidão para anúncio | 5/10 | visual forte e cadastro limpo; mensagem e mensuração ainda precisam de correção |
+
+### O que está forte
+
+1. **A transformação é melhor que a categoria.** “Sua história vira música” é
+   mais desejável do que “gerador de música com IA”.
+2. **O primeiro passo é concreto.** O campo de história no hero faz a pessoa
+   começar antes do cadastro e preserva a ideia na próxima página.
+3. **O risco é baixo.** A conta grátis e a ausência de cartão tornam a
+   experimentação natural.
+4. **A jornada visual está boa no celular.** Hierarquia, contraste, CTA e
+   cadastro com Google estão claros.
+5. **O produto continua depois do arquivo.** Repertório, player, capa e tutorial
+   sustentam uma proposta de estúdio, não apenas de geração isolada.
+
+### O que enfraquece a oferta
+
+#### 1. A quantidade prometida é contraditória
+
+O hero diz:
+
+> “Duas músicas para sentir.”
+
+Na mesma dobra aparece:
+
+> “1 música grátis por dia.”
+
+Os termos esclarecem que a criação gratuita entrega **uma música** e apenas as
+criações extras normalmente entregam duas versões. Portanto, a manchete e
+“duas versões por rodada” criam uma expectativa superior ao benefício gratuito.
+
+**Correção recomendada:**
+
+> **Uma história sua. Uma música para sentir.**
+
+ou:
+
+> **Uma história sua. Transformada em música.**
+
+Na oferta paga:
+
+> **Nas criações extras, você recebe duas versões para comparar.**
+
+#### 2. A prova não corresponde à promessa principal
+
+A página abre com história e homenagem, mas a única prova destacada é um
+`Trap Jingle`. Quem chegou por um anúncio sobre mãe, pai, casal ou memória não
+ouve a transformação que foi prometida.
+
+**Correção recomendada:** colocar uma música de Homenagem autorizada como prova
+principal e manter Jingle como prova específica para uma futura página de
+Negócios.
+
+#### 3. “Brasileirada” é personalidade, não vantagem exclusiva
+
+Plataformas concorrentes também comunicam português, ritmos brasileiros,
+criação gratuita, homenagens e jingles. O território brasileiro continua
+valioso para identidade de marca, mas não deve carregar sozinho a
+diferenciação.
+
+A combinação mais defensável é:
+
+> **Uma jornada guiada, sem prompt, que transforma sua história em música e
+> organiza tudo em repertório, capa e próximos passos.**
+
+#### 4. O público está amplo demais para uma única promessa
+
+Homenagem, história pessoal, composição, Jingle e lançamento possuem desejos,
+provas e objeções diferentes. A home pode apresentar todas as possibilidades,
+mas cada anúncio precisa manter uma linha única até a prova:
+
+```text
+Anúncio de Homenagem
+→ história já preenchida
+→ exemplo emocional
+→ cadastro
+→ primeira música
+```
+
+```text
+Anúncio de Composição
+→ ideia do bloco de notas
+→ exemplo de criação
+→ cadastro
+→ primeira música
+```
+
+#### 5. Jingle ainda não está pronto para mídia
+
+Os termos atuais transferem ao usuário a responsabilidade por direitos autorais
+e pelas regras das plataformas, mas não declaram uma licença comercial clara
+para a música criada. Concorrentes de Jingle apresentam uso comercial como
+parte central do produto.
+
+**Decisão:** retirar Jingle do primeiro teste de R$ 500. Ele volta quando a
+licença aplicável, limites de uso, preço e texto da oferta estiverem explícitos.
+
+#### 6. A continuidade paga aparece tarde e sem preço
+
+“Recargas opcionais” reduz pressão, mas esconde completamente a economia futura.
+O usuário pode sentir surpresa quando descobrir R$ 49,97 somente depois da
+primeira criação.
+
+**Correção recomendada, sem transformar a home em checkout:**
+
+> **Comece grátis. Quando quiser criar mais no mesmo dia, há recargas opcionais
+> a partir de R$ 49,97.**
+
+### Proposta recomendada
+
+**Promessa principal:**
+
+> **Transforme uma história sua em música. Grátis hoje.**
+
+**Explicação:**
+
+> Conte uma lembrança, homenagem ou ideia. Escolha emoção, ritmo e voz. A
+> musicacom.ia entrega uma música completa para você ouvir e baixar — sem
+> precisar cantar, tocar ou escrever prompt.
+
+**Oferta de entrada:**
+
+> 1 música grátis por dia, sem cartão.
+
+**Continuidade:**
+
+> Quer criar mais no mesmo dia? Escolha uma recarga. Nas criações extras, você
+> recebe duas versões para comparar.
+
+**Diferencial:**
+
+> Criação guiada em português, repertório, capa e orientação no mesmo lugar.
+
+### Decisão para a campanha
+
+O primeiro R$ 500 deve testar:
+
+1. **Homenagem:** maior força emocional e compartilhamento;
+2. **Da frase ao play:** melhor demonstração do produto;
+3. **Música que não saiu do papel:** intenção criativa sem depender de licença
+   comercial.
+
+Jingle fica como segunda frente, depois de resolver direitos de uso e construir
+uma página/prova específica para negócios.
 
 ## Decisão executiva
 
@@ -36,8 +687,8 @@ O estudo foi revisado em paralelo por três agentes especializados:
 
 | Frente | Pergunta | Conclusão |
 | --- | --- | --- |
-| Experiência comercial | Qual intenção possui desejo, prova e continuidade suficientes? | Homenagem deve abrir o funil; Jingle e Compositor devem validar monetização e recorrência. |
-| Oferta e economia | Quanto podemos pagar para adquirir um usuário? | Ainda não existe CAC ou payback observável; o teto prudente de mídia permanece R$ 0 até medir margem e contribuição por coorte. |
+| Experiência comercial | Qual intenção possui desejo, prova e continuidade suficientes? | Homenagem deve abrir o funil; Compositor entra no primeiro teste e Jingle volta após a licença comercial ser definida. |
+| Oferta e economia | Quanto podemos pagar para adquirir um usuário? | Ainda não existe CAC ou payback observável; os R$ 500 são um teto de validação condicionado à mensuração, não verba de escala. |
 | Mensuração e segurança | Conseguimos ligar anúncio, conta, música e Pix confirmado? | Ainda não. A atribuição não chega à conta gratuita, faltam eventos de cadastro e primeira música, e não existe CAPI server-side. |
 
 ### Consenso operacional
@@ -45,7 +696,8 @@ O estudo foi revisado em paralelo por três agentes especializados:
 1. **Não publicar mídia ainda.**
 2. Corrigir a ligação
    `criativo → cadastro confirmado → primeira música → compra`.
-3. Produzir prova real para Homenagem, Jingle e Compositor.
+3. Produzir prova real para Homenagem e Compositor; preparar Jingle após
+   esclarecer a licença comercial.
 4. Testar essas três intenções organicamente em condições comparáveis.
 5. Liberar mídia somente quando ativação, qualidade da entrega, custo variável e
    margem estiverem observáveis.
@@ -297,15 +949,16 @@ META_SALES_BR_FREE_DAILY_2026Q3
 └── ADVANTAGE_BR_18PLUS_PROSPECTING
     ├── HOMENAGEM_UGC_15S_V1
     ├── IDEIA_VIRA_MUSICA_DEMO_20S_V1
-    ├── JINGLE_NEGOCIO_DEMO_20S_V1
-    ├── BRASIL_EM_RITMOS_MONTAGEM_15S_V1
-    └── SEM_PROMPT_SCREENCAST_20S_V1
+    ├── COMPOSICAO_BLOCO_NOTAS_20S_V1
+    ├── RESERVA: BRASIL_EM_RITMOS_MONTAGEM_15S_V1
+    └── SEGUNDA FASE: JINGLE_NEGOCIO_DEMO_20S_V1
 ```
 
 - Um conjunto de anúncios no início.
 - Advantage+ Audience.
 - Advantage+ Placements.
-- Cinco anúncios com territórios realmente diferentes.
+- Três anúncios ativos no teste de R$ 500; dois territórios ficam como reserva
+  para o ciclo seguinte.
 - Vídeo vertical 9:16, com áudio e elementos principais dentro da área segura.
 - Legendas sempre, mesmo com a experiência desenhada para som.
 - Feed pode receber adaptação 4:5.
@@ -379,7 +1032,7 @@ viagem?”. Em seguida, o texto vira uma faixa tocando no player.
 
 **CTA:** Cadastre-se
 
-#### Território 3 — O som do seu negócio
+#### Território 3 — O som do seu negócio — segunda fase
 
 **Ângulo Hormozi/Acquisition.com:** encurtar tempo e custo para chegar a uma
 identidade sonora testável.
@@ -479,7 +1132,7 @@ Duração: 7 a 14 dias.
 
 1. Produzir três conceitos comparáveis:
    - Homenagem;
-   - Jingle para pequeno negócio;
+   - demonstração da frase ao play;
    - Composição que estava no bloco de notas.
 2. Publicar organicamente em Reels, Facebook e Stories.
 3. Usar UTMs por peça, mesmo no orgânico.
@@ -518,18 +1171,18 @@ Pré-condições:
 - faixas e vídeos autorizados;
 - custo variável por criação conhecido;
 - margem de contribuição do Essencial conhecida;
-- verba máxima do teste explicitamente aprovada.
+- teto vitalício do primeiro teste fixado em R$ 500.
 
 Estrutura:
 
 - uma campanha;
 - um conjunto amplo;
-- três a cinco anúncios;
+- três anúncios no primeiro ciclo;
 - sete dias sem mudanças diárias, salvo erro, rejeição ou gasto de segurança;
 - sem público semelhante e sem retargeting separado no primeiro ciclo.
 
-O valor diário só deve ser definido depois do teto total aprovado. Sem verba
-aprovada, a campanha permanece em rascunho.
+Usar orçamento vitalício de R$ 500 por sete dias. A média de R$ 71,43 por dia
+serve para acompanhamento; o teto financeiro é o orçamento vitalício.
 
 #### Fase 2 — qualidade e monetização
 
@@ -660,7 +1313,6 @@ custo real, o CAC e o payback permanecem não observados.
 - licença comercial que pode ser prometida publicamente;
 - conta de anúncios, página, Instagram, dataset e domínio verificado no Business
   Manager;
-- verba máxima de teste.
 - mediana, p95 e taxa de sucesso de geração;
 - custo das músicas gratuitas, falhas e retries;
 
@@ -692,7 +1344,8 @@ para criar o baseline da Academia.
 - [ ] Corrigir no celular a colisão entre consentimento, CTA fixo e botão de
   cadastro.
 - [ ] Criar landing de Homenagem que repita a promessa do anúncio.
-- [ ] Publicar uma prova musical autorizada para Homenagem, Jingle e Compositor.
+- [ ] Publicar uma prova musical autorizada para Homenagem e Compositor.
+- [ ] Definir a licença comercial antes de publicar a frente de Jingle.
 - [ ] Remover ou comprovar o selo “MAIS ESCOLHIDO”; zero compras não sustentam
   essa alegação.
 - [ ] Tornar visível, sem pressão, que criar mais custa a partir de R$ 49,97 e
@@ -736,6 +1389,16 @@ para criar o baseline da Academia.
 - [Cantivy](https://cantivy.com/baixar/), oferta pública observada em 27/07/2026
 - [Criar Música IA](https://criarmusicaia.com/), oferta pública observada em 27/07/2026
 - [JingleLab](https://jinglelab.com.br/), oferta pública observada em 27/07/2026
+- [Bossa](https://bossa.ia.br/), teste grátis e comunicação de uso comercial
+  observados em 29/07/2026
+- [IA Música](https://www.iamusica.com.br/gerador-de-musica-com-ia-brasil),
+  português, ritmos brasileiros e criação grátis observados em 29/07/2026
+- [mellodIA](https://www.mellodia.com.br/), oferta de música personalizada por
+  R$ 67 observada em 29/07/2026
+- [XYZ Lab, Meta Ads Benchmarks Brazil](https://xyzlab.com/meta-ads/benchmarks/brazil/),
+  medianas brasileiras de CTR, CPC, CPM, conversão, CPA e ROAS de junho de 2026
+- [WordStream, Facebook Ads Benchmarks 2025](https://www.wordstream.com/blog/facebook-ads-benchmarks-2025),
+  referência complementar baseada em mais de mil campanhas dos Estados Unidos
 
 As páginas concorrentes são usadas como evidência de posicionamento declarado,
 não como prova independente de entrega, volume, clientes ou resultado.

@@ -59,23 +59,23 @@ test("public acquisition sells a free creative preview, not a free full song", a
   assert.doesNotMatch(publicOffer, /20 músicas incluídas/i);
 });
 
-test("new frontend negotiates Offer V2 while the public legacy frontend stays compatible", async () => {
-  const [access, backend, deploy] = await Promise.all([
+test("every account is created directly on Offer V2", async () => {
+  const [access, backend] = await Promise.all([
     source("app/lib/access.ts"),
     source("infra/checkout/index.mjs"),
-    source("infra/deploy-checkout.sh"),
   ]);
 
-  assert.match(backend, /LEGACY_DAILY_FREE_END_AT/);
   assert.match(access, /offerVersion: "music_present_v1"/);
-  assert.match(backend, /const requestedOfferVersion = body\.offerVersion === CURRENT_OFFER_VERSION/);
   assert.match(backend, /offerVersion: item\.offerVersion\?\.S/);
   assert.match(backend, /offerVersion: \{ S: CURRENT_OFFER_VERSION \}/);
-  assert.match(backend, /dailyBenefitEndsAt: \{ S: LEGACY_DAILY_FREE_END_AT \}/);
-  assert.match(backend, /function dailyFreeEligible\(order/);
-  assert.match(backend, /order\.offerVersion === CURRENT_OFFER_VERSION/);
-  assert.match(backend, /if \(!dailyFreeEligible\(order\)\)/);
-  assert.match(deploy, /LEGACY_DAILY_FREE_END_AT.*2026-08-06T03:00:00\.000Z/);
+  assert.doesNotMatch(backend, /dailyFreeEligible|LEGACY_DAILY_FREE_END_AT/);
+});
+
+test("the conversational studio is gone from the backend", async () => {
+  const backend = await source("infra/checkout/index.mjs");
+
+  assert.doesNotMatch(backend, /bedrock|Bedrock|ConverseCommand|MUSIC_CONVERSATION/);
+  assert.doesNotMatch(backend, /\/v1\/music\/conversation/);
 });
 
 test("partial delivery returns the missing credit exactly once", async () => {

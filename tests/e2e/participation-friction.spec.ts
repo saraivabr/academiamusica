@@ -114,7 +114,7 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
     await page.getByLabel("Sua senha").fill("senhafraca");
     await page.getByRole("button", { name: "Criar minha conta" }).click();
 
-    const alert = page.getByRole("alert");
+    const alert = page.getByRole("alert").filter({ hasText: "caracteres" });
     await expect(alert).toContainText(
       "Use ao menos 8 caracteres, com maiúscula, minúscula e número.",
     );
@@ -306,10 +306,10 @@ test.describe("entrada na solução sem fricção desnecessária", () => {
     await expect(
       page.getByRole("heading", { name: "Ouça o que nasceu da sua ideia." }),
     ).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText("Raiz que me guia")).toBeVisible();
     await expect(
-      page.getByRole("link", { name: "Escolher e criar capa" }),
+      page.getByRole("heading", { name: "Raiz que me guia", exact: true }),
     ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Criar capa" })).toBeVisible();
 
     await validateFrictionBudget(testInfo, "primeiro-valor", [
       {

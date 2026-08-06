@@ -28,25 +28,22 @@ export default function Termos() {
       <h2>6. Recargas e Clube Criador</h2>
       <p>Recargas avulsas são compras únicas e não geram renovação. O Clube Criador é uma assinatura mensal por Pix Automático: cada mensalidade efetivamente paga adiciona o saldo informado na oferta. Os créditos não utilizados se somam ao saldo existente. A autorização pode ser cancelada pelo aplicativo do banco do pagador ou pelo suporte; o cancelamento impede cobranças futuras e não remove créditos já pagos.</p>
 
-      <h2>7. Transição de contas anteriores</h2>
-      <p>Contas criadas antes da Oferta V2 podem receber uma janela temporária de transição para o benefício diário anterior. A data de encerramento será informada na área logada. Créditos comprados permanecem preservados durante e após a transição.</p>
-
-      <h2>8. Uso justo e segurança</h2>
+      <h2>7. Uso justo e segurança</h2>
       <p>Cada pessoa deve manter uma única conta. Para prevenir abuso, a plataforma aplica limites de cadastro e uso por conta, dispositivo e rede, utilizando identificadores protegidos e sinais técnicos proporcionais. Redes compartilhadas podem exigir análise do suporte. Não coletamos endereço MAC.</p>
 
-      <h2>9. Responsabilidade do usuário</h2>
+      <h2>8. Responsabilidade do usuário</h2>
       <p>O usuário é responsável por revisar suas escolhas, respeitar direitos autorais, direitos de imagem, termos das ferramentas, distribuidoras e plataformas utilizadas e não solicitar imitação indevida de terceiros.</p>
 
-      <h2>10. Resultados</h2>
+      <h2>9. Resultados</h2>
       <p>A plataforma orienta o processo e fornece as criações indicadas. Não garante aprovação, publicação, monetização, quantidade de streams, renda, fama ou resultado artístico específico.</p>
 
-      <h2>11. Custos opcionais e externos</h2>
+      <h2>10. Custos opcionais e externos</h2>
       <p>O preço e o saldo do Projeto Música Presente aparecem antes da contratação. Recargas, assinaturas, distribuição, publicação ou outros serviços externos podem ter custos próprios, sempre apresentados antes da contratação.</p>
 
-      <h2>12. Uso dos tutoriais</h2>
+      <h2>11. Uso dos tutoriais</h2>
       <p>Os tutoriais são licenciados para uso pessoal do usuário e não podem ser revendidos, redistribuídos ou publicados integralmente sem autorização.</p>
 
-      <h2>13. Suporte e reembolso</h2>
+      <h2>12. Suporte e reembolso</h2>
       <p>O usuário pode solicitar suporte pelo canal oficial indicado no site. Garantias e reembolsos aplicam-se apenas às compras realizadas e seguem as condições apresentadas no momento do pagamento.</p>
     </LegalPage>
   );

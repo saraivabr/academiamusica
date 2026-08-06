@@ -43,7 +43,6 @@ function formatDuration(value: number | null) {
 export default function Biblioteca() {
   const [generations, setGenerations] = useState<PlatformGeneration[]>([]);
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
-  const [dailyFreeAvailable, setDailyFreeAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -54,7 +53,6 @@ export default function Biblioteca() {
         if (!active) return;
         setGenerations(Array.isArray(data.generations) ? data.generations : []);
         setRemainingSongs(Number(data.remainingSongs));
-        setDailyFreeAvailable(Boolean(data.dailyFreeAvailable));
       })
       .catch((requestError) => {
         if (!active) return;
@@ -138,9 +136,7 @@ export default function Biblioteca() {
             <Play fill="currentColor" aria-hidden="true" />
           </button>
           <Link href="/biblioteca/gerador"><Plus aria-hidden="true" /> Nova música</Link>
-          <span>{dailyFreeAvailable
-            ? "1 criação de transição disponível"
-            : `${remainingSongs ?? "—"} créditos disponíveis`}</span>
+          <span>{`${remainingSongs ?? "—"} créditos disponíveis`}</span>
         </div>
 
         <header className="spotify-track-header">

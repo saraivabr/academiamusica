@@ -69,7 +69,6 @@ function orderExpired(order: CreditOrder) {
 
 export default function CreditosPage() {
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
-  const [dailyFreeAvailable, setDailyFreeAvailable] = useState(false);
   const [selected, setSelected] = useState<MusicProduct | null>(null);
   const [order, setOrder] = useState<CreditOrder | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -91,7 +90,6 @@ export default function CreditosPage() {
     memberApi("/v1/music/availability")
       .then((data) => {
         setRemainingSongs(Number(data.remainingSongs));
-        setDailyFreeAvailable(Boolean(data.dailyFreeAvailable));
       })
       .catch(() => setRemainingSongs(null));
   }
@@ -211,9 +209,7 @@ export default function CreditosPage() {
           <small>SEU SALDO AGORA</small>
           <strong>{remainingSongs ?? "—"}</strong>
           <span>créditos disponíveis</span>
-          <em>{dailyFreeAvailable
-            ? "Benefício diário de transição disponível"
-            : "Cada rodada paga usa 2 créditos"}</em>
+          <em>Cada rodada paga usa 2 créditos</em>
         </div>
         <div>
           <h2>Escolha como continuar.</h2>

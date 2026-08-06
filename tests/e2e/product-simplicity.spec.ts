@@ -53,6 +53,8 @@ test.describe("P0 e P1 — produto inteiro sem becos sem saída", () => {
     const demoCta = page.locator("a[data-track-placement='how_it_works']");
     await expect(demoCta).toHaveAttribute("href", "/preview/");
     await expect(demoCta).toHaveAttribute("data-track", "offer_cta");
+    await demoCta.scrollIntoViewIfNeeded();
+    await expect(demoCta).toBeVisible();
     await demoCta.focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/preview\/?$/);
@@ -103,7 +105,7 @@ test.describe("P0 e P1 — produto inteiro sem becos sem saída", () => {
       name: "Seu repertório começa com uma ideia.",
     })).toBeVisible();
     await expect(page.getByRole("link", {
-      name: "Criar minha primeira música →",
+      name: "Criar minha primeira música",
     })).toBeVisible();
     await expect(page.getByRole("button", {
       name: "Tocar música mais recente",
@@ -172,7 +174,14 @@ test.describe("P0 e P1 — produto inteiro sem becos sem saída", () => {
     page,
   }) => {
     await page.goto("/biblioteca/estilos-brasileiros/");
-    await page.getByRole("link", { name: "Usar no criador →" }).first().click();
+    // GlobalMotion só revela a seção quando ~12% dela entra na viewport, e o
+    // catálogo é alto: rola pelo topo da seção, não pelo link.
+    await page.locator(".style-catalog").scrollIntoViewIfNeeded();
+    const useInCreator = page
+      .locator("a[data-track-placement='styles']")
+      .first();
+    await expect(useInCreator).toBeVisible();
+    await useInCreator.click();
 
     await expect(page.getByRole("status"))
       .toContainText("Sertanejo universitário foi aplicado.");

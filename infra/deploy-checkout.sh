@@ -22,7 +22,6 @@ MUSIC_EMAIL_FROM_ADDRESS="${MUSIC_EMAIL_FROM_ADDRESS:-musica@escreve.ai}"
 MUSIC_EMAIL_REPLY_TO_ADDRESS="${MUSIC_EMAIL_REPLY_TO_ADDRESS:-$MUSIC_EMAIL_FROM_ADDRESS}"
 MUSIC_EMAIL_CONFIGURATION_SET="${MUSIC_EMAIL_CONFIGURATION_SET:-musicacom-transactional}"
 MUSIC_EMAIL_SANDBOX_RECIPIENT="${MUSIC_EMAIL_SANDBOX_RECIPIENT:-fellipesaraivabarbosa@gmail.com}"
-LEGACY_DAILY_FREE_END_AT="${LEGACY_DAILY_FREE_END_AT:-2026-08-06T03:00:00.000Z}"
 COGNITO_POOL_NAME="academia-musica-users"
 COGNITO_CLIENT_NAME="academia-musica-web"
 EXPECTED_COGNITO_CLIENT_ID="${EXPECTED_COGNITO_CLIENT_ID:-375mcuenagmq50eellircoljq6}"
@@ -277,17 +276,6 @@ cat >"$PERMISSIONS_POLICY" <<JSON
     },
     {
       "Effect": "Allow",
-      "Action": "bedrock:InvokeModel",
-      "Resource": [
-        "arn:aws:bedrock:us-east-1:${ACCOUNT_ID}:inference-profile/us.amazon.nova-2-lite-v1:0",
-        "arn:aws:bedrock:us-east-1::foundation-model/amazon.nova-2-lite-v1:0",
-        "arn:aws:bedrock:us-east-2::foundation-model/amazon.nova-2-lite-v1:0",
-        "arn:aws:bedrock:us-west-2::foundation-model/amazon.nova-2-lite-v1:0",
-        "arn:aws:bedrock:us-west-2::foundation-model/amazon.nova-2-lite-v1:0"
-      ]
-    },
-    {
-      "Effect": "Allow",
       "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
       "Resource": [
         "arn:aws:s3:::${COVERS_BUCKET}/covers/*",
@@ -325,7 +313,7 @@ cp infra/checkout/music-ready-email.mjs "$PACKAGE_DIR/music-ready-email.mjs"
 ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
 # MUSIC_TRACKS_INCLUDED preserves the original 25-credit grant for legacy orders.
 # New purchases persist their product-specific balance directly in DynamoDB.
-ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},COVERS_BUCKET=${COVERS_BUCKET},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID},COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID},WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},IMAGE_PROXY_KEY_PARAMETER=${IMAGE_PROXY_KEY_PARAMETER},APIFY_API_TOKEN_PARAMETER=${APIFY_API_TOKEN_PARAMETER},IMAGE_API_URL=https://academiamusica-image-proxy.fellipesaraivabarbosa.workers.dev,IMAGE_MODEL=cx/gpt-5.5,MUSIC_TRACKS_INCLUDED=25,MUSIC_CONVERSATION_ENABLED=true,MUSIC_CONVERSATION_MODEL=us.amazon.nova-2-lite-v1:0,LEGACY_DAILY_FREE_END_AT=${LEGACY_DAILY_FREE_END_AT},SES_REGION=${SES_REGION},EMAIL_FROM_ADDRESS=${MUSIC_EMAIL_FROM_ADDRESS},EMAIL_REPLY_TO_ADDRESS=${MUSIC_EMAIL_REPLY_TO_ADDRESS},EMAIL_CONFIGURATION_SET=${MUSIC_EMAIL_CONFIGURATION_SET}}"
+ENVIRONMENT="Variables={TABLE_NAME=${TABLE_NAME},EVENTS_TABLE_NAME=${EVENTS_TABLE_NAME},COVERS_BUCKET=${COVERS_BUCKET},SITE_ORIGIN=${SITE_ORIGIN},PUBLIC_API_URL=https://fb9323mkb2.execute-api.${AWS_REGION}.amazonaws.com,COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID},COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID},WOOVI_APP_ID_PARAMETER=${WOOVI_PARAMETER},WEBHOOK_SECRET_PARAMETER=${WEBHOOK_PARAMETER},ACCESS_SECRET_PARAMETER=${ACCESS_PARAMETER},SUNO_API_KEY_PARAMETER=${SUNO_API_KEY_PARAMETER},IMAGE_PROXY_KEY_PARAMETER=${IMAGE_PROXY_KEY_PARAMETER},APIFY_API_TOKEN_PARAMETER=${APIFY_API_TOKEN_PARAMETER},IMAGE_API_URL=https://academiamusica-image-proxy.fellipesaraivabarbosa.workers.dev,IMAGE_MODEL=cx/gpt-5.5,MUSIC_TRACKS_INCLUDED=25,SES_REGION=${SES_REGION},EMAIL_FROM_ADDRESS=${MUSIC_EMAIL_FROM_ADDRESS},EMAIL_REPLY_TO_ADDRESS=${MUSIC_EMAIL_REPLY_TO_ADDRESS},EMAIL_CONFIGURATION_SET=${MUSIC_EMAIL_CONFIGURATION_SET}}"
 
 if aws lambda get-function --region "$AWS_REGION" --function-name "$FUNCTION_NAME" >/dev/null 2>&1; then
   aws lambda wait function-active-v2 --region "$AWS_REGION" --function-name "$FUNCTION_NAME"

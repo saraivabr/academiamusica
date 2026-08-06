@@ -187,7 +187,6 @@ export default function Gerador() {
   const [creationType, setCreationType] = useState("historia");
   const [providerReady, setProviderReady] = useState<boolean | null>(null);
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
-  const [dailyFreeAvailable, setDailyFreeAvailable] = useState(false);
   const [taskId, setTaskId] = useState("");
   const [generationStatus, setGenerationStatus] = useState("IDLE");
   const [tracks, setTracks] = useState<GeneratedTrack[]>([]);
@@ -211,8 +210,8 @@ export default function Gerador() {
     || (!completedStatuses.has(generationStatus) && generationStatus !== "IDLE");
   const generationFailed = failedStatuses.has(generationStatus);
   const ready = planIsReady(plan);
-  const creationCost = dailyFreeAvailable ? 0 : remainingSongs === 1 ? 1 : 2;
-  const canCreate = dailyFreeAvailable || Boolean(remainingSongs);
+  const creationCost = remainingSongs === 1 ? 1 : 2;
+  const canCreate = Boolean(remainingSongs);
   const selectedTrack = tracks.find((track) => track.id === selectedTrackId) ?? tracks[0];
   const styleOptions = useMemo(() => (
     showAllStyles
@@ -322,7 +321,6 @@ export default function Gerador() {
         if (!active) return;
         setProviderReady(Boolean(data.available));
         setRemainingSongs(Number(data.remainingSongs));
-        setDailyFreeAvailable(Boolean(data.dailyFreeAvailable));
         if (data.starterPreview?.story) {
           setPlan((current) => current.theme.trim()
             ? current
@@ -382,9 +380,6 @@ export default function Gerador() {
         setTracks(data.tracks ?? []);
         setError(data.error ?? "");
         if (typeof data.remainingSongs === "number") setRemainingSongs(data.remainingSongs);
-        if (typeof data.dailyFreeAvailable === "boolean") {
-          setDailyFreeAvailable(data.dailyFreeAvailable);
-        }
         if (data.status === "SUCCESS") {
           generationLockRef.current = false;
           trackEvent("music_generation_delivered", window.location.pathname, {
@@ -441,12 +436,10 @@ export default function Gerador() {
     setGenerationStatus("STARTING");
     setTracks([]);
     trackEvent("music_creator_plan_ready");
-    if (!dailyFreeAvailable) {
-      trackEvent("paid_generation_started", window.location.pathname, {
-        journey: "music_present_v1",
-        product: "starter_20",
-      });
-    }
+    trackEvent("paid_generation_started", window.location.pathname, {
+      journey: "music_present_v1",
+      product: "starter_20",
+    });
     try {
       const data = await memberApi("/v1/music/generations", {
         method: "POST",
@@ -456,14 +449,13 @@ export default function Gerador() {
           coverBeatId: selectedPlan.referenceTrackId,
           conversationId: makeId("express"),
           mode: selectedMode,
-          reservationType: dailyFreeAvailable ? "FREE_DAILY" : "CREDITS",
+          reservationType: "CREDITS",
           ...getAnalyticsContext(),
         }),
       });
       setTaskId(data.taskId);
       setGenerationStatus(data.status);
       setRemainingSongs(Number(data.remainingSongs));
-      if (data.dailyFreeUsed) setDailyFreeAvailable(false);
     } catch (requestError) {
       generationLockRef.current = false;
       setGenerationStatus("IDLE");
@@ -785,21 +777,17 @@ export default function Gerador() {
                     <div><dt>Refrão</dt><dd>{plan.instrumental ? "Sem letra" : plan.hook.trim() || "Criado para você"}</dd></div>
                   </dl>
 
-                  <div className={`express-balance ${!dailyFreeAvailable && remainingSongs === 0 ? "empty" : ""}`}>
+                  <div className={`express-balance ${remainingSongs === 0 ? "empty" : ""}`}>
                     <span>♫</span>
                     <div>
-                      <b>{dailyFreeAvailable
-                        ? "1 criação de transição disponível"
-                        : remainingSongs === null
-                          ? "Consultando saldo"
-                          : remainingSongs === 0
-                            ? "Você precisa de créditos para gerar"
-                            : `${remainingSongs} créditos disponíveis`}</b>
-                      <small>{dailyFreeAvailable
-                        ? "Este benefício temporário entrega uma versão sem usar créditos."
+                      <b>{remainingSongs === null
+                        ? "Consultando saldo"
                         : remainingSongs === 0
-                          ? "Adicione créditos para liberar uma nova rodada."
-                          : `Esta rodada usa ${creationCost} ${creationCost === 1 ? "crédito" : "créditos"}.`}</small>
+                          ? "Você precisa de créditos para gerar"
+                          : `${remainingSongs} créditos disponíveis`}</b>
+                      <small>{remainingSongs === 0
+                        ? "Adicione créditos para liberar uma nova rodada."
+                        : `Esta rodada usa ${creationCost} ${creationCost === 1 ? "crédito" : "créditos"}.`}</small>
                     </div>
                   </div>
 
@@ -810,7 +798,7 @@ export default function Gerador() {
                     </div>
                   ) : null}
 
-                  {remainingSongs === 0 && !dailyFreeAvailable ? (
+                  {remainingSongs === 0 ? (
                     <Link className="express-create" href="/biblioteca/creditos">
                       Adicionar créditos
                       <span>PIX</span>
@@ -822,16 +810,12 @@ export default function Gerador() {
                       disabled={!ready || providerReady !== true || remainingSongs === null}
                       onClick={() => void generateMusic()}
                     >
-                      {dailyFreeAvailable
-                        ? "Usar criação de transição"
-                        : creationCost === 1
-                          ? "Criar 1 música"
-                          : "Criar 2 versões"}
-                      <span>{creationCost === 0 ? "TRANSIÇÃO" : `${creationCost} ${creationCost === 1 ? "CRÉDITO" : "CRÉDITOS"}`}</span>
+                      {creationCost === 1 ? "Criar 1 música" : "Criar 2 versões"}
+                      <span>{creationCost} {creationCost === 1 ? "CRÉDITO" : "CRÉDITOS"}</span>
                     </button>
                   )}
                   <p className="express-cost">
-                    Falhas antes da entrega devolvem automaticamente o benefício ou os créditos.
+                    Falhas antes da entrega devolvem automaticamente os créditos.
                   </p>
                 </aside>
               </section>

@@ -30,7 +30,7 @@ jobs:
           cache: npm
 
       - name: Instalar dependências
-        run: npm run install:ci
+        run: npm ci
 
       - name: Verificar qualidade
         run: npm run lint
@@ -54,7 +54,7 @@ jobs:
           cache: npm
 
       - name: Instalar dependências
-        run: npm run install:ci
+        run: npm ci
 
       - name: Instalar navegador
         run: npx playwright install --with-deps chromium

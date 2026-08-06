@@ -12,7 +12,7 @@ test("public checkout sells the approved starter contract", async () => {
   const [frontend, backend, checkoutHtml] = await Promise.all([
     source("app/lib/musicProducts.ts"),
     source("infra/checkout/index.mjs"),
-    source("dist/client/checkout/index.html"),
+    source("out/checkout/index.html"),
   ]);
 
   assert.match(frontend, /id: "starter_20"[\s\S]*?priceCents: 4_997[\s\S]*?credits: 20/);
@@ -29,7 +29,7 @@ test("recharges and Pix Automatic subscription have matching live catalogs", asy
   const [frontend, backend, creditsHtml] = await Promise.all([
     source("app/lib/musicProducts.ts"),
     source("infra/checkout/index.mjs"),
-    source("dist/client/biblioteca/creditos/index.html"),
+    source("out/biblioteca/creditos/index.html"),
   ]);
   const contracts = [
     ["recharge_20", "4_997", "20"],
@@ -74,7 +74,7 @@ test("mobile purchase flow keeps checkout and four primary destinations usable",
     source("app/obrigado/PurchaseConfirmation.tsx"),
   ]);
 
-  assert.match(globals, /\.checkout-page>\.checkout-card\{order:-1\}/);
+  assert.match(globals, /\.checkout-page\s*>\s*\.checkout-card\s*\{\s*order:\s*-1\s*\}/);
   assert.match(experience, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
   assert.doesNotMatch(confirmation, /`purchase_\$\{orderId\}`/);
   assert.match(confirmation, /history\.replaceState/);
@@ -84,7 +84,7 @@ test("Offer V2 account uses verified email and privacy-safe abuse controls", asy
   const [backend, access, homeHtml] = await Promise.all([
     source("infra/checkout/index.mjs"),
     source("app/lib/access.ts"),
-    source("dist/client/index.html"),
+    source("out/index.html"),
   ]);
 
   assert.match(access, /AWSCognitoIdentityProviderService\.\$\{target\}/);
@@ -100,22 +100,18 @@ test("Offer V2 account uses verified email and privacy-safe abuse controls", asy
   assert.doesNotMatch(backend, /macAddress|rawIp/);
 });
 
-test("legacy daily benefit is time-boxed and Offer V2 uses paid credits", async () => {
-  const backend = await source("infra/checkout/index.mjs");
+test("every generation is paid in credits, with no daily free benefit left", async () => {
+  const [backend, creator, deploy] = await Promise.all([
+    source("infra/checkout/index.mjs"),
+    source("app/biblioteca/gerador/page.tsx"),
+    source("infra/deploy-checkout.sh"),
+  ]);
+  const surface = `${backend}\n${creator}\n${deploy}`;
 
-  assert.match(backend, /LEGACY_DAILY_FREE_END_AT/);
-  assert.match(backend, /function dailyFreeEligible\(order/);
-  assert.match(backend, /order\.offerVersion === CURRENT_OFFER_VERSION/);
-  assert.match(backend, /name: \{ S: "free_daily_music" \}/);
-  assert.match(backend, /":name": \{ S: "free_daily_attempt" \}/);
-  assert.match(backend, /FREE_DAILY_ATTEMPT_LIMIT = 3/);
-  assert.match(backend, /reservationType: "FREE_DAILY"/);
   assert.match(backend, /reservationType !== "CREDITS"/);
-  assert.match(backend, /trackLimit: 1/);
   assert.match(backend, /allTracks\.slice\(0, trackLimit\)/);
-  assert.match(backend, /dailyFreeAvailable/);
-  assert.match(backend, /freeDailyAttemptsRemaining/);
-  assert.match(await source("app/biblioteca/gerador/page.tsx"), /reservationType: dailyFreeAvailable \? "FREE_DAILY" : "CREDITS"/);
+  assert.match(creator, /reservationType: "CREDITS"/);
+  assert.doesNotMatch(surface, /FREE_DAILY|free_daily|dailyFree|freeDaily|LEGACY_DAILY_FREE_END_AT|dailyBenefitEndsAt/);
 });
 
 test("login redirect and Cognito key rotation are hardened", async () => {

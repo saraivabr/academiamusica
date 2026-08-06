@@ -151,7 +151,6 @@ export default function MemberNav() {
   const navigationRef = useActiveNavigationMotion(pathname, "desktop");
   const [recentTracks, setRecentTracks] = useState<PlatformTrack[]>([]);
   const [remainingSongs, setRemainingSongs] = useState<number | null>(null);
-  const [dailyFreeAvailable, setDailyFreeAvailable] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -163,7 +162,6 @@ export default function MemberNav() {
           : [];
         setRecentTracks(flattenGenerations(generations).slice(0, 5));
         setRemainingSongs(Number(data.remainingSongs));
-        setDailyFreeAvailable(Boolean(data.dailyFreeAvailable));
       })
       .catch(() => {
         // The main navigation remains usable when recent tracks are unavailable.
@@ -211,8 +209,8 @@ export default function MemberNav() {
       <Link className="academy-wallet" href="/biblioteca/creditos" aria-label="Saldo de criação e recarga">
         <Coins className="academy-wallet-icon" aria-hidden="true" />
         <div>
-          <small>{dailyFreeAvailable ? "BENEFÍCIO EM TRANSIÇÃO" : "SEU SALDO"}</small>
-          <b>{dailyFreeAvailable ? "1 criação" : `${remainingSongs ?? "—"} créditos`}</b>
+          <small>SEU SALDO</small>
+          <b>{`${remainingSongs ?? "—"} créditos`}</b>
         </div>
         <span><Plus aria-hidden="true" /> PIX</span>
       </Link>

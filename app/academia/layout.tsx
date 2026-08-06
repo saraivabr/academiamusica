@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import "../experience-v2.css";
+import "../cover-studio.css";
 import "../spotify-experience.css";
 
 export const metadata: Metadata = {

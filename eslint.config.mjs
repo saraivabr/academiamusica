@@ -10,7 +10,6 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
-    "build/**",
     "infra/cloudfront-rewrite.js",
     "next-env.d.ts",
   ]),

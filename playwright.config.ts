@@ -37,7 +37,7 @@ export default defineConfig({
   webServer: externalBaseUrl
     ? undefined
     : {
-        command: "npm run dev -- --host 127.0.0.1 --port 4173",
+        command: "npx next build && node tests/e2e/support/static-server.mjs",
         url: localBaseUrl,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,

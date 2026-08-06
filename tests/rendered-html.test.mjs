@@ -7,32 +7,11 @@ import {
   transitionAuthenticatedWorkspace,
 } from "../app/lib/accountWorkspace.js";
 
+const exported = (route) =>
+  readFile(new URL(`../out/${route}index.html`, import.meta.url), "utf8");
+
 test("renders finished production metadata", async () => {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  const response = await worker.fetch(
-    new Request("http://localhost/", {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
-
-  assert.equal(response.status, 200);
-  assert.match(
-    response.headers.get("content-type") ?? "",
-    /^text\/html\b/i,
-  );
-  const html = await response.text();
+  const html = await exported("");
   assert.match(html, /<title>Transforme sua história em música \| musicacom\.ia<\/title>/i);
   assert.match(html, /<meta[^>]+property=["']og:title["'][^>]+Transforme sua história em música/i);
   assert.match(html, /<meta[^>]+property=["']og:image["'][^>]+musicacom\.ia\.br\/og-musicacom-ia\.jpg/i);
@@ -68,27 +47,7 @@ test("publishes crawl instructions and only important public URLs", async () => 
 });
 
 test("renders the single-route music creator without the conversational studio", async () => {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `express-${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  const response = await worker.fetch(
-    new Request("http://localhost/biblioteca/gerador/", {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
-
-  assert.equal(response.status, 200);
-  const html = await response.text();
+  const html = await exported("biblioteca/gerador/");
   assert.match(html, /ROTA DE CRIAÇÃO/i);
   assert.match(html, /Sua música, passo a passo\./i);
   assert.match(html, /PASSO[\s\S]{0,30}1[\s\S]{0,30}DE[\s\S]{0,30}5/i);
@@ -99,27 +58,7 @@ test("renders the single-route music creator without the conversational studio",
 });
 
 test("renders the redesigned studio access with the paid project context", async () => {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `login-${process.pid}-${Date.now()}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  const response = await worker.fetch(
-    new Request("http://localhost/login/", {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
-
-  assert.equal(response.status, 200);
-  const html = await response.text();
+  const html = await exported("login/");
   assert.match(html, /Uma ideia hoje\./i);
   assert.match(html, /Uma música sua\./i);
   assert.match(html, /Abra seu estúdio\./i);
@@ -127,7 +66,7 @@ test("renders the redesigned studio access with the paid project context", async
   assert.match(html, /Continuar com Google/i);
   assert.match(html, /preservar sua direção criativa, acompanhar o pagamento e acessar suas músicas/i);
   assert.match(html, /Usar código do pedido/i);
-  assert.match(html, /href=["']\/login\?mode=login["']/i);
+  assert.match(html, /href=["']\/login\/?\?mode=login["']/i);
 });
 
 test("keeps an early track selection until the lazy player is mounted", async () => {

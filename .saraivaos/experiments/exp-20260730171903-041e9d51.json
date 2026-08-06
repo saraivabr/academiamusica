@@ -1,0 +1,11 @@
+{
+  "id": "exp-20260730171903-041e9d51",
+  "name": "Mensagem da home: história versus presente versus lembrança",
+  "hypothesis": "Se adaptarmos a primeira dobra ao motivo real de compra sem aumentar o atrito, então mais visitantes iniciarão uma história porque o valor ficará concreto antes de exigir esforço.",
+  "metric": "story_started dividido por landing_view, por variante, com Pix e compra como guardrails",
+  "baseline": "4,5% (2 histórias iniciadas em 44 visitas nos últimos 14 dias)",
+  "target": ">=20% de ganho relativo com 30 sessões por variante e intervalo de 95% sem sobreposição",
+  "status": "active",
+  "createdAt": "2026-07-30T17:19:03.453Z",
+  "result": null
+}

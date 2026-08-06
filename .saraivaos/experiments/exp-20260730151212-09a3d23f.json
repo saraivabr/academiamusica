@@ -1,0 +1,11 @@
+{
+  "id": "exp-20260730151212-09a3d23f",
+  "name": "Resultado como projeto contínuo",
+  "hypothesis": "Explicitar a música escolhida e os próximos passos aumenta a passagem do áudio entregue para criação de capa.",
+  "metric": "music_next_step_selected cover dividido por music_generation_delivered",
+  "baseline": "coleta inicial",
+  "target": "30% ou mais em 100 entregas",
+  "status": "active",
+  "createdAt": "2026-07-30T15:12:12.059Z",
+  "result": null
+}

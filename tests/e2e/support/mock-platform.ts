@@ -30,6 +30,8 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
 
   await page.addInitScript(() => {
     document.cookie = "academia_access=v1.2000000000.e2e-user.signature; Path=/; SameSite=Strict";
+    // Sem isso a home sorteia uma variante e as asserções de copy ficam instáveis.
+    window.localStorage.setItem("musicacom-experiment-home_story_start_v1", "control");
   });
 
   await page.route(cognitoAuthPattern, async (route) => {
@@ -122,7 +124,6 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
         available: true,
         offerVersion: "music_present_v1",
         remainingSongs: 20,
-        dailyFreeAvailable: false,
       });
       return;
     }
@@ -132,7 +133,6 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
       await json(route, {
         offerVersion: "music_present_v1",
         remainingSongs: 20,
-        dailyFreeAvailable: false,
         generations: tracks.length
           ? [{
               taskId: "e2e_library",
@@ -190,7 +190,6 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
         taskId: "e2e_generation",
         status: "PENDING",
         remainingSongs: 18,
-        dailyFreeUsed: false,
       });
       return;
     }
@@ -199,7 +198,6 @@ export async function mockPlatform(page: Page, options: MockOptions = {}) {
       await json(route, {
         status: "SUCCESS",
         remainingSongs: 18,
-        dailyFreeAvailable: false,
         tracks: [
           {
             id: "e2e_track",
