@@ -37,9 +37,9 @@ yarn-error.log*
 
 # typescript
 next-env.d.ts
-/dist/
-/.wrangler/
-/.sites-runtime/
+
+# ferramentas locais
+/.maestri/
 /outputs/
 /output/
 /.playwright-cli/
