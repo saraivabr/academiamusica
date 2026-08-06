@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AcademyShell } from "../../components/Portal";
 import { CHECKOUT_API, memberApi } from "../../lib/access";
+import { copyText } from "../../lib/clipboard";
 import { trackEvent } from "../../lib/analytics";
 import {
   formatProductPrice,
@@ -197,7 +198,10 @@ export default function CreditosPage() {
 
   async function copyPix() {
     if (!order?.brCode) return;
-    await navigator.clipboard.writeText(order.brCode);
+    if (!await copyText(order.brCode)) {
+      setError("Seu navegador bloqueou a cópia. Selecione o código do Pix e copie manualmente.");
+      return;
+    }
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2200);
   }
@@ -351,7 +355,7 @@ export default function CreditosPage() {
               <label className="credit-terms">
                 <input type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} />
                 <span>
-                  Li e aceito os <a href="/termos" target="_blank">termos</a>.
+                  Li e aceito os <a href="/termos" target="_blank" rel="noreferrer">termos</a>.
                   {selected.type === "subscription"
                     ? " Autorizo a cobrança mensal por Pix Automático e sei que posso cancelar."
                     : " Esta compra é única e não gera renovação."}

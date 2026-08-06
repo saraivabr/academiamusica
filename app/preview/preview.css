@@ -131,6 +131,12 @@
   text-align: right;
 }
 
+/* O envio fica bloqueado até 20 caracteres; sem isso o botão parece quebrado. */
+.preview-form label > small.preview-hint-short {
+  color: #0d5d45;
+  font-weight: 700;
+}
+
 .preview-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

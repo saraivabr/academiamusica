@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { CHECKOUT_API } from "../lib/access";
 import { getAnalyticsContext, trackEvent } from "../lib/analytics";
 import { trackMetaEvent } from "../lib/metaPixel";
+import { copyText } from "../lib/clipboard";
 import { formatProductPrice, STARTER_PRODUCT } from "../lib/musicProducts";
 
 type Order = {
@@ -55,6 +56,7 @@ export default function CheckoutClient() {
   const [error, setError] = useState("");
   const [order, setOrder] = useState<Order | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [pollRetry, setPollRetry] = useState(0);
   const [preview, setPreview] = useState<PreviewDraft | null>(null);
   const pollingFailures = useRef(0);
@@ -225,8 +227,12 @@ export default function CheckoutClient() {
 
   async function copyPix() {
     if (!order?.brCode) return;
-    await navigator.clipboard.writeText(order.brCode);
+    if (!await copyText(order.brCode)) {
+      setCopyFailed(true);
+      return;
+    }
     trackEvent("pix_copied");
+    setCopyFailed(false);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 2500);
   }
@@ -254,6 +260,12 @@ export default function CheckoutClient() {
             <button type="button" className="checkout-primary" onClick={copyPix}>
               {copied ? "Código copiado ✓" : "Copiar código Pix"}
             </button>
+            {copyFailed ? (
+              <p className="checkout-error" role="alert">
+                Seu navegador bloqueou a cópia automática. Selecione o código
+                acima e copie manualmente.
+              </p>
+            ) : null}
           </>
         ) : null}
         <div className="payment-waiting">
@@ -360,8 +372,8 @@ export default function CheckoutClient() {
             onChange={(event) => setAcceptedTerms(event.target.checked)}
           />
           <span>
-            Li e aceito os <a href="/termos" target="_blank">Termos</a>, a{" "}
-            <a href="/privacidade" target="_blank">Política de Privacidade</a> e as
+            Li e aceito os <a href="/termos" target="_blank" rel="noreferrer">Termos</a>, a{" "}
+            <a href="/privacidade" target="_blank" rel="noreferrer">Política de Privacidade</a> e as
             condições de reembolso.
           </span>
         </label>

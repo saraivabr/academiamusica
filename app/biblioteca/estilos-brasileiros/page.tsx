@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { AcademyShell } from "../../components/Portal";
 import { trackEvent } from "../../lib/analytics";
+import { copyText } from "../../lib/clipboard";
 import { playInAcademyPlayer } from "../../lib/musicPlatform";
 import { musicStyles } from "../../lib/musicStyles";
 
@@ -63,8 +64,7 @@ export default function Estilos() {
   );
 
   async function copy(slug: string, text: string) {
-    await navigator.clipboard.writeText(text);
-    setCopied(slug);
+    setCopied(await copyText(text) ? slug : `${slug}:erro`);
     window.setTimeout(() => setCopied(""), 1500);
   }
 
@@ -186,7 +186,7 @@ export default function Estilos() {
                       <small>O QUE EVITAR</small>
                       <p>{style.exclude}</p>
                       <button type="button" onClick={() => copy(style.slug, style.prompt)}>
-                        {copied === style.slug ? "COPIADO ✓" : "COPIAR TEXTO TÉCNICO"}
+                        {copied === style.slug ? "COPIADO ✓" : copied === `${style.slug}:erro` ? "COPIE MANUALMENTE" : "COPIAR TEXTO TÉCNICO"}
                       </button>
                     </details>
                   </div>

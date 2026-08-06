@@ -68,6 +68,7 @@ export default function PreviewPage() {
   const [style, setStyle] = useState("Sertanejo");
   const [preview, setPreview] = useState<PreviewDraft | null>(null);
   const storyTracked = useRef(false);
+  const remainingToMinimum = Math.max(0, 20 - story.trim().length);
 
   useEffect(() => {
     const hydration = window.setTimeout(() => {
@@ -151,7 +152,11 @@ export default function PreviewPage() {
               required
               placeholder="Ex.: minha mãe criou três filhos sozinha e nunca deixou a casa perder a alegria..."
             />
-            <small>{story.length}/500</small>
+            <small className={remainingToMinimum > 0 ? "preview-hint-short" : ""}>
+              {remainingToMinimum > 0
+                ? `Faltam ${remainingToMinimum} caracteres para liberar sua prévia`
+                : `${story.length}/500`}
+            </small>
           </label>
 
           <fieldset>
