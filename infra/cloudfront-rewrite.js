@@ -1,6 +1,16 @@
 var crypto = require("crypto");
 var ACCESS_SECRET = "__ACCESS_SECRET__";
 var PROTECTED_PREFIXES = ["/biblioteca"];
+// A Academia saiu do produto e /biblioteca assumiu o papel de home do estúdio.
+// Quem guardou um link antigo cairia em 404, então mandamos para a home nova.
+var RETIRED_HOME = "/academia";
+var CURRENT_HOME = "/biblioteca/";
+
+function isRetiredHome(uri) {
+  // A barra é obrigatória no prefixo: sem ela, /academia-musica-ia-trap-jingle.mp3
+  // (o áudio de demonstração da home) também seria redirecionado.
+  return uri === RETIRED_HOME || uri.indexOf(RETIRED_HOME + "/") === 0;
+}
 
 function isProtected(uri) {
   for (var index = 0; index < PROTECTED_PREFIXES.length; index += 1) {
@@ -27,6 +37,23 @@ function hasValidAccess(request) {
 function handler(event) {
   var request = event.request;
   var uri = request.uri;
+
+  // Vem antes da proteção: sem cookie, o próprio /biblioteca já manda ao login,
+  // então o membro chega ao destino certo em vez de a um 404.
+  if (isRetiredHome(uri)) {
+    return {
+      statusCode: 302,
+      statusDescription: "Found",
+      headers: {
+        location: {
+          value: CURRENT_HOME
+        },
+        "cache-control": {
+          value: "public,max-age=3600"
+        }
+      }
+    };
+  }
 
   if (isProtected(uri) && !hasValidAccess(request)) {
     return {
