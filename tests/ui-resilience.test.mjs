@@ -22,6 +22,27 @@ const sources = await Promise.all(
   })),
 );
 
+test("a área logada tem uma única home, e ela é /biblioteca", async () => {
+  // A Academia saiu: /academia era um segundo painel pós-login que duplicava
+  // /biblioteca. Sem esta guarda, um link reintroduzido leva o membro a uma
+  // rota que não existe mais e o build continua passando.
+  const orfaos = sources
+    .filter(({ code }) => /["'`]\/academia(\/|["'`])/.test(code))
+    .map(({ name }) => name);
+  assert.deepEqual(orfaos, [], "rota /academia foi removida");
+
+  const porta = (arquivo) => sources.find((f) => f.name === arquivo).code;
+  assert.match(porta("components/Portal.tsx"), /<Logo href="\/biblioteca" \/>/);
+  assert.match(porta("components/AcademyTopBar.tsx"), /href="\/biblioteca"/);
+
+  // O login só devolve o membro para dentro da própria área.
+  const login = porta("login/AccessLogin.tsx");
+  assert.match(login, /const defaultNextPath = "\/biblioteca\//);
+  assert.match(login, /destination\.origin === window\.location\.origin/);
+  const permitidos = login.match(/destination\.pathname[^;]+;/s)[0];
+  assert.doesNotMatch(permitidos, /academia|comunidade/);
+});
+
 test("copiar para a área de transferência nunca falha em silêncio", async () => {
   const helper = sources.find((f) => f.name === "lib/clipboard.ts");
   assert.ok(helper, "app/lib/clipboard.ts deve existir");
