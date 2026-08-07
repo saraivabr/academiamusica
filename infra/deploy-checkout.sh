@@ -17,7 +17,10 @@ SUNO_API_KEY_PARAMETER="/academia-musica/prod/suno/api-key"
 IMAGE_PROXY_KEY_PARAMETER="/academia-musica/prod/image-proxy-key"
 COVERS_BUCKET="academia-musica-covers-${ACCOUNT_ID}-${AWS_REGION}"
 SITE_ORIGIN="https://musicacom.ia.br"
-MUSIC_EMAIL_FROM_ADDRESS="${MUSIC_EMAIL_FROM_ADDRESS:-musica@escreve.ai}"
+# O remetente vive no mesmo domínio da compra: quem paga em musicacom.ia.br
+# recebe de musicacom.ia.br. Um endereço de outro domínio derruba a confiança
+# do cliente e a entregabilidade, mesmo com DKIM válido.
+MUSIC_EMAIL_FROM_ADDRESS="${MUSIC_EMAIL_FROM_ADDRESS:-musica@musicacom.ia.br}"
 MUSIC_EMAIL_REPLY_TO_ADDRESS="${MUSIC_EMAIL_REPLY_TO_ADDRESS:-$MUSIC_EMAIL_FROM_ADDRESS}"
 MUSIC_EMAIL_CONFIGURATION_SET="${MUSIC_EMAIL_CONFIGURATION_SET:-musicacom-transactional}"
 MUSIC_EMAIL_SANDBOX_RECIPIENT="${MUSIC_EMAIL_SANDBOX_RECIPIENT:-fellipesaraivabarbosa@gmail.com}"
