@@ -171,7 +171,7 @@ export default function Home() {
           onClick={toggleAudio}
           aria-label={playing ? "Pausar música de exemplo" : "Ouvir música de exemplo"}
         >
-          <img src="/elemento-vinil-capa.png" alt="" width="160" height="160" />
+          <img src="/elemento-vinil-icone.webp" alt="" width="160" height="107" loading="lazy" decoding="async" />
           <span>
             <small>CRIADA AQUI</small>
             <strong>Minha raiz</strong>
@@ -185,7 +185,7 @@ export default function Home() {
           onClick={toggleAudio}
           aria-label={playing ? "Pausar música de exemplo" : "Ouvir música de exemplo"}
         >
-          <img src="/elemento-play-3d.png" alt="" width="160" height="160" />
+          <img src="/elemento-play-3d.webp" alt="" width="160" height="160" loading="lazy" decoding="async" />
           <span>
             <small>DUAS VERSÕES</small>
             <strong>Casa da gente</strong>
@@ -392,12 +392,12 @@ export default function Home() {
       <section className="br-tutorial br-section" id="tutorial">
         <div className="br-tutorial-art">
           <img
-            src="/elemento-ideia-ao-link.png"
+            src="/elemento-ideia-ao-link.webp"
             alt="Da ideia ao play: música pronta para compartilhar"
             loading="lazy"
             decoding="async"
-            width="1254"
-            height="1254"
+            width="1240"
+            height="827"
           />
           <div className="br-tutorial-label"><span>TUTORIAL INTEGRADO</span><b>Aprenda fazendo.</b></div>
         </div>
@@ -443,12 +443,12 @@ export default function Home() {
         </div>
         <div className="br-access-art">
           <img
-            src="/elemento-vinil-capa.png"
+            src="/elemento-vinil-capa.webp"
             alt="Vinil e capa representando uma música pronta"
             loading="lazy"
             decoding="async"
-            width="1254"
-            height="1254"
+            width="1400"
+            height="933"
           />
           <span>IDEIA → MÚSICA → CAPA → LANÇAMENTO</span>
         </div>

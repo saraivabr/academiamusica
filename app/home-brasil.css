@@ -415,7 +415,7 @@
 
 .br-tutorial-copy li>span {color:var(--green);margin-right:7px}
 
-.br-access {display:grid;grid-template-columns:.9fr 1.1fr;gap:80px;align-items:center;color:#151923;background:linear-gradient(90deg,rgba(248,251,249,.98),rgba(248,251,249,.86)),url("/brand/musicacom-brand-master.png") center/cover}
+.br-access {display:grid;grid-template-columns:.9fr 1.1fr;gap:80px;align-items:center;color:#151923;background:linear-gradient(90deg,rgba(248,251,249,.98),rgba(248,251,249,.86)),url("/brand/musicacom-brand-master.webp") center/cover}
 
 .br-access .br-section-tag {color:#009b58}
 
@@ -466,7 +466,7 @@
 
 .br-faq-list article.open>div p {padding:0 60px 26px 0}
 
-.br-final {position:relative;min-height:680px;padding:120px 30px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#151923;background:linear-gradient(rgba(255,255,255,.72),rgba(255,255,255,.88)),url("/brand/musicacom-brand-master.png") center/cover}
+.br-final {position:relative;min-height:680px;padding:120px 30px;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#151923;background:linear-gradient(rgba(255,255,255,.72),rgba(255,255,255,.88)),url("/brand/musicacom-brand-master.webp") center/cover}
 
 .br-final h2,
 .br-final p,
