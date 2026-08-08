@@ -4,6 +4,7 @@ import { useRef, useState, useSyncExternalStore } from "react";
 import type { FormEvent } from "react";
 import "../home-brasil.css";
 import BrandLogo from "./BrandLogo";
+import { faltamCaracteres } from "../lib/texto";
 import {
   getHomeStoryVariant,
   HOME_STORY_EXPERIMENT,
@@ -96,6 +97,9 @@ const heroMessages: Record<HomeStoryVariant, {
 const subscribeHomeStoryVariant = () => () => {};
 const getServerHomeStoryVariant = (): HomeStoryVariant => "control";
 
+const MINIMUM_IDEA = 8;
+
+
 function formatTime(value: number) {
   if (!Number.isFinite(value)) return "0:00";
   const minutes = Math.floor(value / 60);
@@ -110,6 +114,8 @@ export default function Home() {
   const [duration, setDuration] = useState(188.64);
   const [openFaq, setOpenFaq] = useState(0);
   const [idea, setIdea] = useState("");
+  const [ideaHint, setIdeaHint] = useState("");
+  const ideaRef = useRef<HTMLTextAreaElement>(null);
   const heroVariant = useSyncExternalStore(
     subscribeHomeStoryVariant,
     getHomeStoryVariant,
@@ -127,7 +133,15 @@ export default function Home() {
   const startWithIdea = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalizedIdea = idea.trim();
-    if (normalizedIdea.length < 8) return;
+    // O botão continua clicável de propósito: apagado, ele parecia quebrado e
+    // não contava que bastava escrever uma frase para seguir.
+    if (normalizedIdea.length < MINIMUM_IDEA) {
+      setIdeaHint(normalizedIdea.length
+        ? faltamCaracteres(MINIMUM_IDEA - normalizedIdea.length, "para começar")
+        : "Escreva uma frase sobre o que você quer transformar em música.");
+      ideaRef.current?.focus();
+      return;
+    }
     window.location.assign(`/preview?idea=${encodeURIComponent(normalizedIdea)}`);
   };
 
@@ -202,13 +216,18 @@ export default function Home() {
           <h1>{heroMessage.title}<br /><em>{heroMessage.emphasis}</em></h1>
           <p>{heroMessage.description}</p>
 
-          <form className="br-idea-form" onSubmit={startWithIdea}>
+          <form className="br-idea-form" onSubmit={startWithIdea} noValidate>
             <label htmlFor="hero-idea">{heroMessage.label}</label>
             <textarea
               id="hero-idea"
               name="idea"
+              ref={ideaRef}
               value={idea}
-              onChange={(event) => setIdea(event.target.value)}
+              aria-describedby={ideaHint ? "hero-idea-hint" : undefined}
+              onChange={(event) => {
+                setIdea(event.target.value);
+                if (ideaHint) setIdeaHint("");
+              }}
               placeholder={heroMessage.placeholder}
               maxLength={280}
               rows={2}
@@ -225,13 +244,15 @@ export default function Home() {
               <button
                 type="submit"
                 className="br-create-button"
-                disabled={idea.trim().length < 8}
                 data-track="story_started"
                 data-track-placement="hero"
               >
                 {heroMessage.cta}
               </button>
             </div>
+            {ideaHint ? (
+              <p className="br-idea-hint" id="hero-idea-hint" role="alert">{ideaHint}</p>
+            ) : null}
           </form>
 
           <div className="br-hero-note">

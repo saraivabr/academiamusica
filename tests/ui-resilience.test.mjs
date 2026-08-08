@@ -22,6 +22,24 @@ const sources = await Promise.all(
   })),
 );
 
+test("nenhum botão de entrada nasce apagado sem dizer o que falta", async () => {
+  // O CTA do hero nascia desabilitado até a pessoa digitar 8 caracteres, com
+  // opacity .38 e nenhuma explicação: parecia quebrado na porta de entrada.
+  const home = sources.find((f) => f.name === "components/HomePage.tsx").code;
+  assert.doesNotMatch(home, /disabled=\{[^}]*\.length\s*<\s*\d/);
+  assert.match(home, /ideaRef\.current\?\.focus\(\)/);
+  assert.match(home, /faltamCaracteres\(/);
+
+  const preview = sources.find((f) => f.name === "preview/page.tsx").code;
+  assert.match(preview, /faltamCaracteres\(/);
+
+  // A contagem regressiva chega a 1: sem concordância vira "Faltam 1 caracteres".
+  const texto = sources.find((f) => f.name === "lib/texto.ts");
+  assert.ok(texto, "app/lib/texto.ts deve existir");
+  assert.match(texto.code, /quantidade === 1/);
+  assert.match(texto.code, /Falta 1 caractere/);
+});
+
 test("a área logada tem uma única home, e ela é /biblioteca", async () => {
   // A Academia saiu: /academia era um segundo painel pós-login que duplicava
   // /biblioteca. Sem esta guarda, um link reintroduzido leva o membro a uma
@@ -70,7 +88,7 @@ test("todo link que abre em nova aba isola a origem", () => {
 test("a prévia diz quanto falta em vez de só desabilitar o envio", () => {
   const preview = sources.find((f) => f.name === "preview/page.tsx");
   assert.match(preview.code, /remainingToMinimum/);
-  assert.match(preview.code, /Faltam \$\{remainingToMinimum\} caracteres/);
+  assert.match(preview.code, /faltamCaracteres\(remainingToMinimum/);
 });
 
 test("as páginas legais numeram as seções", () => {

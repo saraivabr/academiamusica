@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import BrandLogo from "../components/BrandLogo";
+import { faltamCaracteres } from "../lib/texto";
 import { trackEvent } from "../lib/analytics";
 import "./preview.css";
 
@@ -154,7 +155,7 @@ export default function PreviewPage() {
             />
             <small className={remainingToMinimum > 0 ? "preview-hint-short" : ""}>
               {remainingToMinimum > 0
-                ? `Faltam ${remainingToMinimum} caracteres para liberar sua prévia`
+                ? faltamCaracteres(remainingToMinimum, "para liberar sua prévia")
                 : `${story.length}/500`}
             </small>
           </label>
